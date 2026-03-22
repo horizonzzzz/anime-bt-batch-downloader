@@ -73,6 +73,7 @@ test("content script injects the batch panel on a Kisssub list page", async () =
 
     await expect(page.getByText("Kisssub 批量下载")).toBeVisible()
     await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2)
+    await expect(page.getByLabel("下载路径")).toBeVisible()
 
     await page.locator("[data-kisssub-batch-checkbox]").first().check()
     await expect(page.getByText("已选 1 项")).toBeVisible()

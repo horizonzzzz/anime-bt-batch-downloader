@@ -5,9 +5,13 @@ type BatchPanelProps = {
   running: boolean
   progressText: string
   statusText: string
+  savePath: string
+  savePathHint?: string
   logs: BatchLogItem[]
   onSelectAll: () => void
   onClear: () => void
+  onSavePathChange: (value: string) => void
+  onClearSavePath: () => void
   onDownload: () => void
   onOpenSettings: () => void
 }
@@ -17,13 +21,18 @@ export function BatchPanel({
   running,
   progressText,
   statusText,
+  savePath,
+  savePathHint,
   logs,
   onSelectAll,
   onClear,
+  onSavePathChange,
+  onClearSavePath,
   onDownload,
   onOpenSettings
 }: BatchPanelProps) {
   const disableSelectionActions = running || selectedCount === 0
+  const disablePathActions = running
 
   return (
     <aside className="kisssub-batch-panel" aria-label="Kisssub 批量下载面板">
@@ -52,6 +61,36 @@ export function BatchPanel({
           <span>{running ? "处理中" : "待命"}</span>
         </div>
         <p className="kisssub-batch-panel__status">{statusText}</p>
+      </section>
+
+      <section className="kisssub-batch-panel__path-card">
+        <div className="kisssub-batch-panel__section-head">
+          <strong>下载路径</strong>
+          <span>{savePath ? "自定义路径" : "qB 默认目录"}</span>
+        </div>
+        <label className="kisssub-batch-panel__path-label" htmlFor="kisssub-batch-save-path">
+          下载路径
+        </label>
+        <input
+          id="kisssub-batch-save-path"
+          className="kisssub-batch-panel__path-input"
+          type="text"
+          value={savePath}
+          placeholder="留空则使用 qBittorrent 默认下载目录"
+          onChange={(event) => {
+            onSavePathChange(event.target.value)
+          }}
+          disabled={disablePathActions}
+        />
+        <div className="kisssub-batch-panel__path-actions">
+          <button type="button" onClick={onClearSavePath} disabled={disablePathActions || !savePath}>
+            清空路径
+          </button>
+        </div>
+        <p className="kisssub-batch-panel__path-hint">
+          {savePathHint ||
+            "留空则使用 qBittorrent 默认下载目录。远程 qB 请手动输入目标机器可识别的绝对路径。"}
+        </p>
       </section>
 
       <div className="kisssub-batch-panel__actions kisssub-batch-panel__actions--primary">

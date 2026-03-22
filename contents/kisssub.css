@@ -89,6 +89,7 @@
 
 .kisssub-batch-panel__stat-card,
 .kisssub-batch-panel__status-card,
+.kisssub-batch-panel__path-card,
 .kisssub-batch-panel__log-section {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 18px;
@@ -121,6 +122,11 @@
   padding: 12px 14px;
 }
 
+.kisssub-batch-panel__path-card {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+}
+
 .kisssub-batch-panel__section-head {
   display: flex;
   align-items: baseline;
@@ -130,6 +136,73 @@
 
 .kisssub-batch-panel__status {
   margin: 10px 0 0;
+}
+
+.kisssub-batch-panel__path-label {
+  display: block;
+  margin-top: 10px;
+  color: #4f5f6f;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kisssub-batch-panel__path-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #16263a;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.kisssub-batch-panel__path-input:focus {
+  outline: 2px solid rgba(201, 97, 40, 0.24);
+  outline-offset: 1px;
+  border-color: rgba(201, 97, 40, 0.58);
+}
+
+.kisssub-batch-panel__path-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.kisssub-batch-panel__path-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.kisssub-batch-panel__path-actions button {
+  min-width: 96px;
+  padding: 9px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #16263a;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    background 0.18s ease;
+}
+
+.kisssub-batch-panel__path-actions button:hover:not(:disabled) {
+  border-color: rgba(107, 119, 133, 0.44);
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.kisssub-batch-panel__path-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.kisssub-batch-panel__path-hint {
+  margin: 10px 0 0;
+  color: #586779;
 }
 
 .kisssub-batch-panel__actions {

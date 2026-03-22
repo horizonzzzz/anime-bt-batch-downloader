@@ -30,14 +30,21 @@ type PanelSnapshot = {
   selected: Map<string, BatchItem>
   progressText: string
   statusText: string
+  savePath: string
+  savePathHint: string
   logs: BatchLogItem[]
 }
+
+const DEFAULT_SAVE_PATH_HINT =
+  "留空则使用 qBittorrent 默认下载目录。远程 qB 请手动输入目标机器可识别的绝对路径。"
 
 const snapshot: PanelSnapshot = {
   running: false,
   selected: new Map(),
   progressText: "等待操作",
   statusText: "就绪。先在当前列表页勾选帖子。",
+  savePath: "",
+  savePathHint: DEFAULT_SAVE_PATH_HINT,
   logs: []
 }
 
@@ -48,6 +55,7 @@ let observer: MutationObserver | null = null
 
 if (isListPage(window.location)) {
   mountPanel()
+  void hydrateSavePath()
   scanAndDecorate()
   if (checkboxRoots.size > 0) {
     observeMutations()
@@ -145,9 +153,13 @@ function renderPanel() {
       running={snapshot.running}
       progressText={snapshot.progressText}
       statusText={snapshot.statusText}
+      savePath={snapshot.savePath}
+      savePathHint={snapshot.savePathHint}
       logs={snapshot.logs}
       onSelectAll={selectAllVisible}
       onClear={clearSelection}
+      onSavePathChange={updateSavePath}
+      onClearSavePath={clearSavePath}
       onDownload={() => {
         void startBatchDownload()
       }}
@@ -195,6 +207,41 @@ function clearSelection() {
   renderAll()
 }
 
+function updateSavePath(value: string) {
+  snapshot.savePath = value
+  snapshot.savePathHint = buildSavePathHint(value)
+  renderAll()
+}
+
+function clearSavePath() {
+  snapshot.savePath = ""
+  snapshot.savePathHint = DEFAULT_SAVE_PATH_HINT
+  renderAll()
+}
+
+async function hydrateSavePath() {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "GET_SETTINGS"
+    })
+
+    if (!response?.ok) {
+      return
+    }
+
+    const loadedPath = String((response.settings as { lastSavePath?: string } | undefined)?.lastSavePath ?? "").trim()
+    if (!loadedPath) {
+      return
+    }
+
+    snapshot.savePath = loadedPath
+    snapshot.savePathHint = `已载入上次使用的路径：${loadedPath}`
+    renderAll()
+  } catch {
+    // Ignore initialization failures and keep the panel usable.
+  }
+}
+
 async function startBatchDownload() {
   if (snapshot.running) {
     return
@@ -209,13 +256,17 @@ async function startBatchDownload() {
 
   snapshot.running = true
   snapshot.progressText = "准备中"
-  snapshot.statusText = `开始处理 ${items.length} 项，后台会逐个打开详情页并提取真实链接。`
+  const normalizedSavePath = snapshot.savePath.trim()
+  snapshot.statusText = normalizedSavePath
+    ? `开始处理 ${items.length} 项，后台会逐个打开详情页并提取真实链接，并请求保存到 ${normalizedSavePath}。`
+    : `开始处理 ${items.length} 项，后台会逐个打开详情页并提取真实链接。当前使用 qBittorrent 默认目录。`
   snapshot.logs = []
   renderAll()
 
   const response = await chrome.runtime.sendMessage({
     type: "START_BATCH_DOWNLOAD",
-    items
+    items,
+    savePath: normalizedSavePath
   })
 
   if (!response?.ok) {
@@ -272,4 +323,11 @@ function handleBatchEvent(event: BatchEventPayload) {
     snapshot.statusText = event.error || "批量任务失败。"
     renderAll()
   }
+}
+
+function buildSavePathHint(savePath: string) {
+  const normalized = savePath.trim()
+  return normalized
+    ? `本次任务将请求 qBittorrent 保存到：${normalized}`
+    : DEFAULT_SAVE_PATH_HINT
 }

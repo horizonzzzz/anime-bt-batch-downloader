@@ -33,4 +33,14 @@ describe("sanitizeSettings", () => {
       retryCount: 0
     })
   })
+
+  it("normalizes and keeps the last used save path", () => {
+    expect(
+      sanitizeSettings({
+        lastSavePath: "  D:\\Downloads\\Anime  "
+      })
+    ).toMatchObject({
+      lastSavePath: "D:\\Downloads\\Anime"
+    })
+  })
 })

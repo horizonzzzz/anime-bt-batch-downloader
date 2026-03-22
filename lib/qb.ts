@@ -45,6 +45,9 @@ export function getQbLoginErrorMessage(
 export async function addUrlsToQb(
   settings: Settings,
   urls: string[],
+  options: {
+    savePath?: string
+  } = {},
   fetchImpl: FetchLike = fetch
 ): Promise<void> {
   if (!urls.length) {
@@ -53,6 +56,10 @@ export async function addUrlsToQb(
 
   const formData = new FormData()
   formData.append("urls", urls.join("\n"))
+  const savePath = String(options.savePath ?? "").trim()
+  if (savePath) {
+    formData.append("savepath", savePath)
+  }
 
   const response = await fetchImpl(`${settings.qbBaseUrl}/api/v2/torrents/add`, {
     method: "POST",

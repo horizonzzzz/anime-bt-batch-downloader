@@ -13,10 +13,24 @@ const settings = {
   domSettleMs: 1200,
   retryCount: 1,
   remoteScriptUrl: "//1.acgscript.com/script/miobt/4.js?3",
-  remoteScriptRevision: "20181120.2"
+  remoteScriptRevision: "20181120.2",
+  lastSavePath: ""
 }
 
 describe("OptionsPage", () => {
+  it("does not show local helper installation guidance", async () => {
+    const api = {
+      loadSettings: vi.fn().mockResolvedValue(settings),
+      saveSettings: vi.fn(),
+      testConnection: vi.fn()
+    }
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+    expect(screen.queryByText("本地目录助手")).not.toBeInTheDocument()
+  })
+
   it("loads settings on mount and saves edited values", async () => {
     const user = userEvent.setup()
     const api = {

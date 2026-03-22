@@ -39,6 +39,7 @@ export type Settings = {
   retryCount: number
   remoteScriptUrl: string
   remoteScriptRevision: string
+  lastSavePath: string
 }
 
 export type TestQbConnectionResult = {

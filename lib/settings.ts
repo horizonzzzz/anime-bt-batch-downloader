@@ -17,7 +17,8 @@ export function sanitizeSettings(raw: RawSettings): Settings {
     remoteScriptUrl: normalizeRemoteScriptUrl(raw.remoteScriptUrl ?? DEFAULT_SETTINGS.remoteScriptUrl),
     remoteScriptRevision:
       String(raw.remoteScriptRevision ?? DEFAULT_SETTINGS.remoteScriptRevision).trim() ||
-      DEFAULT_SETTINGS.remoteScriptRevision
+      DEFAULT_SETTINGS.remoteScriptRevision,
+    lastSavePath: normalizeSavePath(raw.lastSavePath ?? DEFAULT_SETTINGS.lastSavePath)
   }
 }
 
@@ -67,4 +68,8 @@ function normalizeBaseUrl(url: unknown): string {
 function normalizeRemoteScriptUrl(url: unknown): string {
   const normalized = String(url ?? "").trim()
   return normalized || DEFAULT_SETTINGS.remoteScriptUrl
+}
+
+function normalizeSavePath(path: unknown): string {
+  return String(path ?? "").trim()
 }

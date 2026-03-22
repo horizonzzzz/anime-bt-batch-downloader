@@ -25,13 +25,14 @@ type RuntimeRequest =
   | { type: "SAVE_SETTINGS"; settings?: Partial<Settings> }
   | { type: "TEST_QB_CONNECTION"; settings?: Partial<Settings> | null }
   | { type: "OPEN_OPTIONS_PAGE" }
-  | { type: "START_BATCH_DOWNLOAD"; items?: BatchItem[] }
+  | { type: "START_BATCH_DOWNLOAD"; items?: BatchItem[]; savePath?: string }
 
 type BatchJob = {
   sourceTabId: number
   stats: BatchStats
   results: ClassifiedBatchResult[]
   settings: Settings
+  savePath: string
 }
 
 const activeJobs = new Map<number, BatchJob>()
@@ -68,7 +69,7 @@ chrome.runtime.onMessage.addListener((message: RuntimeRequest, sender, sendRespo
           sendResponse({ ok: true })
           return
         case "START_BATCH_DOWNLOAD":
-          sendResponse(await startBatchDownload(sender, message.items ?? []))
+          sendResponse(await startBatchDownload(sender, message.items ?? [], message.savePath))
           return
         default:
           sendResponse({
@@ -102,7 +103,11 @@ async function testQbConnection(overrideSettings: Partial<Settings> | null) {
   }
 }
 
-async function startBatchDownload(sender: chrome.runtime.MessageSender, items: BatchItem[]) {
+async function startBatchDownload(
+  sender: chrome.runtime.MessageSender,
+  items: BatchItem[],
+  requestedSavePath?: string
+) {
   const sourceTabId = typeof sender.tab?.id === "number" ? sender.tab.id : null
   if (sourceTabId === null) {
     throw new Error("Batch downloads can only be started from a Kisssub tab.")
@@ -117,12 +122,17 @@ async function startBatchDownload(sender: chrome.runtime.MessageSender, items: B
     throw new Error("No valid Kisssub detail posts were selected.")
   }
 
-  const settings = await getSettings()
+  const savePath = normalizeSavePath(requestedSavePath)
+  const settings = await saveSettings({ lastSavePath: savePath })
   const job: BatchJob = {
     sourceTabId,
     stats: createStats(normalizedItems.length),
     results: [],
-    settings
+    settings: {
+      ...settings,
+      lastSavePath: savePath
+    },
+    savePath
   }
 
   activeJobs.set(sourceTabId, job)
@@ -147,7 +157,9 @@ async function runBatch(job: BatchJob, items: BatchItem[]) {
   await sendBatchEvent(job.sourceTabId, {
     stage: "started",
     stats: job.stats,
-    message: `Preparing ${items.length} selected posts.`
+    message: job.savePath
+      ? `Preparing ${items.length} selected posts. Requested save path: ${job.savePath}`
+      : `Preparing ${items.length} selected posts. Using qBittorrent default save path.`
   })
 
   const pending = items.slice()
@@ -170,14 +182,21 @@ async function runBatch(job: BatchJob, items: BatchItem[]) {
   await sendBatchEvent(job.sourceTabId, {
     stage: "submitting",
     stats: job.stats,
-    message: `Submitting ${preparedSubmissions.length} unique link(s) to qBittorrent.`
+    message: job.savePath
+      ? `Submitting ${preparedSubmissions.length} unique link(s) to qBittorrent with save path ${job.savePath}.`
+      : `Submitting ${preparedSubmissions.length} unique link(s) to qBittorrent using the default save path.`
   })
 
   try {
     await loginQb(job.settings)
     await addUrlsToQb(
       job.settings,
-      preparedSubmissions.map((entry) => entry.submitUrl)
+      preparedSubmissions.map((entry) => entry.submitUrl),
+      job.savePath
+        ? {
+            savePath: job.savePath
+          }
+        : undefined
     )
 
     for (const entry of preparedSubmissions) {
@@ -274,6 +293,10 @@ async function sendBatchEvent(tabId: number, payload: BatchEventPayload) {
   } catch {
     // Ignore tabs that navigated away or were closed.
   }
+}
+
+function normalizeSavePath(path: unknown) {
+  return String(path ?? "").trim()
 }
 
 export {}
