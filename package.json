@@ -1,0 +1,57 @@
+{
+  "name": "kisssub-batch-downloader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kisssub batch downloader browser extension rebuilt as a Plasmo project.",
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:e2e": "pnpm build && playwright test",
+    "test:all": "pnpm typecheck && pnpm test && pnpm test:e2e"
+  },
+  "manifest": {
+    "name": "Kisssub Batch Downloader",
+    "version": "0.1.0",
+    "description": "Select multiple Kisssub posts on a list page, resolve real download links by injecting the acgscript helper, and send them to qBittorrent in one batch.",
+    "minimum_chrome_version": "114",
+    "permissions": [
+      "storage",
+      "tabs",
+      "scripting"
+    ],
+    "host_permissions": [
+      "http://www.kisssub.org/*",
+      "https://www.kisssub.org/*",
+      "http://*/*",
+      "https://*/*"
+    ],
+    "action": {
+      "default_title": "Kisssub Batch Downloader"
+    }
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/chrome": "^0.1.38",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.1.0",
+    "jsdom": "^29.0.1",
+    "plasmo": "^0.90.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
