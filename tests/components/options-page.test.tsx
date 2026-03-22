@@ -42,6 +42,41 @@ describe("OptionsPage", () => {
       )
     })
 
-    expect(screen.getByText("设置已保存。")).toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
+  })
+
+  it("shows a live status region and connection feedback while testing", async () => {
+    const user = userEvent.setup()
+    let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
+    const api = {
+      loadSettings: vi.fn().mockResolvedValue(settings),
+      saveSettings: vi.fn(),
+      testConnection: vi.fn().mockImplementation(
+        () =>
+          new Promise<{ baseUrl: string; version: string }>((resolve) => {
+            resolveConnection = resolve
+          })
+      )
+    }
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByRole("status")).toHaveTextContent("设置已加载。")
+
+    await user.click(screen.getByRole("button", { name: "测试 qB 连接" }))
+
+    expect(api.testConnection).toHaveBeenCalledWith(settings)
+    expect(screen.getByRole("button", { name: "测试 qB 连接" })).toBeDisabled()
+    expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
+
+    resolveConnection?.({
+      baseUrl: settings.qbBaseUrl,
+      version: "5.0.0"
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("连接成功。")
+      expect(screen.getByRole("status")).toHaveTextContent("5.0.0")
+    })
   })
 })

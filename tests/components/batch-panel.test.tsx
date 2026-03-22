@@ -46,4 +46,37 @@ describe("BatchPanel", () => {
 
     expect(onDownload).toHaveBeenCalledTimes(1)
   })
+
+  it("renders a recent results section and opens settings from the secondary action", async () => {
+    const user = userEvent.setup()
+    const onOpenSettings = vi.fn()
+
+    render(
+      <BatchPanel
+        selectedCount={2}
+        running={false}
+        progressText="总数 2 | 已处理 1 | 已提取 1 | 已提交 1 | 重复 0 | 失败 0"
+        statusText="最近一项已成功提交。"
+        logs={[
+          {
+            title: "示例资源",
+            detailUrl: "https://www.kisssub.org/show-1.html",
+            status: "submitted",
+            message: "已提交到 qBittorrent。"
+          }
+        ]}
+        onSelectAll={vi.fn()}
+        onClear={vi.fn()}
+        onDownload={vi.fn()}
+        onOpenSettings={onOpenSettings}
+      />
+    )
+
+    expect(screen.getByText("最近结果")).toBeInTheDocument()
+    expect(screen.getByText("示例资源")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "设置" }))
+
+    expect(onOpenSettings).toHaveBeenCalledTimes(1)
+  })
 })

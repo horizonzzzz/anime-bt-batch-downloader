@@ -1,6 +1,7 @@
 node_modules/
 build/
 .plasmo/
+.superpowers/
 coverage/
 playwright-report/
 test-results/
