@@ -2,14 +2,15 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的动漫 BT 源站页面中的条目批量提交到 qBittorrent。它会在列表页注入轻量选择 UI，后台打开选中的详情页，解析真实的磁力链或种子地址，完成去重后统一提交到 `qBittorrent WebUI`。
+Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的动漫 BT 源站页面中的条目批量提交到 qBittorrent。它会在列表页注入轻量选择 UI，优先复用源站已经公开的磁力链或种子地址，必要时再后台打开选中的详情页提取真实下载链接，完成去重后统一提交到 `qBittorrent WebUI`。
 
 项目基于 `Plasmo + React 19 + TypeScript` 构建，并通过源站适配器组织站点逻辑，使扩展可以从单站脚本逐步演进为可复用的多源站动漫 BT 工具。
 
 ## 功能特性
 
 - 直接在受支持的动漫 BT 源站列表页批量勾选条目
-- 当前已支持的源站适配器：`kisssub.org` 与 `dongmanhuayuan.com`
+- 当前已支持的源站适配器：`kisssub.org`、`dongmanhuayuan.com` 与 `acg.rip`
+- 源站若已在列表页公开稳定的 `.torrent` 地址，会优先直接提交
 - 通过站点专属提取逻辑解析详情页中的真实下载地址
 - 优先使用磁力链接，必要时回退到种子文件地址
 - 在提交前按 `btih` 哈希或最终 URL 去重
@@ -20,6 +21,7 @@ Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的
 
 - `kisssub.org`
 - `dongmanhuayuan.com`
+- `acg.rip`
 
 ## 环境要求
 
@@ -79,11 +81,12 @@ http://127.0.0.1:7474
 
 随后扩展会：
 
-1. 在后台打开选中的详情页
-2. 在需要时注入远程辅助脚本
-3. 解析真实的磁力链或种子地址
-4. 去重重复条目
-5. 把最终结果提交到 qBittorrent
+1. 优先复用列表页已经公开的磁力链或 `.torrent` 地址
+2. 若列表页没有可直接提交的地址，再在后台打开选中的详情页
+3. 在需要时注入远程辅助脚本
+4. 解析真实的磁力链或种子地址
+5. 去重重复条目
+6. 把最终结果提交到 qBittorrent
 
 ## 开发
 

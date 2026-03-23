@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 
-import { classifyExtractionResult } from "../../lib/batch"
+import * as batchModule from "../../lib/batch"
+
+const { classifyExtractionResult } = batchModule
 
 describe("classifyExtractionResult", () => {
   it("prefers magnet submissions and records the btih hash", () => {
@@ -51,6 +53,88 @@ describe("classifyExtractionResult", () => {
       )
     ).toMatchObject({
       status: "duplicate",
+      message: "Duplicate torrent URL skipped."
+    })
+  })
+})
+
+describe("classifyPreparedBatchItem", () => {
+  it("classifies pre-resolved torrent submissions without opening the detail page", () => {
+    const classifyPreparedBatchItem = (
+      batchModule as {
+        classifyPreparedBatchItem?: (
+          item: {
+            sourceId: string
+            detailUrl: string
+            title: string
+            submitKind?: "magnet" | "torrent"
+            submitUrl?: string
+          },
+          seenHashes: Set<string>,
+          seenUrls: Set<string>
+        ) => unknown
+      }
+    ).classifyPreparedBatchItem
+
+    expect(classifyPreparedBatchItem).toBeTypeOf("function")
+
+    expect(
+      classifyPreparedBatchItem?.(
+        {
+          sourceId: "acgrip",
+          detailUrl: "https://acg.rip/t/350361",
+          title: "Hell Mode - 11",
+          submitKind: "torrent",
+          submitUrl: "https://acg.rip/t/350361.torrent"
+        },
+        new Set<string>(),
+        new Set<string>()
+      )
+    ).toMatchObject({
+      ok: true,
+      status: "ready",
+      submitKind: "torrent",
+      submitUrl: "https://acg.rip/t/350361.torrent",
+      torrentUrl: "https://acg.rip/t/350361.torrent",
+      message: "Torrent URL resolved and queued for submission."
+    })
+  })
+
+  it("marks duplicate pre-resolved torrent urls without preparing a submission", () => {
+    const classifyPreparedBatchItem = (
+      batchModule as {
+        classifyPreparedBatchItem?: (
+          item: {
+            sourceId: string
+            detailUrl: string
+            title: string
+            submitKind?: "magnet" | "torrent"
+            submitUrl?: string
+          },
+          seenHashes: Set<string>,
+          seenUrls: Set<string>
+        ) => unknown
+      }
+    ).classifyPreparedBatchItem
+
+    expect(classifyPreparedBatchItem).toBeTypeOf("function")
+
+    expect(
+      classifyPreparedBatchItem?.(
+        {
+          sourceId: "acgrip",
+          detailUrl: "https://acg.rip/t/350361",
+          title: "Hell Mode - 11",
+          submitKind: "torrent",
+          submitUrl: "https://acg.rip/t/350361.torrent"
+        },
+        new Set<string>(),
+        new Set<string>(["https://acg.rip/t/350361.torrent"])
+      )
+    ).toMatchObject({
+      status: "duplicate",
+      submitKind: "",
+      submitUrl: "",
       message: "Duplicate torrent URL skipped."
     })
   })

@@ -76,4 +76,84 @@ describe("content page helpers", () => {
       }
     ])
   })
+
+  it("detects acg.rip list pages and preserves the pre-resolved torrent link", () => {
+    const location = new URL("https://acg.rip/")
+    document.body.innerHTML = `
+      <table>
+        <tbody>
+          <tr>
+            <td><a href="/user/1917">LoliHouse</a></td>
+            <td>
+              <a href="/team/12">LoliHouse</a>
+              <a href="/t/350361">[LoliHouse] Hell Mode - 11</a>
+            </td>
+            <td><a href="/t/350361.torrent">下载</a></td>
+            <td>542.7 MB</td>
+          </tr>
+          <tr>
+            <td><a href="/user/1106">丸子家族</a></td>
+            <td><a href="/t/350360">[丸子家族] 海螺小姐</a></td>
+            <td><a href="/t/350360.torrent">下载</a></td>
+            <td>313.4 MB</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    const source = getSourceAdapterForLocation(location)
+
+    expect(source?.id).toBe("acgrip")
+    expect(
+      getDetailAnchors(source!, document, location).map((anchor) =>
+        getBatchItemFromAnchor(source!, anchor, location)
+      )
+    ).toEqual([
+      {
+        sourceId: "acgrip",
+        detailUrl: "https://acg.rip/t/350361",
+        title: "[LoliHouse] Hell Mode - 11",
+        submitKind: "torrent",
+        submitUrl: "https://acg.rip/t/350361.torrent"
+      },
+      {
+        sourceId: "acgrip",
+        detailUrl: "https://acg.rip/t/350360",
+        title: "[丸子家族] 海螺小姐",
+        submitKind: "torrent",
+        submitUrl: "https://acg.rip/t/350360.torrent"
+      }
+    ])
+  })
+
+  it("detects acg.rip series pages and skips team links in the title column", () => {
+    const location = new URL("https://acg.rip/series/1170")
+    document.body.innerHTML = `
+      <table>
+        <tbody>
+          <tr>
+            <td><a href="/user/7218">我为新代盐</a></td>
+            <td>
+              <a href="/team/189">新Sub</a>
+              <a href="/t/287166">[新Sub&萌樱字幕组][满怀美梦的少年是现实主义者][09]</a>
+            </td>
+            <td><a href="/t/287166.torrent">下载</a></td>
+            <td>271.0 MB</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    const source = getSourceAdapterForLocation(location)
+
+    expect(source?.id).toBe("acgrip")
+    expect(getDetailAnchors(source!, document, location)).toHaveLength(1)
+    expect(getBatchItemFromAnchor(source!, getDetailAnchors(source!, document, location)[0]!, location)).toEqual({
+      sourceId: "acgrip",
+      detailUrl: "https://acg.rip/t/287166",
+      title: "[新Sub&萌樱字幕组][满怀美梦的少年是现实主义者][09]",
+      submitKind: "torrent",
+      submitUrl: "https://acg.rip/t/287166.torrent"
+    })
+  })
 })

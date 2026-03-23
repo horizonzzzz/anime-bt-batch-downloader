@@ -1,4 +1,6 @@
-export type SourceId = "kisssub" | "dongmanhuayuan"
+export type SourceId = "kisssub" | "dongmanhuayuan" | "acgrip"
+
+export type SubmitKind = "magnet" | "torrent"
 
 export type BatchEventStage =
   | "started"
@@ -12,6 +14,8 @@ export type BatchItem = {
   sourceId: SourceId
   detailUrl: string
   title: string
+  submitKind?: SubmitKind
+  submitUrl?: string
 }
 
 export type BatchLogStatus = "ready" | "submitted" | "duplicate" | "failed"
@@ -62,7 +66,7 @@ export type ExtractionResult = {
 
 export type ClassifiedBatchResult = ExtractionResult & {
   status: BatchLogStatus
-  submitKind: "" | "magnet" | "torrent"
+  submitKind: "" | SubmitKind
   submitUrl: string
   message: string
 }

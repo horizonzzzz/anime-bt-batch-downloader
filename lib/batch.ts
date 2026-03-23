@@ -1,5 +1,5 @@
 import { getSourceAdapterById } from "./sources"
-import type { BatchItem, BatchStats, ClassifiedBatchResult, ExtractionResult } from "./types"
+import type { BatchItem, BatchStats, ClassifiedBatchResult, ExtractionResult, SubmitKind } from "./types"
 
 export function normalizeBatchItems(items: unknown): BatchItem[] {
   const seen = new Set<string>()
@@ -38,10 +38,17 @@ export function normalizeBatchItems(items: unknown): BatchItem[] {
     }
 
     seen.add(dedupeKey)
+    const preparedSubmission = normalizePreparedSubmission(
+      (item as BatchItem).submitKind,
+      (item as BatchItem).submitUrl,
+      detailUrl
+    )
+
     normalized.push({
       sourceId: adapter.id,
       detailUrl,
-      title: normalizeTitle((item as BatchItem).title) || detailUrl
+      title: normalizeTitle((item as BatchItem).title) || detailUrl,
+      ...(preparedSubmission ?? {})
     })
   }
 
@@ -67,6 +74,63 @@ export function createStats(total: number): BatchStats {
     duplicated: 0,
     failed: 0
   }
+}
+
+export function classifyPreparedBatchItem(
+  item: BatchItem,
+  seenHashes: Set<string>,
+  seenUrls: Set<string>
+): ClassifiedBatchResult | null {
+  const preparedSubmission = normalizePreparedSubmission(item.submitKind, item.submitUrl, item.detailUrl)
+  if (!preparedSubmission) {
+    return null
+  }
+
+  const classified: ClassifiedBatchResult = {
+    ok: true,
+    title: normalizeTitle(item.title) || item.detailUrl,
+    detailUrl: item.detailUrl,
+    hash: "",
+    magnetUrl: preparedSubmission.submitKind === "magnet" ? preparedSubmission.submitUrl : "",
+    torrentUrl: preparedSubmission.submitKind === "torrent" ? preparedSubmission.submitUrl : "",
+    failureReason: "",
+    status: "failed",
+    submitKind: "",
+    submitUrl: "",
+    message: ""
+  }
+
+  if (preparedSubmission.submitKind === "magnet") {
+    const magnetHash = extractMagnetHash(preparedSubmission.submitUrl)
+    if (magnetHash && seenHashes.has(magnetHash)) {
+      classified.status = "duplicate"
+      classified.message = `Duplicate magnet hash skipped: ${magnetHash}`
+      return classified
+    }
+
+    classified.status = "ready"
+    classified.submitKind = "magnet"
+    classified.submitUrl = preparedSubmission.submitUrl
+    classified.message = "Magnet resolved and queued for submission."
+    if (magnetHash) {
+      seenHashes.add(magnetHash)
+    }
+    return classified
+  }
+
+  const normalizedTorrentUrl = normalizeComparableUrl(preparedSubmission.submitUrl)
+  if (seenUrls.has(normalizedTorrentUrl)) {
+    classified.status = "duplicate"
+    classified.message = "Duplicate torrent URL skipped."
+    return classified
+  }
+
+  classified.status = "ready"
+  classified.submitKind = "torrent"
+  classified.submitUrl = preparedSubmission.submitUrl
+  classified.message = "Torrent URL resolved and queued for submission."
+  seenUrls.add(normalizedTorrentUrl)
+  return classified
 }
 
 export function classifyExtractionResult(
@@ -142,4 +206,41 @@ export function normalizeComparableUrl(url: string): string {
 export function extractDetailHash(url: string): string {
   const match = String(url).match(/show-([a-f0-9]+)\.html/i)
   return match ? match[1].toLowerCase() : ""
+}
+
+function normalizePreparedSubmission(
+  submitKind: unknown,
+  submitUrl: unknown,
+  detailUrl: string
+): { submitKind: SubmitKind; submitUrl: string } | null {
+  if (submitKind !== "magnet" && submitKind !== "torrent") {
+    return null
+  }
+
+  if (typeof submitUrl !== "string") {
+    return null
+  }
+
+  const normalizedUrl = normalizeComparableUrl(submitUrl)
+  if (!normalizedUrl) {
+    return null
+  }
+
+  if (submitKind === "magnet") {
+    return /^magnet:/i.test(normalizedUrl)
+      ? {
+          submitKind,
+          submitUrl: normalizedUrl
+        }
+      : null
+  }
+
+  try {
+    return {
+      submitKind,
+      submitUrl: new URL(normalizedUrl, detailUrl).href
+    }
+  } catch {
+    return null
+  }
 }

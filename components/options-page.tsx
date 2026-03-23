@@ -172,7 +172,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
           <div className="options-hero__meta">
             <div>
               <span>支持范围</span>
-              <strong>2 个动漫 BT 源站</strong>
+              <strong>3 个动漫 BT 源站</strong>
             </div>
             <div>
               <span>投递目标</span>
@@ -275,6 +275,21 @@ export function OptionsPage({ api }: OptionsPageProps) {
                         <Typography.Paragraph>当前暂无专属设置。</Typography.Paragraph>
                       </div>
                     </Card>
+
+                    <Card variant="borderless" className="options-source-card">
+                      <div className="options-source-card__header">
+                        <Typography.Title level={4}>ACG.RIP</Typography.Title>
+                        <Tag variant="filled" color="cyan">
+                          直链优先
+                        </Tag>
+                      </div>
+
+                      <div className="options-source-placeholder">
+                        <Typography.Paragraph>
+                          默认优先使用列表页公开的种子下载地址，无需额外站点专属设置。
+                        </Typography.Paragraph>
+                      </div>
+                    </Card>
                   </div>
                 </Card>
 
@@ -308,9 +323,10 @@ export function OptionsPage({ api }: OptionsPageProps) {
                 <div className="options-tag-list">
                   <Tag color="orange">Kisssub</Tag>
                   <Tag color="green">Dongmanhuayuan</Tag>
+                  <Tag color="cyan">ACG.RIP</Tag>
                 </div>
                 <ul className="options-bullets">
-                  <li>已接入 Kisssub 与 Dongmanhuayuan 两个动漫 BT 源站。</li>
+                  <li>已接入 Kisssub、Dongmanhuayuan 与 ACG.RIP 三个动漫 BT 源站。</li>
                   <li>源站专属项会按各站实际适配能力继续扩展。</li>
                   <li>当前统一投递到 qBittorrent WebUI。</li>
                 </ul>

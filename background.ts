@@ -1,5 +1,6 @@
 import { BATCH_EVENT } from "./lib/constants"
 import {
+  classifyPreparedBatchItem,
   classifyExtractionResult,
   createStats,
   normalizeBatchItems
@@ -233,8 +234,9 @@ async function processQueue(
       return
     }
 
-    const result = await extractSingleItem(item, job.settings)
-    const classified = classifyExtractionResult(result, seenHashes, seenUrls)
+    const classified =
+      classifyPreparedBatchItem(item, seenHashes, seenUrls) ??
+      classifyExtractionResult(await extractSingleItem(item, job.settings), seenHashes, seenUrls)
 
     job.results.push(classified)
     job.stats.processed += 1

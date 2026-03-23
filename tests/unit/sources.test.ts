@@ -9,11 +9,16 @@ describe("source registry", () => {
     expect(getSourceAdapterForPage(new URL("https://www.dongmanhuayuan.com/"))?.id).toBe(
       "dongmanhuayuan"
     )
+    expect(getSourceAdapterForPage(new URL("https://acg.rip/"))?.id).toBe("acgrip")
+    expect(getSourceAdapterForPage(new URL("https://acg.rip/page/2"))?.id).toBe("acgrip")
+    expect(getSourceAdapterForPage(new URL("https://acg.rip/1"))?.id).toBe("acgrip")
+    expect(getSourceAdapterForPage(new URL("https://acg.rip/series/1170"))?.id).toBe("acgrip")
   })
 
   it("resolves known adapters by id", () => {
     expect(getSourceAdapterById("kisssub")?.displayName).toBe("Kisssub")
     expect(getSourceAdapterById("dongmanhuayuan")?.displayName).toBe("动漫花园")
+    expect(getSourceAdapterById("acgrip" as never)?.displayName).toBe("ACG.RIP")
   })
 })
 
@@ -35,6 +40,13 @@ describe("normalizeBatchItems", () => {
           sourceId: "dongmanhuayuan",
           detailUrl: "https://www.dongmanhuayuan.com/detail/G8Xvr.html",
           title: "Movie pack"
+        },
+        {
+          sourceId: "acgrip",
+          detailUrl: "https://acg.rip/t/350361",
+          title: "Hell Mode - 11",
+          submitKind: "torrent",
+          submitUrl: "https://acg.rip/t/350361.torrent"
         }
       ])
     ).toEqual([
@@ -47,6 +59,13 @@ describe("normalizeBatchItems", () => {
         sourceId: "dongmanhuayuan",
         detailUrl: "https://www.dongmanhuayuan.com/detail/G8Xvr.html",
         title: "Movie pack"
+      },
+      {
+        sourceId: "acgrip",
+        detailUrl: "https://acg.rip/t/350361",
+        title: "Hell Mode - 11",
+        submitKind: "torrent",
+        submitUrl: "https://acg.rip/t/350361.torrent"
       }
     ])
   })

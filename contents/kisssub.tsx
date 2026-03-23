@@ -23,7 +23,9 @@ export const config: PlasmoCSConfig = {
     "http://www.kisssub.org/*",
     "https://www.kisssub.org/*",
     "http://www.dongmanhuayuan.com/*",
-    "https://www.dongmanhuayuan.com/*"
+    "https://www.dongmanhuayuan.com/*",
+    "http://acg.rip/*",
+    "https://acg.rip/*"
   ],
   run_at: "document_idle",
   css: ["./kisssub.css"]

@@ -2,15 +2,16 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Anime BT Batch Downloader is an open-source browser extension for batching downloads from supported anime BT source pages into qBittorrent. It injects lightweight selection UI on list pages, opens selected detail pages in the background, resolves the real magnet or torrent links, deduplicates entries, and submits the final batch to `qBittorrent WebUI`.
+Anime BT Batch Downloader is an open-source browser extension for batching downloads from supported anime BT source pages into qBittorrent. It injects lightweight selection UI on list pages, prefers already-exposed magnet or torrent links when a source page provides them, falls back to background detail-page extraction when needed, deduplicates entries, and submits the final batch to `qBittorrent WebUI`.
 
 Built with `Plasmo + React 19 + TypeScript`, the project is organized around source adapters so the extension can evolve from a single-site workflow into a reusable multi-source anime BT tool.
 
 ## Features
 
 - Batch-select posts directly from supported anime BT source list pages
-- Current source adapters: `kisssub.org` and `dongmanhuayuan.com`
-- Resolve the real download link from each detail page through source-specific extraction logic
+- Current source adapters: `kisssub.org`, `dongmanhuayuan.com`, and `acg.rip`
+- Prefer list-page download links when a source already exposes stable `.torrent` URLs
+- Resolve the real download link from each detail page through source-specific extraction logic when direct list-page submission is unavailable
 - Prefer magnet links and fall back to torrent URLs when needed
 - Deduplicate items by `btih` hash or final URL before submission
 - Submit selected items to `qBittorrent WebUI` in one batch
@@ -20,6 +21,7 @@ Built with `Plasmo + React 19 + TypeScript`, the project is organized around sou
 
 - `kisssub.org`
 - `dongmanhuayuan.com`
+- `acg.rip`
 
 ## Requirements
 
@@ -79,11 +81,12 @@ If qBittorrent is only used on the local machine and the extension still receive
 
 The extension will then:
 
-1. Open the selected detail pages in background tabs
-2. Inject a remote helper script where required
-3. Resolve the actual magnet or torrent URLs
-4. Deduplicate repeated entries
-5. Submit the final batch to qBittorrent
+1. Reuse direct magnet or `.torrent` links from the list page when available
+2. Otherwise open the selected detail pages in background tabs
+3. Inject a remote helper script where required
+4. Resolve the actual magnet or torrent URLs
+5. Deduplicate repeated entries
+6. Submit the final batch to qBittorrent
 
 ## Development
 

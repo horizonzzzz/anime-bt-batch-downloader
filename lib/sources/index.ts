@@ -1,9 +1,14 @@
 import type { SourceId } from "../types"
+import { acgRipSourceAdapter } from "./acgrip"
 import { dongmanhuayuanSourceAdapter } from "./dongmanhuayuan"
 import { kisssubSourceAdapter } from "./kisssub"
 import type { SourceAdapter } from "./types"
 
-const sourceAdapters: SourceAdapter[] = [kisssubSourceAdapter, dongmanhuayuanSourceAdapter]
+const sourceAdapters: SourceAdapter[] = [
+  kisssubSourceAdapter,
+  dongmanhuayuanSourceAdapter,
+  acgRipSourceAdapter
+]
 
 export function getSourceAdapters(): SourceAdapter[] {
   return sourceAdapters.slice()
