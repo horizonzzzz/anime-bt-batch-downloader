@@ -1,5 +1,6 @@
 {
   "name": "kisssub-batch-downloader",
+  "displayName": "Kisssub Batch Downloader",
   "version": "0.1.0",
   "private": true,
   "description": "Browser extension for batch-selecting supported BT source pages and sending resolved links to qBittorrent.",

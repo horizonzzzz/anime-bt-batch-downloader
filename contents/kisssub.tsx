@@ -14,6 +14,10 @@ import {
 import type { SourceAdapter } from "../lib/sources/types"
 import type { BatchEventPayload, BatchItem, BatchLogItem } from "../lib/types"
 
+export default function KisssubContentScript() {
+  return null
+}
+
 export const config: PlasmoCSConfig = {
   matches: [
     "http://www.kisssub.org/*",

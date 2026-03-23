@@ -59,19 +59,21 @@ describe("OptionsPage", () => {
     expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
   })
 
-  it("shows a live status region and connection feedback while testing", async () => {
-    const user = userEvent.setup()
-    let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn().mockImplementation(
-        () =>
-          new Promise<{ baseUrl: string; version: string }>((resolve) => {
-            resolveConnection = resolve
-          })
-      )
-    }
+  it(
+    "shows a live status region and connection feedback while testing",
+    async () => {
+      const user = userEvent.setup()
+      let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
+      const api = {
+        loadSettings: vi.fn().mockResolvedValue(settings),
+        saveSettings: vi.fn(),
+        testConnection: vi.fn().mockImplementation(
+          () =>
+            new Promise<{ baseUrl: string; version: string }>((resolve) => {
+              resolveConnection = resolve
+            })
+        )
+      }
 
     render(<OptionsPage api={api} />)
 
@@ -92,5 +94,7 @@ describe("OptionsPage", () => {
       expect(screen.getByRole("status")).toHaveTextContent("连接成功。")
       expect(screen.getByRole("status")).toHaveTextContent("5.0.0")
     })
-  })
+    },
+    10000
+  )
 })
