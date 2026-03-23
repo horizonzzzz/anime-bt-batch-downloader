@@ -1,9 +1,10 @@
 {
   "name": "kisssub-batch-downloader",
-  "displayName": "Kisssub Batch Downloader",
+  "displayName": "Anime BT Batch",
   "version": "0.1.0",
   "private": true,
-  "description": "Browser extension for batch-selecting supported BT source pages and sending resolved links to qBittorrent.",
+  "license": "MIT",
+  "description": "Browser extension for batching downloads from supported anime BT source pages into qBittorrent.",
   "type": "module",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
@@ -17,9 +18,9 @@
     "test:all": "pnpm typecheck && pnpm test && pnpm test:e2e"
   },
   "manifest": {
-    "name": "Kisssub Batch Downloader",
+    "name": "Anime BT Batch",
     "version": "0.1.0",
-    "description": "Select multiple supported BT source posts on a list page, resolve real download links, and send them to qBittorrent in one batch.",
+    "description": "Select posts from supported anime BT source pages, resolve real download links, and send them to qBittorrent in one batch.",
     "minimum_chrome_version": "114",
     "permissions": [
       "storage",
@@ -33,7 +34,7 @@
       "https://*/*"
     ],
     "action": {
-      "default_title": "Kisssub Batch Downloader"
+      "default_title": "Anime BT Batch"
     }
   },
   "dependencies": {

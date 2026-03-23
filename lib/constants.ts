@@ -4,7 +4,7 @@ export const BATCH_EVENT = "KISSSUB_BATCH_EVENT"
 export const ENTRY_SELECTOR = 'a[href*="show-"][href$=".html"]'
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
-  qbBaseUrl: "http://127.0.0.1:8080",
+  qbBaseUrl: "http://127.0.0.1:7474",
   qbUsername: "",
   qbPassword: "",
   concurrency: 1,

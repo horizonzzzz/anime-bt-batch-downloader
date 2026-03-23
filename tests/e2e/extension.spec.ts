@@ -55,7 +55,7 @@ test("options page saves settings through the background worker", async () => {
     const page = await extension.context.newPage()
     await page.goto(`chrome-extension://${extension.extensionId}/options.html`)
 
-    await expect(page.getByRole("heading", { name: "设置" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "多源站配置" })).toBeVisible()
 
     await page.getByLabel("qBittorrent WebUI 地址").fill("http://127.0.0.1:17474")
     await page.getByLabel("用户名").fill("admin")

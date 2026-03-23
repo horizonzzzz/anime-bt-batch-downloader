@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest"
 import { DEFAULT_SETTINGS, sanitizeSettings } from "../../lib/settings"
 
 describe("sanitizeSettings", () => {
+  it("uses 7474 as the default qB WebUI address", () => {
+    expect(sanitizeSettings({})).toMatchObject({
+      qbBaseUrl: "http://127.0.0.1:7474"
+    })
+  })
+
   it("uses defaults and normalizes the base url", () => {
     expect(
       sanitizeSettings({

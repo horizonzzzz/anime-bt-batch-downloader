@@ -5,8 +5,13 @@ import { describe, expect, it } from "vitest"
 
 type PackageJson = {
   displayName?: string
+  license?: string
   manifest?: {
     name?: string
+    description?: string
+    action?: {
+      default_title?: string
+    }
   }
 }
 
@@ -16,10 +21,13 @@ function readPackageJson(): PackageJson {
 }
 
 describe("package metadata", () => {
-  it("defines a displayName for generated extension pages", () => {
+  it("defines the Anime BT Batch brand for generated extension pages and extension metadata", () => {
     const packageJson = readPackageJson()
 
-    expect(packageJson.displayName).toBeTruthy()
-    expect(packageJson.displayName).toBe(packageJson.manifest?.name)
+    expect(packageJson.displayName).toBe("Anime BT Batch")
+    expect(packageJson.license).toBe("MIT")
+    expect(packageJson.manifest?.name).toBe("Anime BT Batch")
+    expect(packageJson.manifest?.action?.default_title).toBe("Anime BT Batch")
+    expect(packageJson.manifest?.description).toContain("anime BT source")
   })
 })

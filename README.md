@@ -1,84 +1,89 @@
-# Kisssub Batch Downloader
+# Anime BT Batch
 
-Kisssub Batch Downloader is a browser extension for supported BT source list pages. It injects selection checkboxes into source-specific detail entries, opens each selected detail page in the background, resolves the real magnet or torrent link, and submits the batch to `qBittorrent WebUI`.
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-The project is built with `Plasmo + React 19 + TypeScript`, keeps the injected page UI lightweight, and includes automated tests for the extension worker, content script UI, and options page.
+Anime BT Batch is an open-source browser extension for batching downloads from supported anime BT source pages into qBittorrent. It injects lightweight selection UI on list pages, opens selected detail pages in the background, resolves the real magnet or torrent links, deduplicates entries, and submits the final batch to `qBittorrent WebUI`.
+
+Built with `Plasmo + React 19 + TypeScript`, the project is organized around source adapters so the extension can evolve from a single-site workflow into a reusable multi-source anime BT tool.
 
 ## Features
 
-- Batch-select supported posts directly from list pages
-- Current source support: `kisssub` and `dongmanhuayuan`
-- Resolve real download links from detail pages through source-specific extraction logic
-- Prefer magnet links and fall back to torrent URLs
-- Deduplicate by `btih` hash or URL before submission
-- Send selected items to `qBittorrent WebUI` in one batch
-- Override qB's default download path per batch by manually entering a path
+- Batch-select posts directly from supported anime BT source list pages
+- Current source adapters: `kisssub.org` and `dongmanhuayuan.com`
+- Resolve the real download link from each detail page through source-specific extraction logic
+- Prefer magnet links and fall back to torrent URLs when needed
+- Deduplicate items by `btih` hash or final URL before submission
+- Submit selected items to `qBittorrent WebUI` in one batch
+- Optionally override qBittorrent's download path for the current batch
+
+## Supported Sources
+
+- `kisssub.org`
+- `dongmanhuayuan.com`
 
 ## Requirements
 
 - Node.js
 - pnpm
-- Chromium-based browser (`Chrome` or `Edge`)
-- qBittorrent with WebUI enabled
+- A Chromium-based browser such as `Chrome` or `Edge`
+- qBittorrent with `WebUI` enabled
 
 ## Installation
 
-### Load the extension locally
-
-1. Install dependencies:
+### 1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-2. Build the extension:
+### 2. Build the extension
 
 ```bash
 pnpm build
 ```
 
-3. Open `chrome://extensions` or `edge://extensions`
-4. Enable Developer Mode
-5. Choose `Load unpacked`
-6. Select `build/chrome-mv3-prod`
+### 3. Load the extension locally
 
-### Configure qBittorrent WebUI
+1. Open `chrome://extensions` or `edge://extensions`
+2. Enable Developer Mode
+3. Click `Load unpacked`
+4. Select `build/chrome-mv3-prod`
+
+## Configure qBittorrent WebUI
 
 1. Open `qBittorrent -> Tools / Options / WebUI`
-2. Enable WebUI
-3. Fill the extension options page with:
+2. Enable `WebUI`
+3. Open the extension options page and fill in:
    - `qBittorrent WebUI` URL
    - username
    - password
 4. Use `测试 qB 连接` to verify connectivity
 
-If WebUI is used only on the local machine and the extension still gets `401`, disable:
+Default local URL example:
+
+```text
+http://127.0.0.1:7474
+```
+
+If qBittorrent is only used on the local machine and the extension still receives `401`, review these WebUI options:
 
 - `Enable Cross-Site Request Forgery (CSRF) protection`
-- `Host header validation` if needed
-
-## Download Path Support
-
-The floating batch panel includes a manual download path input.
-
-- Leave it empty to use qBittorrent's default download directory
-- Enter an absolute path when you want this batch to use a different `savepath`
-- If qBittorrent runs on another machine, enter a path that the qBittorrent host can actually resolve
+- `Host header validation`
 
 ## Usage
 
 1. Open a supported source list page
 2. Select the posts you want
-3. Optionally set a per-batch save path in the floating panel
+3. Optionally enter a per-batch save path in the floating panel
 4. Click `批量下载`
 
-The extension will:
+The extension will then:
 
-1. Open each detail page in background tabs
-2. Inject the remote helper script if needed
-3. Resolve the real magnet or torrent URL
+1. Open the selected detail pages in background tabs
+2. Inject a remote helper script where required
+3. Resolve the actual magnet or torrent URLs
 4. Deduplicate repeated entries
-5. Submit the final list to qBittorrent
+5. Submit the final batch to qBittorrent
 
 ## Development
 
@@ -94,14 +99,14 @@ pnpm test:e2e
 pnpm test:all
 ```
 
-### Project structure
+### Project Structure
 
-- `background.ts`: extension service worker and batch orchestration
-- `contents/`: content script entry and injected CSS
-- `components/`: options page UI and floating batch panel UI
-- `lib/sources/`: source adapters and detail extraction helpers
-- `lib/`: shared settings, qB API helpers and batch helpers
-- `tests/`: unit, component and Playwright E2E tests
+- `background.ts`: service worker and batch orchestration
+- `contents/`: content script entry and injected styles
+- `components/`: floating batch panel and options page UI
+- `lib/sources/`: source adapters and source-specific extraction helpers
+- `lib/`: shared settings, qB API helpers, and batch helpers
+- `tests/`: unit, component, and Playwright E2E coverage
 
 ## Testing
 
@@ -111,19 +116,15 @@ Run the full verification suite before submitting changes:
 pnpm test:all
 ```
 
-Current coverage includes:
-
-- settings normalization
-- source registry and source-aware candidate normalization
-- dongmanhuayuan detail parsing behavior
-- qB login and submission behavior
-- batch panel interactions
-- options page save flow
-- extension loading and content script injection fixtures through Playwright
+The current automated coverage includes source detection, candidate normalization, detail extraction behavior, qBittorrent submission flows, options page behavior, and extension-level E2E checks.
 
 ## Known Limitations
 
-- qBittorrent is still the only downloader
-- No task cancellation
-- No advanced qB parameters such as tags or categories
-- `kisssub` extraction still depends on the current behavior of third-party `acgscript` and related upstream pages
+- qBittorrent is still the only supported downloader
+- No task cancellation flow yet
+- No advanced qBittorrent parameters such as tags or categories
+- `kisssub` extraction still depends on the current behavior of third-party helper scripts and upstream pages
+
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
