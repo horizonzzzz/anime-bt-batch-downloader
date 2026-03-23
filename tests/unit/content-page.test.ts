@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
 import {
+  getAnchorMountTarget,
   getBatchItemFromAnchor,
   getDetailAnchors,
-  getSourceAdapterForLocation
+  getSourceAdapterForLocation,
+  isListPage,
+  isValidDetailAnchor,
+  normalizeText
 } from "../../lib/content-page"
 
 describe("content page helpers", () => {
@@ -152,5 +156,44 @@ describe("content page helpers", () => {
       title: "[新Sub&萌樱字幕组][满怀美梦的少年是现实主义者][09]",
       torrentUrl: "https://acg.rip/t/287166.torrent"
     })
+  })
+
+  it("rejects malformed detail anchors and unsupported pages", () => {
+    const location = new URL("https://www.kisssub.org/list-test.html")
+    document.body.innerHTML = `<a href="javascript:void(0)">Broken</a>`
+
+    const source = getSourceAdapterForLocation(location)
+    const anchor = document.querySelector("a") as HTMLAnchorElement
+
+    expect(isListPage(location)).toBe(true)
+    expect(isListPage(new URL("https://www.kisssub.org/show-deadbeef.html"))).toBe(false)
+    expect(isListPage(new URL("https://example.com/list.html"))).toBe(false)
+    expect(isValidDetailAnchor(source!, anchor, location)).toBe(false)
+  })
+
+  it("finds the nearest mount target for supported anchors", () => {
+    document.body.innerHTML = `
+      <table>
+        <tbody>
+          <tr>
+            <td><a href="/show-deadbeef.html">Episode 01</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <section>
+        <a id="lonely" href="/show-feedface.html">Episode 02</a>
+      </section>
+    `
+
+    const firstAnchor = document.querySelector("td a") as HTMLAnchorElement
+    const secondAnchor = document.getElementById("lonely") as HTMLAnchorElement
+
+    expect(getAnchorMountTarget(firstAnchor)?.tagName).toBe("TD")
+    expect(getAnchorMountTarget(secondAnchor)?.tagName).toBe("SECTION")
+  })
+
+  it("normalizes display text before adapters consume it", () => {
+    expect(normalizeText("  Episode \n  01  ")).toBe("Episode 01")
+    expect(normalizeText(null)).toBe("")
   })
 })

@@ -6,6 +6,15 @@ import type { SourceAdapter } from "./types"
 
 const ENTRY_SELECTOR = 'a[href*="show-"][href$=".html"]'
 
+type KisssubDetailSnapshot = {
+  title: string
+  hash: string
+  magnetUrl: string
+  torrentUrl: string
+  magnetLabel: string
+  downloadLabel: string
+}
+
 function matchesHost(url: URL) {
   return /(^|\.)kisssub\.org$/i.test(url.hostname)
 }
@@ -61,11 +70,12 @@ export const kisssubSourceAdapter: SourceAdapter = {
 
     for (let attempt = 0; attempt <= settings.retryCount; attempt += 1) {
       try {
-        const extraction = await withDetailTab(
+        const snapshot = await withDetailTab(
           item.detailUrl,
           Math.max(settings.injectTimeoutMs, 10000),
           async (tabId) => executeExtraction(tabId, settings)
         )
+        const extraction = parseKisssubDetailSnapshot(snapshot)
 
         return {
           ok: extraction.ok,
@@ -93,6 +103,28 @@ export const kisssubSourceAdapter: SourceAdapter = {
   }
 }
 
+export function parseKisssubDetailSnapshot(
+  snapshot: KisssubDetailSnapshot
+): Omit<ExtractionResult, "detailUrl"> {
+  const magnetUrl = normalizeText(snapshot.magnetUrl)
+  const torrentUrl = normalizeText(snapshot.torrentUrl)
+  const helperStillRequired = snapshot.magnetLabel === "开启虫洞" || snapshot.downloadLabel === "开启虫洞"
+
+  return {
+    ok: Boolean(magnetUrl || torrentUrl),
+    title: normalizeTitle(snapshot.title),
+    hash: normalizeText(snapshot.hash),
+    magnetUrl,
+    torrentUrl,
+    failureReason:
+      magnetUrl || torrentUrl
+        ? ""
+        : helperStillRequired
+          ? "The helper script timed out and the detail buttons still point to the wormhole page."
+          : "The detail page finished loading, but no usable magnet or torrent URL was exposed."
+  }
+}
+
 async function executeExtraction(tabId: number, settings: Settings) {
   const execution = await chrome.scripting.executeScript({
     target: { tabId },
@@ -107,7 +139,7 @@ async function executeExtraction(tabId: number, settings: Settings) {
     ]
   })
 
-  return execution[0]?.result as Omit<ExtractionResult, "detailUrl">
+  return execution[0]?.result as KisssubDetailSnapshot
 }
 
 function kisssubDetailExtractionScript(config: {
@@ -154,7 +186,7 @@ function kisssubDetailExtractionScript(config: {
     return /mika-mode/i.test(anchor.absoluteHref) || anchor.text === "开启虫洞"
   }
 
-  const summarize = () => {
+  const summarize = (): KisssubDetailSnapshot => {
     const magnet = getAnchorInfo("magnet")
     const download = getAnchorInfo("download")
     const magnetUrl = magnet && /^magnet:/i.test(magnet.absoluteHref) ? magnet.absoluteHref : ""
@@ -166,8 +198,7 @@ function kisssubDetailExtractionScript(config: {
       magnetUrl,
       torrentUrl,
       magnetLabel: magnet ? magnet.text : "",
-      downloadLabel: download ? download.text : "",
-      needsHelper: !magnetUrl && !torrentUrl
+      downloadLabel: download ? download.text : ""
     }
   }
 
@@ -195,15 +226,8 @@ function kisssubDetailExtractionScript(config: {
 
   return (async () => {
     const initial = summarize()
-    if (!initial.needsHelper) {
-      return {
-        ok: true,
-        title: initial.title,
-        hash: initial.hash,
-        magnetUrl: initial.magnetUrl,
-        torrentUrl: initial.torrentUrl,
-        failureReason: ""
-      }
+    if (initial.magnetUrl || initial.torrentUrl) {
+      return initial
     }
 
     setCookies()
@@ -212,35 +236,14 @@ function kisssubDetailExtractionScript(config: {
     const deadline = Date.now() + config.injectTimeoutMs
     while (Date.now() < deadline) {
       const current = summarize()
-      if (!current.needsHelper) {
+      if (current.magnetUrl || current.torrentUrl) {
         await sleep(config.domSettleMs)
-        const settled = summarize()
-        return {
-          ok: true,
-          title: settled.title,
-          hash: settled.hash,
-          magnetUrl: settled.magnetUrl,
-          torrentUrl: settled.torrentUrl,
-          failureReason: ""
-        }
+        return summarize()
       }
 
       await sleep(250)
     }
 
-    const current = summarize()
-    const reason =
-      current.magnetLabel === "开启虫洞" || current.downloadLabel === "开启虫洞"
-        ? "The helper script timed out and the detail buttons still point to the wormhole page."
-        : "The detail page finished loading, but no usable magnet or torrent URL was exposed."
-
-    return {
-      ok: false,
-      title: current.title,
-      hash: current.hash,
-      magnetUrl: current.magnetUrl,
-      torrentUrl: current.torrentUrl,
-      failureReason: reason
-    }
+    return summarize()
   })()
 }

@@ -48,6 +48,45 @@ async function launchExtensionContext() {
   }
 }
 
+async function assertBatchPanelInjection(
+  extension: Awaited<ReturnType<typeof launchExtensionContext>>,
+  options: {
+    url: string
+    fixtureName: string
+    title: string
+  }
+) {
+  const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", options.fixtureName)
+
+  await extension.context.route(options.url, async (route) => {
+    await route.fulfill({
+      path: fixturePath,
+      contentType: "text/html"
+    })
+  })
+
+  const page = await extension.context.newPage()
+  const popupPromise = extension.context.waitForEvent("page")
+
+  await page.goto(options.url)
+
+  await expect(page.getByText(options.title)).toBeVisible()
+  await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2)
+  await expect(page.getByLabel("下载路径")).toBeVisible()
+
+  await page.getByLabel("下载路径").fill("D:/Anime")
+  await expect(page.getByLabel("下载路径")).toHaveValue("D:/Anime")
+
+  await page.locator("[data-kisssub-batch-checkbox]").first().check()
+  await expect(page.getByText("已选 1 项")).toBeVisible()
+  await expect(page.getByRole("button", { name: "批量下载" })).toBeEnabled()
+
+  await page.getByRole("button", { name: "设置" }).click()
+
+  const popup = await popupPromise
+  await expect(popup).toHaveURL(/options\.html/)
+}
+
 test("options page saves settings through the background worker", async () => {
   const extension = await launchExtensionContext()
 
@@ -71,31 +110,11 @@ test("content script injects the batch panel on a Kisssub list page", async () =
   const extension = await launchExtensionContext()
 
   try {
-    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", "kisssub-list.html")
-
-    await extension.context.route("https://www.kisssub.org/list-test.html", async (route) => {
-      await route.fulfill({
-        path: fixturePath,
-        contentType: "text/html"
-      })
+    await assertBatchPanelInjection(extension, {
+      url: "https://www.kisssub.org/list-test.html",
+      fixtureName: "kisssub-list.html",
+      title: "Kisssub 批量下载"
     })
-
-    const page = await extension.context.newPage()
-    const popupPromise = extension.context.waitForEvent("page")
-
-    await page.goto("https://www.kisssub.org/list-test.html")
-
-    await expect(page.getByText("Kisssub 批量下载")).toBeVisible()
-    await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2)
-    await expect(page.getByLabel("下载路径")).toBeVisible()
-
-    await page.locator("[data-kisssub-batch-checkbox]").first().check()
-    await expect(page.getByText("已选 1 项")).toBeVisible()
-
-    await page.getByRole("button", { name: "设置" }).click()
-
-    const popup = await popupPromise
-    await expect(popup).toHaveURL(/options\.html/)
   } finally {
     await extension.close()
   }
@@ -105,31 +124,25 @@ test("content script injects the batch panel on a Dongmanhuayuan list page", asy
   const extension = await launchExtensionContext()
 
   try {
-    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", "dongmanhuayuan-list.html")
-
-    await extension.context.route("https://www.dongmanhuayuan.com/", async (route) => {
-      await route.fulfill({
-        path: fixturePath,
-        contentType: "text/html"
-      })
+    await assertBatchPanelInjection(extension, {
+      url: "https://www.dongmanhuayuan.com/",
+      fixtureName: "dongmanhuayuan-list.html",
+      title: "动漫花园 批量下载"
     })
+  } finally {
+    await extension.close()
+  }
+})
 
-    const page = await extension.context.newPage()
-    const popupPromise = extension.context.waitForEvent("page")
+test("content script injects the batch panel on an ACG.RIP list page", async () => {
+  const extension = await launchExtensionContext()
 
-    await page.goto("https://www.dongmanhuayuan.com/")
-
-    await expect(page.getByText("动漫花园 批量下载")).toBeVisible()
-    await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2)
-    await expect(page.getByLabel("下载路径")).toBeVisible()
-
-    await page.locator("[data-kisssub-batch-checkbox]").first().check()
-    await expect(page.getByText("已选 1 项")).toBeVisible()
-
-    await page.getByRole("button", { name: "设置" }).click()
-
-    const popup = await popupPromise
-    await expect(popup).toHaveURL(/options\.html/)
+  try {
+    await assertBatchPanelInjection(extension, {
+      url: "https://acg.rip/",
+      fixtureName: "acgrip-list.html",
+      title: "ACG.RIP 批量下载"
+    })
   } finally {
     await extension.close()
   }

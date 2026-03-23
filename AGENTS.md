@@ -30,7 +30,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 ## Source Of Truth Files
 
 - `background.ts`
-  Handles runtime messages, settings access, qBittorrent connection tests, batch orchestration, extraction flow, deduplication, and final submission.
+  Handles runtime message registration, settings access, qBittorrent connection tests, and delegates batch orchestration to shared helpers in `lib/background-batch.ts`.
 - `options.tsx`
   Boots the options page and wires the React UI to background message APIs.
 - `components/`
@@ -38,7 +38,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `contents/`
   Content script entry and injected styles for supported source pages.
 - `lib/`
-  Shared batch helpers, extraction helpers, qBittorrent API helpers, settings logic, constants, and shared types.
+  Shared batch helpers, background batch orchestration helpers, extraction helpers, qBittorrent API helpers, settings logic, constants, and shared types.
 - `lib/sources/`
   Source adapter registry plus site-specific page matching and extraction logic.
 - `tests/`
@@ -73,7 +73,7 @@ Commands are defined in `package.json`:
 - `pnpm test`
   Vitest unit and component tests under `tests/unit/` and `tests/components/` using `jsdom`.
 - `pnpm test:e2e`
-  Playwright extension-level tests under `tests/e2e/`.
+  Playwright extension-level tests under `tests/e2e/`, including options-page coverage and list-page injection flows for all 3 supported BT sources.
 - `pnpm test:all`
   Full verification: typecheck + Vitest + Playwright.
 

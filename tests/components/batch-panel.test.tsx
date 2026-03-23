@@ -121,4 +121,23 @@ describe("BatchPanel", () => {
     expect(screen.queryByRole("button", { name: "选择目录" })).not.toBeInTheDocument()
     expect(onClearSavePath).toHaveBeenCalledTimes(1)
   })
+
+  it("locks interactive controls while a batch is running", () => {
+    renderBatchPanel({
+      selectedCount: 2,
+      running: true,
+      progressText: "总数 2 | 已处理 1 | 已提取 1 | 已提交 0 | 重复 0 | 失败 0",
+      statusText: "正在提取详情页。",
+      savePath: "D:\\Downloads\\Anime",
+      savePathHint: "本次任务将请求下载器保存到：D:\\Downloads\\Anime"
+    })
+
+    expect(screen.getByText("RUNNING")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "全选本页" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "清空" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "批量下载" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "清空路径" })).toBeDisabled()
+    expect(screen.getByLabelText("下载路径")).toBeDisabled()
+    expect(screen.getByText("本次任务将请求下载器保存到：D:\\Downloads\\Anime")).toBeInTheDocument()
+  })
 })
