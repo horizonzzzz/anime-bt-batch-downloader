@@ -71,16 +71,45 @@ jobs:
 
           echo "path=${archives[0]}" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare release notes and asset
+        id: prepare_release
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          ARCHIVE_PATH: ${{ steps.packaged_archive.outputs.path }}
+        run: |
+          version="${TAG_NAME#v}"
+
+          node scripts/prepare-release.mjs \
+            --tag "$TAG_NAME" \
+            --archive "$ARCHIVE_PATH" \
+            --changelog CHANGELOG.md \
+            --notes-out "build/release-notes-v${version}.md" \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
-          ASSET_PATH: ${{ steps.packaged_archive.outputs.path }}
+          ASSET_PATH: ${{ steps.prepare_release.outputs.asset_path }}
+          NOTES_PATH: ${{ steps.prepare_release.outputs.notes_path }}
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            mapfile -t existing_assets < <(gh release view "$TAG_NAME" --json assets --jq '.assets[].name')
+
+            for asset_name in "${existing_assets[@]}"; do
+              if [[ "$asset_name" == *.zip ]]; then
+                gh release delete-asset "$TAG_NAME" "$asset_name" --yes
+              fi
+            done
+
             gh release upload "$TAG_NAME" "$ASSET_PATH" --clobber
           else
             gh release create "$TAG_NAME" "$ASSET_PATH" \
               --title "$TAG_NAME" \
-              --generate-notes
+              --notes-file "$NOTES_PATH"
           fi
+
+          gh release edit "$TAG_NAME" \
+            --draft=false \
+            --title "$TAG_NAME" \
+            --notes-file "$NOTES_PATH"

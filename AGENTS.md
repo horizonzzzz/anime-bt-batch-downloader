@@ -12,6 +12,8 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - Supported downloader target: `qBittorrent WebUI` only
 - Optional per-batch save path override is supported
 - Magnet links are preferred; torrent URLs are the fallback
+- Releases are published from semantic version tags, with GitHub Release notes sourced from `CHANGELOG.md`
+- Release assets are uploaded as versioned Chrome MV3 zip archives named `anime-bt-batch-downloader-chrome-mv3-v<version>.zip`
 - Known product gaps:
   - no task cancellation flow
   - no advanced qBittorrent options such as tags or categories
@@ -42,8 +44,14 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Shared SCSS tokens, mixins, and options-page global styles that are consumed by component-level SCSS modules.
 - `assets/`
   Source icon assets for the extension brand. `anime-bt-icon-speedline.svg` is the UI source icon, and `icon.png` is the generated packaging icon consumed by Plasmo for extension icon sizes.
+- `CHANGELOG.md`
+  Canonical release notes for tagged versions. Each GitHub Release page should reuse the matching version section from this file.
 - `lib/`
   Shared batch helpers, background batch orchestration helpers, extraction helpers, qBittorrent API helpers, settings logic, constants, and shared types.
+- `.github/workflows/release.yml`
+  Tagged-release automation that validates versions, packages the extension, extracts the matching `CHANGELOG.md` section, renames the packaged archive, and publishes the GitHub Release.
+- `scripts/prepare-release.mjs`
+  Release helper script that extracts version notes from `CHANGELOG.md`, renames the packaged zip artifact, and exposes the prepared paths to the workflow.
 - `lib/sources/`
   Source adapter registry plus site-specific page matching and extraction logic.
 - `tests/`
@@ -87,5 +95,6 @@ Commands are defined in `package.json`:
 - Read this file before making changes that touch extension behavior, architecture, or test workflows.
 - Prefer editing the real source files listed above, not generated outputs.
 - If a change adds a new source adapter, changes downloader behavior, alters commands, changes test coverage, moves responsibilities between directories, or changes major runtime flow, update this file in the same change.
+- If a change alters release notes sourcing, tagged asset naming, or GitHub release automation, update `CHANGELOG.md`, `.github/workflows/release.yml`, and this file together.
 - If a change updates the extension branding or icon pipeline, keep `assets/anime-bt-icon-speedline.svg` and the generated `assets/icon.png` aligned in the same change.
 - If a code change makes any statement in this file stale, update `AGENT.md` before finishing the task.
