@@ -34,6 +34,8 @@ const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
 
 const BRAND_NAME = "Anime BT Batch"
 const REPO_URL = "https://github.com/horizonzzzz/anime-bt-batch-downloader"
+const SITE_VIEW_DESCRIPTION = "单独配置该站点的下载方式。"
+const DELIVERY_MODE_DESCRIPTION = "配置该站点的下载方式。"
 
 const viewMeta: Record<
   OptionsViewId,
@@ -50,27 +52,27 @@ const viewMeta: Record<
   },
   kisssub: {
     title: "Kisssub 专属配置",
-    description: "维护脚本解析参数，并指定 Kisssub 资源的投递策略。",
+    description: SITE_VIEW_DESCRIPTION,
     footerLabel: "正在编辑 Kisssub 专属配置"
   },
   dongmanhuayuan: {
     title: "Dongmanhuayuan 专属配置",
-    description: "当前沿用通用策略，并为未来新增的站点参数预留结构。",
+    description: SITE_VIEW_DESCRIPTION,
     footerLabel: "正在编辑 Dongmanhuayuan 专属配置"
   },
   acgrip: {
     title: "ACG.RIP 专属配置",
-    description: "定义 ACG.RIP 站点的下载投递方式，避免直链提交失败。",
+    description: SITE_VIEW_DESCRIPTION,
     footerLabel: "正在编辑 ACG.RIP 专属配置"
   },
   bangumimoe: {
     title: "Bangumi.moe 专属配置",
-    description: "控制 Bangumi.moe 详情弹层解析后的投递策略。",
+    description: SITE_VIEW_DESCRIPTION,
     footerLabel: "正在编辑 Bangumi.moe 专属配置"
   },
   overview: {
     title: "源站概览",
-    description: "查看当前扩展支持的动漫 BT 站点状态。",
+    description: "",
     footerLabel: "正在查看支持源站概览"
   }
 }
@@ -102,31 +104,26 @@ const overviewSites: Array<{
   name: string
   url: string
   accent: OverviewSiteAccent
-  summary: string
 }> = [
   {
     name: "Kisssub",
     url: "kisssub.org",
-    accent: "kisssub",
-    summary: "支持脚本辅助解析与多种投递策略。"
+    accent: "kisssub"
   },
   {
     name: "Dongmanhuayuan",
     url: "dongmanhuayuan.com",
-    accent: "dongmanhuayuan",
-    summary: "当前以磁力链为主，配置保持轻量。"
+    accent: "dongmanhuayuan"
   },
   {
     name: "ACG.RIP",
     url: "acg.rip",
-    accent: "acgrip",
-    summary: "优先推荐种子下载后上传到 qB。"
+    accent: "acgrip"
   },
   {
     name: "Bangumi.moe",
     url: "bangumi.moe",
-    accent: "bangumimoe",
-    summary: "支持详情弹层中的磁力链与种子下载入口。"
+    accent: "bangumimoe"
   }
 ]
 
@@ -358,7 +355,9 @@ export function OptionsPage({ api }: OptionsPageProps) {
                   {BRAND_NAME}
                 </Tag>
                 <Typography.Title level={1}>{activeMeta.title}</Typography.Title>
-                <Typography.Paragraph>{activeMeta.description}</Typography.Paragraph>
+                {activeMeta.description ? (
+                  <Typography.Paragraph>{activeMeta.description}</Typography.Paragraph>
+                ) : null}
               </header>
 
               <div role="status" aria-live="polite" className={styles.status}>
@@ -511,11 +510,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>Kisssub 解析参数</Typography.Title>
-                        <Typography.Paragraph>
-                          当站点依赖远程脚本辅助提取时，可在这里维护脚本地址与版本号。
-                        </Typography.Paragraph>
+                        <Typography.Paragraph>配置该站点的脚本解析参数。</Typography.Paragraph>
                       </div>
-                      <Tag color="blue">脚本解析</Tag>
                     </div>
 
                     <div className={styles.fieldGrid}>
@@ -532,9 +528,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>下载策略</Typography.Title>
-                        <Typography.Paragraph>
-                          优先使用磁力链，必要时回退为种子链接或下载后上传。
-                        </Typography.Paragraph>
+                        <Typography.Paragraph>{DELIVERY_MODE_DESCRIPTION}</Typography.Paragraph>
                       </div>
                     </div>
 
@@ -556,9 +550,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                       DM
                     </div>
                     <Typography.Title level={3}>暂无专属配置项</Typography.Title>
-                    <Typography.Paragraph>
-                      当前站点默认沿用全局设置，仅支持磁力链模式。未来若新增提取参数，会继续收敛在这个站点面板中。
-                    </Typography.Paragraph>
+                    <Typography.Paragraph>当前仅支持磁力链下载方式。</Typography.Paragraph>
                   </Card>
                 </div>
               )}
@@ -569,11 +561,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>下载策略</Typography.Title>
-                        <Typography.Paragraph>
-                          为避免 qB 直接拉取站点种子链接失败，建议优先使用下载后上传。
-                        </Typography.Paragraph>
+                        <Typography.Paragraph>{DELIVERY_MODE_DESCRIPTION}</Typography.Paragraph>
                       </div>
-                      <Tag color="cyan">推荐上传</Tag>
                     </div>
 
                     <Form.Item label="下载策略" name={["sourceDeliveryModes", "acgrip"]}>
@@ -582,9 +571,13 @@ export function OptionsPage({ api }: OptionsPageProps) {
                       </Radio.Group>
                     </Form.Item>
 
-                    <div className={styles.messageCard}>
-                      默认使用“先下载种子再上传到 qB”，因为 qB 直接拉取该站种子链接可能失败。
-                    </div>
+                    <Alert
+                      showIcon
+                      type="info"
+                      className={styles.note}
+                      title="建议先下载种子再上传到 qB"
+                      description="qB 直接拉取该站种子链接可能失效。"
+                    />
                   </Card>
                 </div>
               )}
@@ -595,11 +588,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>下载策略</Typography.Title>
-                        <Typography.Paragraph>
-                          可在磁力链接、种子 URL 直提与种子下载后上传之间切换。
-                        </Typography.Paragraph>
+                        <Typography.Paragraph>{DELIVERY_MODE_DESCRIPTION}</Typography.Paragraph>
                       </div>
-                      <Tag color="geekblue">弹层提取</Tag>
                     </div>
 
                     <Form.Item label="下载策略" name={["sourceDeliveryModes", "bangumimoe"]}>
@@ -607,10 +597,6 @@ export function OptionsPage({ api }: OptionsPageProps) {
                         {renderDeliveryModeOptions("bangumimoe")}
                       </Radio.Group>
                     </Form.Item>
-
-                    <div className={styles.messageCard}>
-                      默认优先磁力链接；若更偏好保留站点种子文件，也可以改成直提 URL 或先下载后上传。
-                    </div>
                   </Card>
                 </div>
               )}
@@ -632,7 +618,6 @@ export function OptionsPage({ api }: OptionsPageProps) {
                         </div>
                         <Typography.Title level={3}>{site.name}</Typography.Title>
                         <Typography.Paragraph>{site.url}</Typography.Paragraph>
-                        <p className={styles.siteCardSummary}>{site.summary}</p>
                         <Button type="default" onClick={() => window.open(`https://${site.url}`, "_blank")}>
                           访问站点
                         </Button>

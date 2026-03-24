@@ -415,16 +415,6 @@
   }
 }
 
-.messageCard {
-  padding: 14px 16px;
-  border: 1px dashed rgba(#0ea5e9, 0.32);
-  border-radius: $radius-md;
-  background: rgba(#ecfeff, 0.84);
-  color: #526075;
-  font-size: 14px;
-  line-height: 1.65;
-}
-
 .emptyState {
   text-align: center;
 
@@ -513,13 +503,6 @@
   border-radius: $radius-pill;
   background: $green-500;
   box-shadow: 0 0 0 6px rgba($green-500, 0.12);
-}
-
-.siteCardSummary {
-  min-height: 52px;
-  margin: 0 0 18px;
-  color: #526075;
-  line-height: 1.65;
 }
 
 .darkPanel {

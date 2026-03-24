@@ -55,21 +55,31 @@ describe("OptionsPage", () => {
 
       await user.click(screen.getByRole("button", { name: "Kisssub" }))
       expect(screen.getByRole("heading", { name: "Kisssub 专属配置" })).toBeInTheDocument()
+      expect(screen.getAllByText("单独配置该站点的下载方式。").length).toBeGreaterThan(0)
       expect(screen.getByLabelText("Kisssub 外部脚本地址")).toBeInTheDocument()
       expect(screen.getByLabelText("Kisssub 脚本版本号")).toBeInTheDocument()
+      expect(screen.queryByText("脚本解析")).not.toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "Dongmanhuayuan" }))
       expect(screen.getByRole("heading", { name: "Dongmanhuayuan 专属配置" })).toBeInTheDocument()
       expect(screen.getByText("暂无专属配置项")).toBeInTheDocument()
+      expect(screen.getByText("当前仅支持磁力链下载方式。")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "ACG.RIP" }))
+      expect(screen.getByRole("heading", { name: "ACG.RIP 专属配置" })).toBeInTheDocument()
+      expect(screen.getByText("建议先下载种子再上传到 qB")).toBeInTheDocument()
+      expect(screen.getByText("qB 直接拉取该站种子链接可能失效。")).toBeInTheDocument()
+      expect(screen.queryByText("推荐上传")).not.toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "Bangumi.moe" }))
       expect(screen.getByRole("heading", { name: "Bangumi.moe 专属配置" })).toBeInTheDocument()
-      expect(screen.getByText("可在磁力链接、种子 URL 直提与种子下载后上传之间切换。")).toBeInTheDocument()
+      expect(screen.getAllByText("单独配置该站点的下载方式。").length).toBeGreaterThan(0)
 
       await user.click(screen.getByRole("button", { name: "源站概览" }))
       expect(screen.getByRole("heading", { name: "源站概览" })).toBeInTheDocument()
-      expect(screen.getByText("查看当前扩展支持的动漫 BT 站点状态。")).toBeInTheDocument()
       expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(4)
+      expect(screen.queryByText("查看当前扩展支持的动漫 BT 站点状态。")).not.toBeInTheDocument()
+      expect(screen.queryByText("优先推荐种子下载后上传到 qB。")).not.toBeInTheDocument()
     },
     10000
   )
