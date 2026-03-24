@@ -1,17 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
-import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Space,
-  Tag,
-  Typography
-} from "antd"
+import { Alert, Button, Card, Form, Input, InputNumber, Radio, Tag, Typography } from "antd"
 import type { AlertProps } from "antd"
 
 import { getDeliveryModeLabel, getSupportedDeliveryModes } from "../lib/delivery"
@@ -29,6 +18,8 @@ type OptionsPageProps = {
 }
 
 type StatusTone = "info" | "success" | "error"
+type OptionsViewId = "general" | "kisssub" | "dongmanhuayuan" | "acgrip" | "overview"
+type ConnectionState = "idle" | "success" | "error"
 
 const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
   info: "info",
@@ -38,24 +29,83 @@ const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
 
 const BRAND_NAME = "Anime BT Batch"
 
-const compatibilityNote = (
-  <Space orientation="vertical" size={14} style={{ width: "100%" }}>
-    <div>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        qB WebUI 兼容提示
-      </Typography.Title>
-      <Typography.Paragraph style={{ marginBottom: 0 }}>
-        扩展会从浏览器扩展上下文访问 <code>http://127.0.0.1:7474</code> 这类本机 WebUI。若测试连接返回
-        401，而账号密码确认无误，请先在 qBittorrent 的 <code>Tools/Options -&gt; WebUI</code> 中关闭{" "}
-        <code>Enable Cross-Site Request Forgery (CSRF) protection</code>。
-      </Typography.Paragraph>
-    </div>
-    <Typography.Paragraph style={{ marginBottom: 0 }}>
-      如果关闭后仍失败，再关闭 <code>Host header validation</code>。仅建议在 WebUI
-      只供本机使用时这样配置，不建议暴露到局域网或公网。
-    </Typography.Paragraph>
-  </Space>
-)
+const viewMeta: Record<
+  OptionsViewId,
+  {
+    title: string
+    description: string
+    footerLabel: string
+  }
+> = {
+  general: {
+    title: "连接与基础设置",
+    description: "配置 qBittorrent WebUI 的连接信息，以及全局批量提取节奏。",
+    footerLabel: "正在编辑全局配置"
+  },
+  kisssub: {
+    title: "Kisssub 专属配置",
+    description: "维护脚本解析参数，并指定 Kisssub 资源的投递策略。",
+    footerLabel: "正在编辑 Kisssub 专属配置"
+  },
+  dongmanhuayuan: {
+    title: "Dongmanhuayuan 专属配置",
+    description: "当前沿用通用策略，并为未来新增的站点参数预留结构。",
+    footerLabel: "正在编辑 Dongmanhuayuan 专属配置"
+  },
+  acgrip: {
+    title: "ACG.RIP 专属配置",
+    description: "定义 ACG.RIP 站点的下载投递方式，避免直链提交失败。",
+    footerLabel: "正在编辑 ACG.RIP 专属配置"
+  },
+  overview: {
+    title: "源站概览",
+    description: "查看当前扩展支持的动漫 BT 站点状态。",
+    footerLabel: "正在查看支持源站概览"
+  }
+}
+
+const navGroups: Array<{
+  title: string
+  items: Array<{ key: OptionsViewId; label: string }>
+}> = [
+  {
+    title: "通用设置",
+    items: [{ key: "general", label: "连接与基础设置" }]
+  },
+  {
+    title: "站点专属配置",
+    items: [
+      { key: "kisssub", label: "Kisssub" },
+      { key: "dongmanhuayuan", label: "Dongmanhuayuan" },
+      { key: "acgrip", label: "ACG.RIP" }
+    ]
+  },
+  {
+    title: "关于与支持",
+    items: [{ key: "overview", label: "源站概览" }]
+  }
+]
+
+const overviewSites = [
+  {
+    name: "Kisssub",
+    url: "kisssub.org",
+    accentClassName: "is-kisssub",
+    summary: "支持脚本辅助解析与多种投递策略。"
+  },
+  {
+    name: "Dongmanhuayuan",
+    url: "dongmanhuayuan.com",
+    accentClassName: "is-dongmanhuayuan",
+    summary: "当前以磁力链为主，配置保持轻量。"
+  },
+  {
+    name: "ACG.RIP",
+    url: "acg.rip",
+    accentClassName: "is-acgrip",
+    summary: "优先推荐种子下载后上传到 qB。"
+  }
+]
 
 function normalizeSettings(values: Partial<Settings>): Settings {
   return {
@@ -80,12 +130,36 @@ function renderDeliveryModeOptions(sourceId: SourceId) {
   ))
 }
 
+function SidebarButton({
+  active,
+  label,
+  onClick
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={active ? "options-sidebar__button is-active" : "options-sidebar__button"}
+      onClick={onClick}>
+      <span className="options-sidebar__button-dot" aria-hidden="true" />
+      <span>{label}</span>
+    </button>
+  )
+}
+
 export function OptionsPage({ api }: OptionsPageProps) {
   const [form] = Form.useForm<Settings>()
+  const [activeView, setActiveView] = useState<OptionsViewId>("general")
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [status, setStatus] = useState<{ tone: StatusTone; message: string }>({
     tone: "info",
     message: "正在读取已保存设置。"
   })
+  const [connectionState, setConnectionState] = useState<ConnectionState>("idle")
+  const [connectionMessage, setConnectionMessage] = useState("")
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
 
@@ -121,7 +195,9 @@ export function OptionsPage({ api }: OptionsPageProps) {
     }
   }, [api, form])
 
-  const handleSave = async (values: Settings) => {
+  const activeMeta = useMemo(() => viewMeta[activeView], [activeView])
+
+  const handleSave = async () => {
     setSaving(true)
     setStatus({
       tone: "info",
@@ -129,7 +205,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
     })
 
     try {
-      const saved = normalizeSettings(await api.saveSettings(normalizeSettings(values)))
+      const nextSettings = normalizeSettings(form.getFieldsValue(true))
+      const saved = normalizeSettings(await api.saveSettings(nextSettings))
       form.setFieldsValue(saved)
       setStatus({
         tone: "success",
@@ -149,6 +226,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
     const currentSettings = normalizeSettings(form.getFieldsValue(true))
 
     setTesting(true)
+    setConnectionState("idle")
+    setConnectionMessage("")
     setStatus({
       tone: "info",
       message: "正在测试连接。"
@@ -156,14 +235,19 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
     try {
       const result = await api.testConnection(currentSettings)
+      setConnectionState("success")
+      setConnectionMessage(`已连接到 ${result.baseUrl || "qBittorrent WebUI"}。`)
       setStatus({
         tone: "success",
         message: `连接成功。 ${result.baseUrl || ""} 版本 ${result.version || "unknown"}`
       })
     } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "连接测试失败。"
+      setConnectionState("error")
+      setConnectionMessage(message)
       setStatus({
         tone: "error",
-        message: error instanceof Error ? error.message : "连接测试失败。"
+        message
       })
     } finally {
       setTesting(false)
@@ -172,74 +256,173 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
   return (
     <main className="options-shell">
-      <section className="options-shell__frame">
-        <header className="options-hero">
-          <div className="options-hero__copy">
-            <Tag variant="filled" className="options-hero__tag">
-              {BRAND_NAME}
-            </Tag>
-            <Typography.Title level={1}>多源站配置</Typography.Title>
-            <Typography.Paragraph className="options-hero__lead">
-              统一管理 qBittorrent 连接、批量提取节奏，以及各动漫 BT 源站的专属提取策略。
-            </Typography.Paragraph>
-          </div>
-          <div className="options-hero__meta">
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={DEFAULT_SETTINGS}
+        onFinish={() => void handleSave()}
+        className="options-workbench">
+        <aside className="options-sidebar">
+          <div className="options-sidebar__brand">
+            <div className="options-sidebar__brand-mark">A</div>
             <div>
-              <span>支持范围</span>
-              <strong>3 个动漫 BT 源站</strong>
-            </div>
-            <div>
-              <span>投递目标</span>
-              <strong>qBittorrent WebUI</strong>
+              <div className="options-sidebar__brand-name">{BRAND_NAME}</div>
+              <div className="options-sidebar__brand-subtitle">Extension Settings</div>
             </div>
           </div>
-        </header>
 
-        <div className="options-layout">
-          <Card variant="borderless" className="options-card options-card--form">
-            <Space orientation="vertical" size={20} style={{ width: "100%" }}>
-              <div className="options-section-heading">
-                <Typography.Title level={3}>支持源站</Typography.Title>
-                <Typography.Paragraph>
-                  {BRAND_NAME} 目前围绕动漫 BT 站点提供统一的批量解析入口。站点专属选项会单独展示，通用下载器与
-                  提取节奏则集中管理。
-                </Typography.Paragraph>
-              </div>
+          <div className="options-sidebar__groups">
+            {navGroups.map((group) => (
+              <section key={group.title} className="options-sidebar__group">
+                <p className="options-sidebar__group-title">{group.title}</p>
+                <div className="options-sidebar__group-items">
+                  {group.items.map((item) => (
+                    <SidebarButton
+                      key={item.key}
+                      active={activeView === item.key}
+                      label={item.label}
+                      onClick={() => setActiveView(item.key)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <div className="options-sidebar__footer">
+            <span>3 个支持源站</span>
+            <strong>qBittorrent WebUI</strong>
+          </div>
+        </aside>
+
+        <section className="options-main">
+          <div className="options-main__scroll">
+            <div className="options-main__inner">
+              <header className="options-page-header">
+                <Tag variant="filled" className="options-page-header__tag">
+                  {BRAND_NAME}
+                </Tag>
+                <Typography.Title level={1}>{activeMeta.title}</Typography.Title>
+                <Typography.Paragraph>{activeMeta.description}</Typography.Paragraph>
+              </header>
 
               <div role="status" aria-live="polite" className="options-status">
                 <Alert showIcon type={statusTypeMap[status.tone]} title={status.message} />
               </div>
 
-              <Form
-                form={form}
-                layout="vertical"
-                initialValues={DEFAULT_SETTINGS}
-                onFinish={handleSave}
-                className="options-form">
-                <Card variant="borderless" className="options-subcard" title="通用配置">
-                  <div className="options-grid">
-                    <Card variant="borderless" className="options-subcard" title="连接与认证">
-                      <div className="options-advanced-grid">
-                        <Form.Item
-                          label="qBittorrent WebUI 地址"
-                          name="qbBaseUrl"
-                          rules={[{ required: true, message: "请输入 qBittorrent WebUI 地址" }]}>
-                          <Input placeholder="http://127.0.0.1:7474" autoComplete="url" />
-                        </Form.Item>
-                        <Form.Item label="用户名" name="qbUsername">
-                          <Input placeholder="admin" autoComplete="username" />
-                        </Form.Item>
-                        <Form.Item label="密码" name="qbPassword">
-                          <Input.Password
-                            placeholder="你的 WebUI 密码"
-                            autoComplete="current-password"
-                          />
-                        </Form.Item>
-                      </div>
+              {activeView === "general" && (
+                <div className="options-view">
+                  <div className="options-stat-grid">
+                    <Card variant="borderless" className="options-stat-card">
+                      <span className="options-stat-card__label">支持站点</span>
+                      <strong>3 个动漫 BT 源站</strong>
+                      <p>按站点拆分配置，避免长表单继续膨胀。</p>
                     </Card>
+                    <Card variant="borderless" className="options-stat-card">
+                      <span className="options-stat-card__label">默认投递目标</span>
+                      <strong>qBittorrent WebUI</strong>
+                      <p>连接配置集中管理，站点只保留专属项。</p>
+                    </Card>
+                  </div>
 
-                    <Card variant="borderless" className="options-subcard" title="批量提取节奏">
-                      <div className="options-advanced-grid">
+                  <Alert
+                    showIcon
+                    type="info"
+                    className="options-note"
+                    title="qB WebUI 兼容性提示"
+                    description={
+                      <div className="options-note__body">
+                        <p>
+                          扩展会从浏览器扩展上下文访问 <code>http://127.0.0.1:7474</code> 这类本机
+                          WebUI。若测试连接返回 401，而账号密码确认无误，请先在 qBittorrent 的{" "}
+                          <code>Tools/Options -&gt; WebUI</code> 中关闭{" "}
+                          <code>Enable Cross-Site Request Forgery (CSRF) protection</code>。
+                        </p>
+                        <p>
+                          如果关闭后仍失败，再关闭 <code>Host header validation</code>。仅建议在
+                          WebUI 只供本机使用时这样配置，不建议暴露到局域网或公网。
+                        </p>
+                      </div>
+                    }
+                  />
+
+                  <Card variant="borderless" className="options-panel">
+                    <div className="options-panel__header">
+                      <div>
+                        <Typography.Title level={3}>qBittorrent 认证</Typography.Title>
+                        <Typography.Paragraph>
+                          配置扩展用于测试连接和提交任务的 WebUI 地址与账号信息。
+                        </Typography.Paragraph>
+                      </div>
+                    </div>
+
+                    <div className="options-field-grid">
+                      <Form.Item
+                        label="qBittorrent WebUI 地址"
+                        name="qbBaseUrl"
+                        rules={[{ required: true, message: "请输入 qBittorrent WebUI 地址" }]}>
+                        <Input placeholder="http://127.0.0.1:7474" autoComplete="url" />
+                      </Form.Item>
+                      <Form.Item label="用户名" name="qbUsername">
+                        <Input placeholder="admin" autoComplete="username" />
+                      </Form.Item>
+                      <Form.Item label="密码" name="qbPassword">
+                        <Input.Password
+                          placeholder="你的 WebUI 密码"
+                          autoComplete="current-password"
+                        />
+                      </Form.Item>
+                    </div>
+
+                    <div className="options-inline-actions">
+                      <Button
+                        type="default"
+                        aria-label="测试 qB 连接"
+                        onClick={() => void handleTestConnection()}
+                        loading={testing}
+                        disabled={testing}>
+                        测试连接
+                      </Button>
+
+                      {connectionState !== "idle" ? (
+                        <span
+                          className={
+                            connectionState === "success"
+                              ? "options-inline-feedback is-success"
+                              : "options-inline-feedback is-error"
+                          }>
+                          {connectionState === "success" ? "连接成功" : "连接失败"}
+                          {connectionMessage ? ` · ${connectionMessage}` : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                  </Card>
+
+                  <Card
+                    variant="borderless"
+                    className={
+                      advancedOpen
+                        ? "options-panel options-panel--advanced is-open"
+                        : "options-panel options-panel--advanced"
+                    }>
+                    <button
+                      type="button"
+                      className="options-advanced-toggle"
+                      aria-expanded={advancedOpen}
+                      onClick={() => setAdvancedOpen((current) => !current)}>
+                      <div>
+                        <Typography.Title level={3}>批量提取节奏</Typography.Title>
+                        <Typography.Paragraph>
+                          配置并发数、重试次数以及注入和稳定等待时间。
+                        </Typography.Paragraph>
+                      </div>
+                      <span className="options-advanced-toggle__icon" aria-hidden="true">
+                        {advancedOpen ? "−" : "+"}
+                      </span>
+                    </button>
+
+                    {advancedOpen ? (
+                      <div className="options-field-grid options-field-grid--advanced">
                         <Form.Item label="并发数" name="concurrency">
                           <InputNumber min={1} max={3} style={{ width: "100%" }} />
                         </Form.Item>
@@ -253,120 +436,139 @@ export function OptionsPage({ api }: OptionsPageProps) {
                           <InputNumber min={200} max={10000} step={100} style={{ width: "100%" }} />
                         </Form.Item>
                       </div>
-                    </Card>
-                  </div>
-                </Card>
-
-                <Card variant="borderless" className="options-subcard" title="站点专属配置">
-                  <div className="options-source-grid">
-                    <Card variant="borderless" className="options-source-card">
-                      <div className="options-source-card__header">
-                        <Typography.Title level={4}>Kisssub</Typography.Title>
-                        <Tag variant="filled" color="orange">
-                          专属配置
-                        </Tag>
-                      </div>
-
-                      <div className="options-advanced-grid">
-                        <Form.Item label="Kisssub 外部脚本地址" name="remoteScriptUrl">
-                          <Input />
-                        </Form.Item>
-                        <Form.Item label="Kisssub 脚本版本号" name="remoteScriptRevision">
-                          <Input />
-                        </Form.Item>
-                        <Form.Item label="下载策略" name={["sourceDeliveryModes", "kisssub"]}>
-                          <Radio.Group>{renderDeliveryModeOptions("kisssub")}</Radio.Group>
-                        </Form.Item>
-                      </div>
-                    </Card>
-
-                    <Card variant="borderless" className="options-source-card">
-                      <div className="options-source-card__header">
-                        <Typography.Title level={4}>Dongmanhuayuan</Typography.Title>
-                        <Tag variant="filled" color="green">
-                          暂无专属项
-                        </Tag>
-                      </div>
-
-                      <div className="options-source-placeholder">
-                        <Typography.Paragraph>当前仅支持磁力链，无需切换下载策略。</Typography.Paragraph>
-                      </div>
-                    </Card>
-
-                    <Card variant="borderless" className="options-source-card">
-                      <div className="options-source-card__header">
-                        <Typography.Title level={4}>ACG.RIP</Typography.Title>
-                        <Tag variant="filled" color="cyan">
-                          推荐上传
-                        </Tag>
-                      </div>
-
-                      <Form.Item label="下载策略" name={["sourceDeliveryModes", "acgrip"]}>
-                        <Radio.Group>{renderDeliveryModeOptions("acgrip")}</Radio.Group>
-                      </Form.Item>
-                      <Typography.Paragraph className="options-source-placeholder">
-                        默认使用“先下载种子再上传到 qB”，因为 qB 直接拉取该站种子链接可能失败。
-                      </Typography.Paragraph>
-                    </Card>
-                  </div>
-                </Card>
-
-                <Space wrap size={12} className="options-actions">
-                  <Button type="primary" htmlType="submit" loading={saving}>
-                    保存设置
-                  </Button>
-                  <Button
-                    type="default"
-                    aria-label="测试 qB 连接"
-                    onClick={() => void handleTestConnection()}
-                    loading={testing}
-                    disabled={testing}>
-                    测试 qB 连接
-                  </Button>
-                </Space>
-              </Form>
-            </Space>
-          </Card>
-
-          <div className="options-side">
-            <Card variant="borderless" className="options-card options-card--note">
-              {compatibilityNote}
-            </Card>
-
-            <Card variant="borderless" className="options-card options-card--summary">
-              <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                <Typography.Title level={4} style={{ margin: 0 }}>
-                  支持源概览
-                </Typography.Title>
-                <div className="options-tag-list">
-                  <Tag color="orange">Kisssub</Tag>
-                  <Tag color="green">Dongmanhuayuan</Tag>
-                  <Tag color="cyan">ACG.RIP</Tag>
+                    ) : null}
+                  </Card>
                 </div>
-                <ul className="options-bullets">
-                  <li>已接入 Kisssub、Dongmanhuayuan 与 ACG.RIP 三个动漫 BT 源站。</li>
-                  <li>源站专属项会按各站实际适配能力继续扩展。</li>
-                  <li>当前统一投递到 qBittorrent WebUI。</li>
-                </ul>
-              </Space>
-            </Card>
+              )}
 
-            <Card variant="borderless" className="options-card options-card--summary">
-              <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                <Typography.Title level={4} style={{ margin: 0 }}>
-                  当前能力
-                </Typography.Title>
-                <ul className="options-bullets">
-                  <li>配置页按多源动漫 BT 站组织，而不是围绕单一站点命名。</li>
-                  <li>qB 连接与批量提取节奏统一管理，减少重复配置。</li>
-                  <li>站点专属参数单独成卡，便于继续扩展支持源站。</li>
-                  <li>状态信息统一显示在操作区上方，减少找反馈的成本。</li>
-                </ul>
-              </Space>
-            </Card>
+              {activeView === "kisssub" && (
+                <div className="options-view">
+                  <Card variant="borderless" className="options-panel">
+                    <div className="options-panel__header options-panel__header--stacked">
+                      <div>
+                        <Typography.Title level={3}>Kisssub 解析参数</Typography.Title>
+                        <Typography.Paragraph>
+                          当站点依赖远程脚本辅助提取时，可在这里维护脚本地址与版本号。
+                        </Typography.Paragraph>
+                      </div>
+                      <Tag color="blue">脚本解析</Tag>
+                    </div>
+
+                    <div className="options-field-grid">
+                      <Form.Item label="Kisssub 外部脚本地址" name="remoteScriptUrl">
+                        <Input />
+                      </Form.Item>
+                      <Form.Item label="Kisssub 脚本版本号" name="remoteScriptRevision">
+                        <Input />
+                      </Form.Item>
+                    </div>
+                  </Card>
+
+                  <Card variant="borderless" className="options-panel">
+                    <div className="options-panel__header options-panel__header--stacked">
+                      <div>
+                        <Typography.Title level={3}>下载策略</Typography.Title>
+                        <Typography.Paragraph>
+                          优先使用磁力链，必要时回退为种子链接或下载后上传。
+                        </Typography.Paragraph>
+                      </div>
+                    </div>
+
+                    <Form.Item label="下载策略" name={["sourceDeliveryModes", "kisssub"]}>
+                      <Radio.Group className="options-radio-group">
+                        {renderDeliveryModeOptions("kisssub")}
+                      </Radio.Group>
+                    </Form.Item>
+                  </Card>
+                </div>
+              )}
+
+              {activeView === "dongmanhuayuan" && (
+                <div className="options-view">
+                  <Card variant="borderless" className="options-panel options-empty-state">
+                    <div className="options-empty-state__icon" aria-hidden="true">
+                      DM
+                    </div>
+                    <Typography.Title level={3}>暂无专属配置项</Typography.Title>
+                    <Typography.Paragraph>
+                      当前站点默认沿用全局设置，仅支持磁力链模式。未来若新增提取参数，会继续收敛在这个站点面板中。
+                    </Typography.Paragraph>
+                  </Card>
+                </div>
+              )}
+
+              {activeView === "acgrip" && (
+                <div className="options-view">
+                  <Card variant="borderless" className="options-panel">
+                    <div className="options-panel__header options-panel__header--stacked">
+                      <div>
+                        <Typography.Title level={3}>下载策略</Typography.Title>
+                        <Typography.Paragraph>
+                          为避免 qB 直接拉取站点种子链接失败，建议优先使用下载后上传。
+                        </Typography.Paragraph>
+                      </div>
+                      <Tag color="cyan">推荐上传</Tag>
+                    </div>
+
+                    <Form.Item label="下载策略" name={["sourceDeliveryModes", "acgrip"]}>
+                      <Radio.Group className="options-radio-group">
+                        {renderDeliveryModeOptions("acgrip")}
+                      </Radio.Group>
+                    </Form.Item>
+
+                    <div className="options-message-card">
+                      默认使用“先下载种子再上传到 qB”，因为 qB 直接拉取该站种子链接可能失败。
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {activeView === "overview" && (
+                <div className="options-view">
+                  <div className="options-overview-grid">
+                    {overviewSites.map((site) => (
+                      <Card
+                        key={site.name}
+                        variant="borderless"
+                        className={`options-site-card ${site.accentClassName}`}>
+                        <div className="options-site-card__status">
+                          <span className="options-site-card__dot" aria-hidden="true" />
+                          <span>支持良好</span>
+                        </div>
+                        <Typography.Title level={3}>{site.name}</Typography.Title>
+                        <Typography.Paragraph>{site.url}</Typography.Paragraph>
+                        <p className="options-site-card__summary">{site.summary}</p>
+                        <Button type="default" onClick={() => window.open(`https://${site.url}`, "_blank")}>
+                          访问站点
+                        </Button>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <Card variant="borderless" className="options-panel options-panel--dark">
+                    <Typography.Title level={3}>当前能力</Typography.Title>
+                    <ul className="options-bullets">
+                      <li>配置页已按站点拆分导航，基础配置与站点专属配置分层管理。</li>
+                      <li>qB 连接与提取节奏集中维护，减少重复编辑和长滚动。</li>
+                      <li>站点专属视图保留扩展位，后续新增 BT 站点时无需继续拉长同一页面。</li>
+                    </ul>
+                  </Card>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+
+          <footer className="options-footer">
+            <div className="options-footer__context">
+              <span className="options-footer__eyebrow">当前视图</span>
+              <strong>{activeMeta.footerLabel}</strong>
+            </div>
+            <Button type="primary" htmlType="submit" loading={saving}>
+              保存所有设置
+            </Button>
+          </footer>
+        </section>
+      </Form>
     </main>
   )
 }

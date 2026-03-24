@@ -94,11 +94,32 @@ test("options page saves settings through the background worker", async () => {
     const page = await extension.context.newPage()
     await page.goto(`chrome-extension://${extension.extensionId}/options.html`)
 
-    await expect(page.getByRole("heading", { name: "多源站配置" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "连接与基础设置" })).toBeVisible()
+    await expect
+      .poll(async () => {
+        return page.evaluate(() => {
+          const sidebarGroups = document.querySelector(".options-sidebar__groups")
+
+          if (!sidebarGroups) {
+            return null
+          }
+
+          const computed = window.getComputedStyle(sidebarGroups)
+
+          return {
+            display: computed.display,
+            flexDirection: computed.flexDirection
+          }
+        })
+      })
+      .toEqual({
+        display: "flex",
+        flexDirection: "column"
+      })
 
     await page.getByLabel("qBittorrent WebUI 地址").fill("http://127.0.0.1:17474")
     await page.getByLabel("用户名").fill("admin")
-    await page.getByRole("button", { name: "保存设置" }).click()
+    await page.getByRole("button", { name: "保存所有设置" }).click()
 
     await expect(page.getByText("设置已保存。")).toBeVisible()
   } finally {

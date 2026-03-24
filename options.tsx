@@ -44,21 +44,21 @@ const api: OptionsApi = {
 
 const theme = {
   token: {
-    colorPrimary: "#9f4c1d",
-    colorInfo: "#25566a",
-    colorSuccess: "#2d6c4f",
-    colorWarning: "#b06a1b",
-    colorError: "#a33c32",
-    borderRadius: 18,
-    colorBgBase: "#f4efe7",
-    colorTextBase: "#1f2933",
-    colorTextSecondary: "#5a6570",
+    colorPrimary: "#2563eb",
+    colorInfo: "#2563eb",
+    colorSuccess: "#15803d",
+    colorWarning: "#b45309",
+    colorError: "#b91c1c",
+    borderRadius: 20,
+    colorBgBase: "#f5f7fb",
+    colorTextBase: "#0f172a",
+    colorTextSecondary: "#526075",
     fontFamily:
       '"Aptos", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif'
   },
   components: {
     Card: {
-      borderRadiusLG: 26
+      borderRadiusLG: 24
     },
     Button: {
       controlHeight: 46,
