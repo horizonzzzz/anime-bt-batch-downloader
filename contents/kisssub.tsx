@@ -27,8 +27,7 @@ export const config: PlasmoCSConfig = {
     "http://acg.rip/*",
     "https://acg.rip/*"
   ],
-  run_at: "document_idle",
-  css: ["./kisssub.css"]
+  run_at: "document_idle"
 }
 
 type CheckboxRoot = {
@@ -79,9 +78,7 @@ if (activeSource) {
       handleBatchEvent(message)
     })
   } else {
-    document.querySelector(".kisssub-batch-panel-root")?.remove()
-    panelContainer = null
-    panelRoot = null
+    unmountPanel()
   }
 }
 
@@ -91,10 +88,23 @@ function mountPanel() {
   }
 
   panelContainer = document.createElement("div")
-  panelContainer.className = "kisssub-batch-panel-root"
+  panelContainer.dataset.kisssubBatchPanelRoot = "1"
   document.body.appendChild(panelContainer)
   panelRoot = createRoot(panelContainer)
   renderAll()
+}
+
+function unmountPanel() {
+  if (panelRoot) {
+    panelRoot.unmount()
+  }
+
+  if (panelContainer) {
+    panelContainer.remove()
+  }
+
+  panelContainer = null
+  panelRoot = null
 }
 
 function observeMutations() {
@@ -134,7 +144,7 @@ function scanAndDecorate(source: SourceAdapter) {
     }
 
     const container = document.createElement("span")
-    container.className = "kisssub-batch-checkbox-root"
+    container.dataset.kisssubBatchCheckboxRoot = "1"
 
     if (targetCell.firstChild) {
       targetCell.insertBefore(container, targetCell.firstChild)

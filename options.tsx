@@ -1,5 +1,5 @@
 import "antd/dist/reset.css"
-import "./styles/options.css"
+import "./styles/options-global.scss"
 
 import { App as AntApp, ConfigProvider } from "antd"
 

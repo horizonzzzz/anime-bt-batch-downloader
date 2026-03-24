@@ -43,6 +43,7 @@ describe("OptionsPage", () => {
       expect(screen.getByText("通用设置")).toBeInTheDocument()
       expect(screen.getByText("站点专属配置")).toBeInTheDocument()
       expect(screen.getByText("关于与支持")).toBeInTheDocument()
+      expect(screen.getByTestId("options-sidebar-groups")).toBeInTheDocument()
       expect(screen.getByRole("link", { name: "查看 GitHub 仓库" })).toHaveAttribute(
         "href",
         "https://github.com/horizonzzzz/anime-bt-batch-downloader"

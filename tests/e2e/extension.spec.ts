@@ -111,13 +111,7 @@ test("options page saves settings through the background worker", async () => {
     )
     await expect
       .poll(async () => {
-        return page.evaluate(() => {
-          const sidebarGroups = document.querySelector(".options-sidebar__groups")
-
-          if (!sidebarGroups) {
-            return null
-          }
-
+        return page.getByTestId("options-sidebar-groups").evaluate((sidebarGroups) => {
           const computed = window.getComputedStyle(sidebarGroups)
 
           return {

@@ -22,6 +22,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `React 19`
 - `TypeScript`
 - `Ant Design` for the options UI
+- `SCSS Modules` for extension-owned styling, with a small shared SCSS token/mixin layer
 - Browser-extension runtime with:
   - a background service worker in `background.ts`
   - a content script entry in `contents/kisssub.tsx`
@@ -34,9 +35,11 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `options.tsx`
   Boots the options page and wires the React UI to background message APIs.
 - `components/`
-  UI components for the floating batch panel, selection checkbox, and options page.
+  UI components for the floating batch panel, selection checkbox, and options page, plus their colocated `*.module.scss` files.
 - `contents/`
-  Content script entry and injected styles for supported source pages.
+  Content script entry for supported source pages and DOM injection orchestration.
+- `styles/`
+  Shared SCSS tokens, mixins, and options-page global styles that are consumed by component-level SCSS modules.
 - `assets/`
   Source icon assets for the extension brand. `anime-bt-icon-speedline.svg` is the UI source icon, and `icon.png` is the generated packaging icon consumed by Plasmo for extension icon sizes.
 - `lib/`

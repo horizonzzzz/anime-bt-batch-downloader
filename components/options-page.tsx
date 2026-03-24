@@ -8,6 +8,7 @@ import speedlineBrandIcon from "../assets/anime-bt-icon-speedline.svg"
 import { getDeliveryModeLabel, getSupportedDeliveryModes } from "../lib/delivery"
 import { DEFAULT_SETTINGS } from "../lib/settings"
 import type { Settings, SourceId, TestQbConnectionResult } from "../lib/types"
+import styles from "./options-page.module.scss"
 
 export type OptionsApi = {
   loadSettings: () => Promise<Settings>
@@ -22,6 +23,7 @@ type OptionsPageProps = {
 type StatusTone = "info" | "success" | "error"
 type OptionsViewId = "general" | "kisssub" | "dongmanhuayuan" | "acgrip" | "overview"
 type ConnectionState = "idle" | "success" | "error"
+type OverviewSiteAccent = "kisssub" | "dongmanhuayuan" | "acgrip"
 
 const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
   info: "info",
@@ -89,26 +91,41 @@ const navGroups: Array<{
   }
 ]
 
-const overviewSites = [
+const overviewSites: Array<{
+  name: string
+  url: string
+  accent: OverviewSiteAccent
+  summary: string
+}> = [
   {
     name: "Kisssub",
     url: "kisssub.org",
-    accentClassName: "is-kisssub",
+    accent: "kisssub",
     summary: "支持脚本辅助解析与多种投递策略。"
   },
   {
     name: "Dongmanhuayuan",
     url: "dongmanhuayuan.com",
-    accentClassName: "is-dongmanhuayuan",
+    accent: "dongmanhuayuan",
     summary: "当前以磁力链为主，配置保持轻量。"
   },
   {
     name: "ACG.RIP",
     url: "acg.rip",
-    accentClassName: "is-acgrip",
+    accent: "acgrip",
     summary: "优先推荐种子下载后上传到 qB。"
   }
 ]
+
+const siteCardAccentClassNames: Record<OverviewSiteAccent, string> = {
+  kisssub: "",
+  dongmanhuayuan: styles.siteCardDongmanhuayuan,
+  acgrip: styles.siteCardAcgrip
+}
+
+function joinClassNames(...classNames: Array<string | false | null | undefined>) {
+  return classNames.filter(Boolean).join(" ")
+}
 
 function normalizeSettings(values: Partial<Settings>): Settings {
   return {
@@ -145,9 +162,9 @@ function SidebarButton({
   return (
     <button
       type="button"
-      className={active ? "options-sidebar__button is-active" : "options-sidebar__button"}
+      className={joinClassNames(styles.sidebarButton, active && styles.isActive)}
       onClick={onClick}>
-      <span className="options-sidebar__button-dot" aria-hidden="true" />
+      <span className={styles.sidebarButtonDot} aria-hidden="true" />
       <span>{label}</span>
     </button>
   )
@@ -258,37 +275,37 @@ export function OptionsPage({ api }: OptionsPageProps) {
   }
 
   return (
-    <main className="options-shell">
+    <main className={styles.shell}>
       <Form
         form={form}
         layout="vertical"
         initialValues={DEFAULT_SETTINGS}
         onFinish={() => void handleSave()}
-        className="options-workbench">
-        <aside className="options-sidebar">
-          <div className="options-sidebar__brand">
-            <div className="options-sidebar__brand-mark">
+        className={styles.workbench}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarBrand}>
+            <div className={styles.sidebarBrandMark}>
               <img
                 src={speedlineBrandIcon}
                 alt=""
                 loading="eager"
                 decoding="async"
                 data-testid="options-brand-icon"
-                className="options-sidebar__brand-icon"
+                className={styles.sidebarBrandIcon}
                 aria-hidden="true"
               />
             </div>
             <div>
-              <div className="options-sidebar__brand-name">{BRAND_NAME}</div>
-              <div className="options-sidebar__brand-subtitle">Extension Settings</div>
+              <div className={styles.sidebarBrandName}>{BRAND_NAME}</div>
+              <div className={styles.sidebarBrandSubtitle}>Extension Settings</div>
             </div>
           </div>
 
-          <div className="options-sidebar__groups">
+          <div className={styles.sidebarGroups} data-testid="options-sidebar-groups">
             {navGroups.map((group) => (
-              <section key={group.title} className="options-sidebar__group">
-                <p className="options-sidebar__group-title">{group.title}</p>
-                <div className="options-sidebar__group-items">
+              <section key={group.title} className={styles.sidebarGroup}>
+                <p className={styles.sidebarGroupTitle}>{group.title}</p>
+                <div className={styles.sidebarGroupItems}>
                   {group.items.map((item) => (
                     <SidebarButton
                       key={item.key}
@@ -302,13 +319,13 @@ export function OptionsPage({ api }: OptionsPageProps) {
             ))}
           </div>
 
-          <div className="options-sidebar__footer">
-            <div className="options-sidebar__footer-meta">
+          <div className={styles.sidebarFooter}>
+            <div className={styles.sidebarFooterMeta}>
               <span>3 个支持源站</span>
               <strong>qBittorrent WebUI</strong>
             </div>
             <a
-              className="options-sidebar__github-link"
+              className={styles.githubLink}
               href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
@@ -319,31 +336,31 @@ export function OptionsPage({ api }: OptionsPageProps) {
           </div>
         </aside>
 
-        <section className="options-main">
-          <div className="options-main__scroll">
-            <div className="options-main__inner">
-              <header className="options-page-header">
-                <Tag variant="filled" className="options-page-header__tag">
+        <section className={styles.main}>
+          <div className={styles.mainScroll}>
+            <div className={styles.mainInner}>
+              <header className={styles.pageHeader}>
+                <Tag variant="filled" className={styles.pageHeaderTag}>
                   {BRAND_NAME}
                 </Tag>
                 <Typography.Title level={1}>{activeMeta.title}</Typography.Title>
                 <Typography.Paragraph>{activeMeta.description}</Typography.Paragraph>
               </header>
 
-              <div role="status" aria-live="polite" className="options-status">
+              <div role="status" aria-live="polite" className={styles.status}>
                 <Alert showIcon type={statusTypeMap[status.tone]} title={status.message} />
               </div>
 
               {activeView === "general" && (
-                <div className="options-view">
-                  <div className="options-stat-grid">
-                    <Card variant="borderless" className="options-stat-card">
-                      <span className="options-stat-card__label">支持站点</span>
+                <div className={styles.view}>
+                  <div className={styles.statGrid}>
+                    <Card variant="borderless" className={styles.statCard}>
+                      <span className={styles.statCardLabel}>支持站点</span>
                       <strong>3 个动漫 BT 源站</strong>
                       <p>按站点拆分配置，避免长表单继续膨胀。</p>
                     </Card>
-                    <Card variant="borderless" className="options-stat-card">
-                      <span className="options-stat-card__label">默认投递目标</span>
+                    <Card variant="borderless" className={styles.statCard}>
+                      <span className={styles.statCardLabel}>默认投递目标</span>
                       <strong>qBittorrent WebUI</strong>
                       <p>连接配置集中管理，站点只保留专属项。</p>
                     </Card>
@@ -352,10 +369,10 @@ export function OptionsPage({ api }: OptionsPageProps) {
                   <Alert
                     showIcon
                     type="info"
-                    className="options-note"
+                    className={styles.note}
                     title="qB WebUI 兼容性提示"
                     description={
-                      <div className="options-note__body">
+                      <div className={styles.noteBody}>
                         <p>
                           扩展会从浏览器扩展上下文访问 <code>http://127.0.0.1:7474</code> 这类本机
                           WebUI。若测试连接返回 401，而账号密码确认无误，请先在 qBittorrent 的{" "}
@@ -370,8 +387,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     }
                   />
 
-                  <Card variant="borderless" className="options-panel">
-                    <div className="options-panel__header">
+                  <Card variant="borderless" className={styles.panel}>
+                    <div className={styles.panelHeader}>
                       <div>
                         <Typography.Title level={3}>qBittorrent 认证</Typography.Title>
                         <Typography.Paragraph>
@@ -380,7 +397,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                       </div>
                     </div>
 
-                    <div className="options-field-grid">
+                    <div className={styles.fieldGrid}>
                       <Form.Item
                         label="qBittorrent WebUI 地址"
                         name="qbBaseUrl"
@@ -398,7 +415,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                       </Form.Item>
                     </div>
 
-                    <div className="options-inline-actions">
+                    <div className={styles.inlineActions}>
                       <Button
                         type="default"
                         aria-label="测试 qB 连接"
@@ -410,11 +427,10 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
                       {connectionState !== "idle" ? (
                         <span
-                          className={
-                            connectionState === "success"
-                              ? "options-inline-feedback is-success"
-                              : "options-inline-feedback is-error"
-                          }>
+                          className={joinClassNames(
+                            styles.inlineFeedback,
+                            connectionState === "success" ? styles.isSuccess : styles.isError
+                          )}>
                           {connectionState === "success" ? "连接成功" : "连接失败"}
                           {connectionMessage ? ` · ${connectionMessage}` : ""}
                         </span>
@@ -424,14 +440,14 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
                   <Card
                     variant="borderless"
-                    className={
-                      advancedOpen
-                        ? "options-panel options-panel--advanced is-open"
-                        : "options-panel options-panel--advanced"
-                    }>
+                    className={joinClassNames(
+                      styles.panel,
+                      styles.advancedPanel,
+                      advancedOpen && styles.isOpen
+                    )}>
                     <button
                       type="button"
-                      className="options-advanced-toggle"
+                      className={styles.advancedToggle}
                       aria-expanded={advancedOpen}
                       onClick={() => setAdvancedOpen((current) => !current)}>
                       <div>
@@ -440,13 +456,13 @@ export function OptionsPage({ api }: OptionsPageProps) {
                           配置并发数、重试次数以及注入和稳定等待时间。
                         </Typography.Paragraph>
                       </div>
-                      <span className="options-advanced-toggle__icon" aria-hidden="true">
+                      <span className={styles.advancedToggleIcon} aria-hidden="true">
                         {advancedOpen ? "−" : "+"}
                       </span>
                     </button>
 
                     {advancedOpen ? (
-                      <div className="options-field-grid options-field-grid--advanced">
+                      <div className={joinClassNames(styles.fieldGrid, styles.advancedFieldGrid)}>
                         <Form.Item label="并发数" name="concurrency">
                           <InputNumber min={1} max={3} style={{ width: "100%" }} />
                         </Form.Item>
@@ -466,9 +482,9 @@ export function OptionsPage({ api }: OptionsPageProps) {
               )}
 
               {activeView === "kisssub" && (
-                <div className="options-view">
-                  <Card variant="borderless" className="options-panel">
-                    <div className="options-panel__header options-panel__header--stacked">
+                <div className={styles.view}>
+                  <Card variant="borderless" className={styles.panel}>
+                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>Kisssub 解析参数</Typography.Title>
                         <Typography.Paragraph>
@@ -478,7 +494,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                       <Tag color="blue">脚本解析</Tag>
                     </div>
 
-                    <div className="options-field-grid">
+                    <div className={styles.fieldGrid}>
                       <Form.Item label="Kisssub 外部脚本地址" name="remoteScriptUrl">
                         <Input />
                       </Form.Item>
@@ -488,8 +504,8 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     </div>
                   </Card>
 
-                  <Card variant="borderless" className="options-panel">
-                    <div className="options-panel__header options-panel__header--stacked">
+                  <Card variant="borderless" className={styles.panel}>
+                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>下载策略</Typography.Title>
                         <Typography.Paragraph>
@@ -499,7 +515,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     </div>
 
                     <Form.Item label="下载策略" name={["sourceDeliveryModes", "kisssub"]}>
-                      <Radio.Group className="options-radio-group">
+                      <Radio.Group className={styles.radioGroup}>
                         {renderDeliveryModeOptions("kisssub")}
                       </Radio.Group>
                     </Form.Item>
@@ -508,9 +524,11 @@ export function OptionsPage({ api }: OptionsPageProps) {
               )}
 
               {activeView === "dongmanhuayuan" && (
-                <div className="options-view">
-                  <Card variant="borderless" className="options-panel options-empty-state">
-                    <div className="options-empty-state__icon" aria-hidden="true">
+                <div className={styles.view}>
+                  <Card
+                    variant="borderless"
+                    className={joinClassNames(styles.panel, styles.emptyState)}>
+                    <div className={styles.emptyStateIcon} aria-hidden="true">
                       DM
                     </div>
                     <Typography.Title level={3}>暂无专属配置项</Typography.Title>
@@ -522,9 +540,9 @@ export function OptionsPage({ api }: OptionsPageProps) {
               )}
 
               {activeView === "acgrip" && (
-                <div className="options-view">
-                  <Card variant="borderless" className="options-panel">
-                    <div className="options-panel__header options-panel__header--stacked">
+                <div className={styles.view}>
+                  <Card variant="borderless" className={styles.panel}>
+                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
                       <div>
                         <Typography.Title level={3}>下载策略</Typography.Title>
                         <Typography.Paragraph>
@@ -535,12 +553,12 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     </div>
 
                     <Form.Item label="下载策略" name={["sourceDeliveryModes", "acgrip"]}>
-                      <Radio.Group className="options-radio-group">
+                      <Radio.Group className={styles.radioGroup}>
                         {renderDeliveryModeOptions("acgrip")}
                       </Radio.Group>
                     </Form.Item>
 
-                    <div className="options-message-card">
+                    <div className={styles.messageCard}>
                       默认使用“先下载种子再上传到 qB”，因为 qB 直接拉取该站种子链接可能失败。
                     </div>
                   </Card>
@@ -548,20 +566,23 @@ export function OptionsPage({ api }: OptionsPageProps) {
               )}
 
               {activeView === "overview" && (
-                <div className="options-view">
-                  <div className="options-overview-grid">
+                <div className={styles.view}>
+                  <div className={styles.overviewGrid}>
                     {overviewSites.map((site) => (
                       <Card
                         key={site.name}
                         variant="borderless"
-                        className={`options-site-card ${site.accentClassName}`}>
-                        <div className="options-site-card__status">
-                          <span className="options-site-card__dot" aria-hidden="true" />
+                        className={joinClassNames(
+                          styles.siteCard,
+                          siteCardAccentClassNames[site.accent]
+                        )}>
+                        <div className={styles.siteCardStatus}>
+                          <span className={styles.siteCardDot} aria-hidden="true" />
                           <span>支持良好</span>
                         </div>
                         <Typography.Title level={3}>{site.name}</Typography.Title>
                         <Typography.Paragraph>{site.url}</Typography.Paragraph>
-                        <p className="options-site-card__summary">{site.summary}</p>
+                        <p className={styles.siteCardSummary}>{site.summary}</p>
                         <Button type="default" onClick={() => window.open(`https://${site.url}`, "_blank")}>
                           访问站点
                         </Button>
@@ -569,9 +590,11 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     ))}
                   </div>
 
-                  <Card variant="borderless" className="options-panel options-panel--dark">
+                  <Card
+                    variant="borderless"
+                    className={joinClassNames(styles.panel, styles.darkPanel)}>
                     <Typography.Title level={3}>当前能力</Typography.Title>
-                    <ul className="options-bullets">
+                    <ul className={styles.bullets}>
                       <li>配置页已按站点拆分导航，基础配置与站点专属配置分层管理。</li>
                       <li>qB 连接与提取节奏集中维护，减少重复编辑和长滚动。</li>
                       <li>站点专属视图保留扩展位，后续新增 BT 站点时无需继续拉长同一页面。</li>
@@ -582,9 +605,9 @@ export function OptionsPage({ api }: OptionsPageProps) {
             </div>
           </div>
 
-          <footer className="options-footer">
-            <div className="options-footer__context">
-              <span className="options-footer__eyebrow">当前视图</span>
+          <footer className={styles.footer}>
+            <div className={styles.footerContext}>
+              <span className={styles.footerEyebrow}>当前视图</span>
               <strong>{activeMeta.footerLabel}</strong>
             </div>
             <Button type="primary" htmlType="submit" loading={saving}>
