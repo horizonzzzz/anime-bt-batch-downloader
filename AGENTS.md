@@ -8,7 +8,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 
 ## Current Scope
 
-- Supported source adapters: `kisssub.org`, `dongmanhuayuan.com`, `acg.rip`
+- Supported source adapters: `kisssub.org`, `dongmanhuayuan.com`, `acg.rip`, `bangumi.moe`
 - Supported downloader target: `qBittorrent WebUI` only
 - Optional per-batch save path override is supported
 - Magnet links are preferred; torrent URLs are the fallback
@@ -86,7 +86,7 @@ Commands are defined in `package.json`:
 - `pnpm test`
   Vitest unit and component tests under `tests/unit/` and `tests/components/` using `jsdom`.
 - `pnpm test:e2e`
-  Playwright extension-level tests under `tests/e2e/`, including options-page coverage and list-page injection flows for all 3 supported BT sources.
+  Playwright extension-level tests under `tests/e2e/`, including options-page coverage and list-page injection flows for all 4 supported BT sources.
 - `pnpm test:all`
   Full verification: typecheck + Vitest + Playwright.
 

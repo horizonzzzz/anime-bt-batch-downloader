@@ -30,14 +30,16 @@ describe("sanitizeSettings", () => {
         sourceDeliveryModes: {
           kisssub: "torrent-file",
           dongmanhuayuan: "torrent-file",
-          acgrip: "magnet"
+          acgrip: "magnet",
+          bangumimoe: "torrent-file"
         }
       })
     ).toMatchObject({
       sourceDeliveryModes: {
         kisssub: "torrent-file",
         dongmanhuayuan: "magnet",
-        acgrip: "torrent-file"
+        acgrip: "torrent-file",
+        bangumimoe: "torrent-file"
       }
     })
   })

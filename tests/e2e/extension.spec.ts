@@ -176,3 +176,82 @@ test("content script injects the batch panel on an ACG.RIP list page", async () 
     await extension.close()
   }
 })
+
+test("content script injects the batch panel on a Bangumi.moe list page", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    await assertBatchPanelInjection(extension, {
+      url: "https://bangumi.moe/",
+      fixtureName: "bangumimoe-list.html",
+      title: "Bangumi.moe 批量下载"
+    })
+  } finally {
+    await extension.close()
+  }
+})
+
+test("clicking the Bangumi.moe batch checkbox does not trigger the host detail dialog", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", "bangumimoe-list.html")
+
+    await extension.context.route("https://bangumi.moe/", async (route) => {
+      await route.fulfill({
+        path: fixturePath,
+        contentType: "text/html"
+      })
+    })
+
+    const page = await extension.context.newPage()
+    await page.goto("https://bangumi.moe/")
+
+    await expect(page.getByText("Bangumi.moe 批量下载")).toBeVisible()
+    await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2)
+
+    await page.getByTitle("选择这条帖子进行批量下载").first().click()
+
+    await expect(page.getByRole("dialog", { name: "Bangumi.moe 站内详情" })).toBeHidden()
+    await expect(page.getByText("已选 1 项，可直接发起批量下载。")).toBeVisible()
+
+    await page.getByText("[LoliHouse] Episode 01").click()
+    await expect(page.getByRole("dialog", { name: "Bangumi.moe 站内详情" })).toBeVisible()
+
+    await page.getByRole("button", { name: "关闭详情浮层" }).click()
+    await expect(page.getByRole("dialog", { name: "Bangumi.moe 站内详情" })).toBeHidden()
+  } finally {
+    await extension.close()
+  }
+})
+
+test("content script keeps watching a Bangumi.moe search page until results appear", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const fixturePath = path.join(
+      process.cwd(),
+      "tests",
+      "e2e",
+      "fixtures",
+      "bangumimoe-search-list.html"
+    )
+
+    await extension.context.route("https://bangumi.moe/search/index", async (route) => {
+      await route.fulfill({
+        path: fixturePath,
+        contentType: "text/html"
+      })
+    })
+
+    const page = await extension.context.newPage()
+    await page.goto("https://bangumi.moe/search/index")
+
+    await expect(page.getByText("Bangumi.moe 批量下载")).toBeVisible()
+    await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2, {
+      timeout: 5000
+    })
+  } finally {
+    await extension.close()
+  }
+})

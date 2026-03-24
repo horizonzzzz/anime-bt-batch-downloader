@@ -22,9 +22,9 @@ type OptionsPageProps = {
 }
 
 type StatusTone = "info" | "success" | "error"
-type OptionsViewId = "general" | "kisssub" | "dongmanhuayuan" | "acgrip" | "overview"
+type OptionsViewId = "general" | "kisssub" | "dongmanhuayuan" | "acgrip" | "bangumimoe" | "overview"
 type ConnectionState = "idle" | "success" | "error"
-type OverviewSiteAccent = "kisssub" | "dongmanhuayuan" | "acgrip"
+type OverviewSiteAccent = "kisssub" | "dongmanhuayuan" | "acgrip" | "bangumimoe"
 
 const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
   info: "info",
@@ -63,6 +63,11 @@ const viewMeta: Record<
     description: "定义 ACG.RIP 站点的下载投递方式，避免直链提交失败。",
     footerLabel: "正在编辑 ACG.RIP 专属配置"
   },
+  bangumimoe: {
+    title: "Bangumi.moe 专属配置",
+    description: "控制 Bangumi.moe 详情弹层解析后的投递策略。",
+    footerLabel: "正在编辑 Bangumi.moe 专属配置"
+  },
   overview: {
     title: "源站概览",
     description: "查看当前扩展支持的动漫 BT 站点状态。",
@@ -83,7 +88,8 @@ const navGroups: Array<{
     items: [
       { key: "kisssub", label: "Kisssub" },
       { key: "dongmanhuayuan", label: "Dongmanhuayuan" },
-      { key: "acgrip", label: "ACG.RIP" }
+      { key: "acgrip", label: "ACG.RIP" },
+      { key: "bangumimoe", label: "Bangumi.moe" }
     ]
   },
   {
@@ -115,13 +121,20 @@ const overviewSites: Array<{
     url: "acg.rip",
     accent: "acgrip",
     summary: "优先推荐种子下载后上传到 qB。"
+  },
+  {
+    name: "Bangumi.moe",
+    url: "bangumi.moe",
+    accent: "bangumimoe",
+    summary: "支持详情弹层中的磁力链与种子下载入口。"
   }
 ]
 
 const siteCardAccentClassNames: Record<OverviewSiteAccent, string> = {
   kisssub: "",
   dongmanhuayuan: styles.siteCardDongmanhuayuan,
-  acgrip: styles.siteCardAcgrip
+  acgrip: styles.siteCardAcgrip,
+  bangumimoe: ""
 }
 
 function joinClassNames(...classNames: Array<string | false | null | undefined>) {
@@ -322,7 +335,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
           <div className={styles.sidebarFooter}>
             <div className={styles.sidebarFooterMeta}>
-              <span>3 个支持源站</span>
+              <span>4 个支持源站</span>
               <strong>qBittorrent WebUI</strong>
             </div>
             <a
@@ -357,7 +370,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                   <div className={styles.statGrid}>
                     <Card variant="borderless" className={styles.statCard}>
                       <span className={styles.statCardLabel}>支持站点</span>
-                      <strong>3 个动漫 BT 源站</strong>
+                      <strong>4 个动漫 BT 源站</strong>
                       <p>按站点拆分配置，避免长表单继续膨胀。</p>
                     </Card>
                     <Card variant="borderless" className={styles.statCard}>
@@ -571,6 +584,32 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
                     <div className={styles.messageCard}>
                       默认使用“先下载种子再上传到 qB”，因为 qB 直接拉取该站种子链接可能失败。
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {activeView === "bangumimoe" && (
+                <div className={styles.view}>
+                  <Card variant="borderless" className={styles.panel}>
+                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
+                      <div>
+                        <Typography.Title level={3}>下载策略</Typography.Title>
+                        <Typography.Paragraph>
+                          可在磁力链接、种子 URL 直提与种子下载后上传之间切换。
+                        </Typography.Paragraph>
+                      </div>
+                      <Tag color="geekblue">弹层提取</Tag>
+                    </div>
+
+                    <Form.Item label="下载策略" name={["sourceDeliveryModes", "bangumimoe"]}>
+                      <Radio.Group className={styles.radioGroup}>
+                        {renderDeliveryModeOptions("bangumimoe")}
+                      </Radio.Group>
+                    </Form.Item>
+
+                    <div className={styles.messageCard}>
+                      默认优先磁力链接；若更偏好保留站点种子文件，也可以改成直提 URL 或先下载后上传。
                     </div>
                   </Card>
                 </div>

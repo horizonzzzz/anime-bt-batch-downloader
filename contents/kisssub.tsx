@@ -25,7 +25,9 @@ export const config: PlasmoCSConfig = {
     "http://www.dongmanhuayuan.com/*",
     "https://www.dongmanhuayuan.com/*",
     "http://acg.rip/*",
-    "https://acg.rip/*"
+    "https://acg.rip/*",
+    "http://bangumi.moe/*",
+    "https://bangumi.moe/*"
   ],
   run_at: "document_idle"
 }
@@ -68,18 +70,14 @@ if (activeSource) {
   mountPanel()
   void hydrateSavePath()
   scanAndDecorate(activeSource)
-  if (checkboxRoots.size > 0) {
-    observeMutations()
-    chrome.runtime.onMessage.addListener((message: { type?: string } & BatchEventPayload) => {
-      if (!message || message.type !== BATCH_EVENT) {
-        return
-      }
+  observeMutations()
+  chrome.runtime.onMessage.addListener((message: { type?: string } & BatchEventPayload) => {
+    if (!message || message.type !== BATCH_EVENT) {
+      return
+    }
 
-      handleBatchEvent(message)
-    })
-  } else {
-    unmountPanel()
-  }
+    handleBatchEvent(message)
+  })
 }
 
 function mountPanel() {

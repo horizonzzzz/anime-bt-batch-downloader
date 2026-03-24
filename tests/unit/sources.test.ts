@@ -14,22 +14,27 @@ describe("source registry", () => {
     expect(getSourceAdapterForPage(new URL("https://acg.rip/page/2"))?.id).toBe("acgrip")
     expect(getSourceAdapterForPage(new URL("https://acg.rip/1"))?.id).toBe("acgrip")
     expect(getSourceAdapterForPage(new URL("https://acg.rip/series/1170"))?.id).toBe("acgrip")
+    expect(getSourceAdapterForPage(new URL("https://bangumi.moe/"))?.id).toBe("bangumimoe")
+    expect(getSourceAdapterForPage(new URL("https://bangumi.moe/search/index"))?.id).toBe("bangumimoe")
   })
 
   it("resolves known adapters by id", () => {
     expect(getSourceAdapterById("kisssub")?.displayName).toBe("Kisssub")
     expect(getSourceAdapterById("dongmanhuayuan")?.displayName).toBe("动漫花园")
     expect(getSourceAdapterById("acgrip" as never)?.displayName).toBe("ACG.RIP")
+    expect(getSourceAdapterById("bangumimoe" as never)?.displayName).toBe("Bangumi.moe")
   })
 
   it("exposes source-specific delivery mode capabilities", () => {
     expect(getSupportedDeliveryModes("kisssub")).toEqual(["magnet", "torrent-url", "torrent-file"])
     expect(getSupportedDeliveryModes("dongmanhuayuan")).toEqual(["magnet"])
     expect(getSupportedDeliveryModes("acgrip")).toEqual(["torrent-url", "torrent-file"])
+    expect(getSupportedDeliveryModes("bangumimoe" as never)).toEqual(["magnet", "torrent-url", "torrent-file"])
     expect(DEFAULT_SOURCE_DELIVERY_MODES).toEqual({
       kisssub: "magnet",
       dongmanhuayuan: "magnet",
-      acgrip: "torrent-file"
+      acgrip: "torrent-file",
+      bangumimoe: "magnet"
     })
   })
 })
@@ -58,6 +63,12 @@ describe("normalizeBatchItems", () => {
           detailUrl: "https://acg.rip/t/350361",
           title: "Hell Mode - 11",
           torrentUrl: "https://acg.rip/t/350361.torrent"
+        },
+        {
+          sourceId: "bangumimoe" as never,
+          detailUrl: "https://bangumi.moe/torrent/69c28b1384f11a93b5ff76a6",
+          title: "[ANi] Episode 01",
+          magnetUrl: "magnet:?xt=urn:btih:fbb0a8643346ca3e2d75a30c346113d12b268044"
         }
       ])
     ).toEqual([
@@ -76,6 +87,12 @@ describe("normalizeBatchItems", () => {
         detailUrl: "https://acg.rip/t/350361",
         title: "Hell Mode - 11",
         torrentUrl: "https://acg.rip/t/350361.torrent"
+      },
+      {
+        sourceId: "bangumimoe",
+        detailUrl: "https://bangumi.moe/torrent/69c28b1384f11a93b5ff76a6",
+        title: "[ANi] Episode 01",
+        magnetUrl: "magnet:?xt=urn:btih:fbb0a8643346ca3e2d75a30c346113d12b268044"
       }
     ])
   })

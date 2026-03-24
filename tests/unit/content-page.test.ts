@@ -158,6 +158,54 @@ describe("content page helpers", () => {
     })
   })
 
+  it("detects bangumi.moe list pages and derives the title from the surrounding heading", () => {
+    const location = new URL("https://bangumi.moe/")
+    document.body.innerHTML = `
+      <md-list class="torrent-list">
+        <md-list-item>
+          <div class="md-tile-content">
+            <div class="torrent-title">
+              <h3 class="md-item-raised-title">
+                <span>[LoliHouse] Episode 01</span>
+                <small><a href="/torrent/69c292d784f11a93b5ffffc0" target="_blank"><i class="fa fa-external-link"></i></a></small>
+              </h3>
+            </div>
+          </div>
+        </md-list-item>
+        <md-list-item>
+          <div class="md-tile-content">
+            <div class="torrent-title">
+              <h3 class="md-item-raised-title">
+                <span>[ANi] Episode 02</span>
+                <small><a href="/torrent/69c28b1384f11a93b5ff76a6" target="_blank"><i class="fa fa-external-link"></i></a></small>
+              </h3>
+            </div>
+          </div>
+        </md-list-item>
+      </md-list>
+    `
+
+    const source = getSourceAdapterForLocation(location)
+
+    expect(source?.id).toBe("bangumimoe")
+    expect(
+      getDetailAnchors(source!, document, location).map((anchor) =>
+        getBatchItemFromAnchor(source!, anchor, location)
+      )
+    ).toEqual([
+      {
+        sourceId: "bangumimoe",
+        detailUrl: "https://bangumi.moe/torrent/69c292d784f11a93b5ffffc0",
+        title: "[LoliHouse] Episode 01"
+      },
+      {
+        sourceId: "bangumimoe",
+        detailUrl: "https://bangumi.moe/torrent/69c28b1384f11a93b5ff76a6",
+        title: "[ANi] Episode 02"
+      }
+    ])
+  })
+
   it("rejects malformed detail anchors and unsupported pages", () => {
     const location = new URL("https://www.kisssub.org/list-test.html")
     document.body.innerHTML = `<a href="javascript:void(0)">Broken</a>`
@@ -167,6 +215,7 @@ describe("content page helpers", () => {
 
     expect(isListPage(location)).toBe(true)
     expect(isListPage(new URL("https://www.kisssub.org/show-deadbeef.html"))).toBe(false)
+    expect(isListPage(new URL("https://bangumi.moe/torrent/69c28b1384f11a93b5ff76a6"))).toBe(false)
     expect(isListPage(new URL("https://example.com/list.html"))).toBe(false)
     expect(isValidDetailAnchor(source!, anchor, location)).toBe(false)
   })

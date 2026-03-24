@@ -1,3 +1,5 @@
+import type { SyntheticEvent } from "react"
+
 import styles from "./selection-checkbox.module.scss"
 
 type SelectionCheckboxProps = {
@@ -6,8 +8,17 @@ type SelectionCheckboxProps = {
 }
 
 export function SelectionCheckbox({ checked, onChange }: SelectionCheckboxProps) {
+  const stopPropagation = (event: SyntheticEvent) => {
+    event.stopPropagation()
+  }
+
   return (
-    <label className={styles.root} title="选择这条帖子进行批量下载">
+    <label
+      className={styles.root}
+      title="选择这条帖子进行批量下载"
+      onClick={stopPropagation}
+      onMouseDown={stopPropagation}
+      onPointerDown={stopPropagation}>
       <input
         type="checkbox"
         className={styles.input}

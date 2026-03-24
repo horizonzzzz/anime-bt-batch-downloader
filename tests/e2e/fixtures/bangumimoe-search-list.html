@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bangumi.moe Search Fixture</title>
+  </head>
+  <body>
+    <main>
+      <section id="search-results"></section>
+    </main>
+    <script>
+      window.setTimeout(() => {
+        document.getElementById("search-results").innerHTML = `
+          <md-list class="torrent-list">
+            <md-list-item>
+              <div class="md-tile-content">
+                <div class="torrent-title">
+                  <h3 class="md-item-raised-title">
+                    <span>[LoliHouse] Search Episode 01</span>
+                    <small>
+                      <a href="/torrent/69c292d784f11a93b5ffffc0" target="_blank">
+                        <i class="fa fa-external-link"></i>
+                      </a>
+                    </small>
+                  </h3>
+                </div>
+              </div>
+            </md-list-item>
+            <md-list-item>
+              <div class="md-tile-content">
+                <div class="torrent-title">
+                  <h3 class="md-item-raised-title">
+                    <span>[ANi] Search Episode 02</span>
+                    <small>
+                      <a href="/torrent/69c28b1384f11a93b5ff76a6" target="_blank">
+                        <i class="fa fa-external-link"></i>
+                      </a>
+                    </small>
+                  </h3>
+                </div>
+              </div>
+            </md-list-item>
+          </md-list>
+        `
+      }, 400)
+    </script>
+  </body>
+</html>

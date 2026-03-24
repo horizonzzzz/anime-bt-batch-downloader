@@ -1,4 +1,4 @@
-export type SourceId = "kisssub" | "dongmanhuayuan" | "acgrip"
+export type SourceId = "kisssub" | "dongmanhuayuan" | "acgrip" | "bangumimoe"
 
 export type DeliveryMode = "magnet" | "torrent-url" | "torrent-file"
 

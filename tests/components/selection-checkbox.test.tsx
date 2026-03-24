@@ -16,4 +16,23 @@ describe("SelectionCheckbox", () => {
 
     expect(onChange).toHaveBeenCalledWith(true)
   })
+
+  it("does not bubble pointer or click events to a clickable parent row", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const onClick = vi.fn()
+    const onMouseDown = vi.fn()
+
+    render(
+      <div onClick={onClick} onMouseDown={onMouseDown}>
+        <SelectionCheckbox checked={false} onChange={onChange} />
+      </div>
+    )
+
+    await user.click(screen.getByText("批量"))
+
+    expect(onChange).toHaveBeenCalledWith(true)
+    expect(onClick).not.toHaveBeenCalled()
+    expect(onMouseDown).not.toHaveBeenCalled()
+  })
 })

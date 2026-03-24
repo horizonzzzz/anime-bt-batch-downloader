@@ -9,7 +9,7 @@ Built with `Plasmo + React 19 + TypeScript`, the project is organized around sou
 ## Features
 
 - Batch-select posts directly from supported anime BT source list pages
-- Current source adapters: `kisssub.org`, `dongmanhuayuan.com`, and `acg.rip`
+- Current source adapters: `kisssub.org`, `dongmanhuayuan.com`, `acg.rip`, and `bangumi.moe`
 - Prefer list-page download links when a source already exposes stable `.torrent` URLs
 - Resolve the real download link from each detail page through source-specific extraction logic when direct list-page submission is unavailable
 - Prefer magnet links and fall back to torrent URLs when needed
@@ -22,6 +22,7 @@ Built with `Plasmo + React 19 + TypeScript`, the project is organized around sou
 - `kisssub.org`
 - `dongmanhuayuan.com`
 - `acg.rip`
+- `bangumi.moe`
 
 ## Requirements
 

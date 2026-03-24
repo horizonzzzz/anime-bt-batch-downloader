@@ -18,7 +18,8 @@ const settings = {
   sourceDeliveryModes: {
     kisssub: "magnet",
     dongmanhuayuan: "magnet",
-    acgrip: "torrent-file"
+    acgrip: "torrent-file",
+    bangumimoe: "magnet"
   }
 }
 
@@ -61,10 +62,14 @@ describe("OptionsPage", () => {
       expect(screen.getByRole("heading", { name: "Dongmanhuayuan 专属配置" })).toBeInTheDocument()
       expect(screen.getByText("暂无专属配置项")).toBeInTheDocument()
 
+      await user.click(screen.getByRole("button", { name: "Bangumi.moe" }))
+      expect(screen.getByRole("heading", { name: "Bangumi.moe 专属配置" })).toBeInTheDocument()
+      expect(screen.getByText("可在磁力链接、种子 URL 直提与种子下载后上传之间切换。")).toBeInTheDocument()
+
       await user.click(screen.getByRole("button", { name: "源站概览" }))
       expect(screen.getByRole("heading", { name: "源站概览" })).toBeInTheDocument()
       expect(screen.getByText("查看当前扩展支持的动漫 BT 站点状态。")).toBeInTheDocument()
-      expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(3)
+      expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(4)
     },
     10000
   )

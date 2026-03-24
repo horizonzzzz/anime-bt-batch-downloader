@@ -1,17 +1,19 @@
 import type { DeliveryMode, Settings, SourceId } from "./types"
 
-const SOURCE_IDS: SourceId[] = ["kisssub", "dongmanhuayuan", "acgrip"]
+const SOURCE_IDS: SourceId[] = ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"]
 
 const SUPPORTED_DELIVERY_MODES: Record<SourceId, readonly DeliveryMode[]> = {
   kisssub: ["magnet", "torrent-url", "torrent-file"],
   dongmanhuayuan: ["magnet"],
-  acgrip: ["torrent-url", "torrent-file"]
+  acgrip: ["torrent-url", "torrent-file"],
+  bangumimoe: ["magnet", "torrent-url", "torrent-file"]
 }
 
 export const DEFAULT_SOURCE_DELIVERY_MODES: Record<SourceId, DeliveryMode> = Object.freeze({
   kisssub: "magnet",
   dongmanhuayuan: "magnet",
-  acgrip: "torrent-file"
+  acgrip: "torrent-file",
+  bangumimoe: "magnet"
 })
 
 export function getSupportedDeliveryModes(sourceId: SourceId): DeliveryMode[] {

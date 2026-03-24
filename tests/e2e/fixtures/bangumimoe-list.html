@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bangumi.moe Fixture</title>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+
+      md-list-item {
+        display: block;
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #d9e2ec;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+      }
+
+      .dialog-card {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(480px, calc(100vw - 32px));
+        padding: 20px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="latest-torrents">
+        <md-list class="torrent-list">
+          <md-list-item data-dialog-title="[LoliHouse] Episode 01">
+            <div class="md-tile-content">
+              <div class="torrent-title">
+                <h3 class="md-item-raised-title">
+                  <span>[LoliHouse] Episode 01</span>
+                  <small>
+                    <a href="/torrent/69c292d784f11a93b5ffffc0" target="_blank">
+                      <i class="fa fa-external-link"></i>
+                    </a>
+                  </small>
+                </h3>
+              </div>
+            </div>
+          </md-list-item>
+          <md-list-item data-dialog-title="[ANi] Episode 02">
+            <div class="md-tile-content">
+              <div class="torrent-title">
+                <h3 class="md-item-raised-title">
+                  <span>[ANi] Episode 02</span>
+                  <small>
+                    <a href="/torrent/69c28b1384f11a93b5ff76a6" target="_blank">
+                      <i class="fa fa-external-link"></i>
+                    </a>
+                  </small>
+                </h3>
+              </div>
+            </div>
+          </md-list-item>
+        </md-list>
+      </section>
+    </main>
+
+    <div id="dialog-backdrop" class="dialog-backdrop" hidden></div>
+    <div id="host-dialog" class="dialog-card" role="dialog" aria-label="Bangumi.moe 站内详情" hidden>
+      <h2 id="dialog-title">详情</h2>
+      <p>这里模拟 Bangumi.moe 点击列表项后出现的站内详情浮层。</p>
+      <button type="button" id="dialog-close" aria-label="关闭详情浮层">关闭</button>
+    </div>
+
+    <script>
+      const backdrop = document.getElementById("dialog-backdrop")
+      const dialog = document.getElementById("host-dialog")
+      const dialogTitle = document.getElementById("dialog-title")
+      const closeButton = document.getElementById("dialog-close")
+
+      function closeDialog() {
+        backdrop.hidden = true
+        dialog.hidden = true
+      }
+
+      function openDialog(title) {
+        dialogTitle.textContent = title
+        backdrop.hidden = false
+        dialog.hidden = false
+      }
+
+      document.querySelectorAll("md-list-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          openDialog(item.dataset.dialogTitle || "详情")
+        })
+      })
+
+      backdrop.addEventListener("click", closeDialog)
+      closeButton.addEventListener("click", closeDialog)
+      dialog.addEventListener("click", (event) => {
+        event.stopPropagation()
+      })
+    </script>
+  </body>
+</html>

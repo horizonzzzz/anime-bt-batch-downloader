@@ -9,7 +9,7 @@ Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的
 ## 功能特性
 
 - 直接在受支持的动漫 BT 源站列表页批量勾选条目
-- 当前已支持的源站适配器：`kisssub.org`、`dongmanhuayuan.com` 与 `acg.rip`
+- 当前已支持的源站适配器：`kisssub.org`、`dongmanhuayuan.com`、`acg.rip` 与 `bangumi.moe`
 - 源站若已在列表页公开稳定的 `.torrent` 地址，会优先直接提交
 - 通过站点专属提取逻辑解析详情页中的真实下载地址
 - 优先使用磁力链接，必要时回退到种子文件地址
@@ -22,6 +22,7 @@ Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的
 - `kisssub.org`
 - `dongmanhuayuan.com`
 - `acg.rip`
+- `bangumi.moe`
 
 ## 环境要求
 
