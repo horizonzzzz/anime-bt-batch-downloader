@@ -17,6 +17,12 @@ export type SiteConfigMeta = {
   url: string
   badgeWhenEnabled: string
   badgeWhenDisabled: string
+  strategyMode: "editable" | "locked"
+  lockedStrategyLabel?: string
+  hasKisssubScriptFields?: boolean
+  noteTone?: "info" | "warning" | "neutral"
+  noteTitle?: string
+  noteDescription?: string
 }
 
 export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze({
@@ -27,7 +33,9 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     summary: "整合番组表与字幕组的动漫资源站",
     url: "kisssub.org",
     badgeWhenEnabled: "已启用",
-    badgeWhenDisabled: "未启用"
+    badgeWhenDisabled: "未启用",
+    strategyMode: "editable",
+    hasKisssubScriptFields: true
   },
   dongmanhuayuan: {
     id: "dongmanhuayuan",
@@ -36,7 +44,11 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     summary: "面向动漫爱好者的BT资源交流站",
     url: "dongmanhuayuan.com",
     badgeWhenEnabled: "已启用",
-    badgeWhenDisabled: "未启用"
+    badgeWhenDisabled: "未启用",
+    strategyMode: "locked",
+    lockedStrategyLabel: "当前仅支持磁力链下载方式",
+    noteTone: "info",
+    noteDescription: "动漫花园当前仅支持提取磁力链接，无需额外配置。"
   },
   acgrip: {
     id: "acgrip",
@@ -45,7 +57,11 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     summary: "分类清晰、以种子直下为主的ACG站",
     url: "acg.rip",
     badgeWhenEnabled: "已启用",
-    badgeWhenDisabled: "未启用"
+    badgeWhenDisabled: "未启用",
+    strategyMode: "editable",
+    noteTone: "warning",
+    noteTitle: "建议先下载种子再上传到 qB",
+    noteDescription: "qB 直接拉取该站种子链接可能失效。"
   },
   bangumimoe: {
     id: "bangumimoe",
@@ -54,6 +70,9 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     summary: "追番日历结合最新种子发布的社区",
     url: "bangumi.moe",
     badgeWhenEnabled: "已启用",
-    badgeWhenDisabled: "未启用"
+    badgeWhenDisabled: "未启用",
+    strategyMode: "editable",
+    noteTone: "neutral",
+    noteDescription: "此站点无需额外专属配置，保持默认即可。"
   }
 })

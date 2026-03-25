@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react"
 
-import { Alert, Button, Card, Form, Input, InputNumber, Radio, Tag, Typography } from "antd"
+import { Alert, Button, Card, Form, Input, InputNumber, Tag, Typography } from "antd"
 import type { AlertProps } from "antd"
 import { FaGithub } from "react-icons/fa"
 import { HiChevronDown, HiChevronUp } from "react-icons/hi2"
 
 import speedlineBrandIcon from "../assets/anime-bt-icon-speedline.svg"
-import { getDeliveryModeLabel, getSupportedDeliveryModes } from "../lib/delivery"
+import { SOURCE_IDS, SITE_CONFIG_META } from "../lib/source-config"
 import { DEFAULT_SETTINGS } from "../lib/settings"
 import type { Settings, SourceId, TestQbConnectionResult } from "../lib/types"
+import { SiteManagementView } from "./site-management-view"
 import styles from "./options-page.module.scss"
 
 export type OptionsApi = {
@@ -22,9 +23,8 @@ type OptionsPageProps = {
 }
 
 type StatusTone = "info" | "success" | "error"
-type OptionsViewId = "general" | "kisssub" | "dongmanhuayuan" | "acgrip" | "bangumimoe" | "overview"
+type OptionsViewId = "general" | "sites" | "overview"
 type ConnectionState = "idle" | "success" | "error"
-type OverviewSiteAccent = "kisssub" | "dongmanhuayuan" | "acgrip" | "bangumimoe"
 
 const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
   info: "info",
@@ -34,8 +34,6 @@ const statusTypeMap: Record<StatusTone, AlertProps["type"]> = {
 
 const BRAND_NAME = "Anime BT Batch"
 const REPO_URL = "https://github.com/horizonzzzz/anime-bt-batch-downloader"
-const SITE_VIEW_DESCRIPTION = "单独配置该站点的下载方式。"
-const DELIVERY_MODE_DESCRIPTION = "配置该站点的下载方式。"
 
 const viewMeta: Record<
   OptionsViewId,
@@ -50,29 +48,14 @@ const viewMeta: Record<
     description: "配置 qBittorrent WebUI 的连接信息，以及全局批量提取节奏。",
     footerLabel: "正在编辑全局配置"
   },
-  kisssub: {
-    title: "Kisssub 专属配置",
-    description: SITE_VIEW_DESCRIPTION,
-    footerLabel: "正在编辑 Kisssub 专属配置"
-  },
-  dongmanhuayuan: {
-    title: "Dongmanhuayuan 专属配置",
-    description: SITE_VIEW_DESCRIPTION,
-    footerLabel: "正在编辑 Dongmanhuayuan 专属配置"
-  },
-  acgrip: {
-    title: "ACG.RIP 专属配置",
-    description: SITE_VIEW_DESCRIPTION,
-    footerLabel: "正在编辑 ACG.RIP 专属配置"
-  },
-  bangumimoe: {
-    title: "Bangumi.moe 专属配置",
-    description: SITE_VIEW_DESCRIPTION,
-    footerLabel: "正在编辑 Bangumi.moe 专属配置"
+  sites: {
+    title: "站点配置",
+    description: "统一管理 4 个站点的启用状态和专属配置。",
+    footerLabel: "正在编辑站点配置"
   },
   overview: {
     title: "源站概览",
-    description: "",
+    description: "查看当前支持站点的简介与访问入口。",
     footerLabel: "正在查看支持源站概览"
   }
 }
@@ -86,13 +69,8 @@ const navGroups: Array<{
     items: [{ key: "general", label: "连接与基础设置" }]
   },
   {
-    title: "站点专属配置",
-    items: [
-      { key: "kisssub", label: "Kisssub" },
-      { key: "dongmanhuayuan", label: "Dongmanhuayuan" },
-      { key: "acgrip", label: "ACG.RIP" },
-      { key: "bangumimoe", label: "Bangumi.moe" }
-    ]
+    title: "站点管理",
+    items: [{ key: "sites", label: "站点配置" }]
   },
   {
     title: "关于与支持",
@@ -100,43 +78,9 @@ const navGroups: Array<{
   }
 ]
 
-const overviewSites: Array<{
-  name: string
-  url: string
-  summary: string
-  accent: OverviewSiteAccent
-}> = [
-  {
-    name: "Kisssub",
-    url: "kisssub.org",
-    summary: "整合番组表与字幕组的动漫资源站",
-    accent: "kisssub"
-  },
-  {
-    name: "Dongmanhuayuan",
-    url: "dongmanhuayuan.com",
-    summary: "面向动漫爱好者的BT资源交流站",
-    accent: "dongmanhuayuan"
-  },
-  {
-    name: "ACG.RIP",
-    url: "acg.rip",
-    summary: "分类清晰、以种子直下为主的ACG站",
-    accent: "acgrip"
-  },
-  {
-    name: "Bangumi.moe",
-    url: "bangumi.moe",
-    summary: "追番日历结合最新种子发布的社区",
-    accent: "bangumimoe"
-  }
-]
-
-const siteCardAccentClassNames: Record<OverviewSiteAccent, string> = {
-  kisssub: "",
+const siteCardAccentClassNames: Partial<Record<SourceId, string>> = {
   dongmanhuayuan: styles.siteCardDongmanhuayuan,
-  acgrip: styles.siteCardAcgrip,
-  bangumimoe: ""
+  acgrip: styles.siteCardAcgrip
 }
 
 function joinClassNames(...classNames: Array<string | false | null | undefined>) {
@@ -154,16 +98,12 @@ function normalizeSettings(values: Partial<Settings>): Settings {
     sourceDeliveryModes: {
       ...DEFAULT_SETTINGS.sourceDeliveryModes,
       ...(values.sourceDeliveryModes ?? {})
+    },
+    enabledSources: {
+      ...DEFAULT_SETTINGS.enabledSources,
+      ...(values.enabledSources ?? {})
     }
   }
-}
-
-function renderDeliveryModeOptions(sourceId: SourceId) {
-  return getSupportedDeliveryModes(sourceId).map((mode) => (
-    <Radio key={mode} value={mode}>
-      {getDeliveryModeLabel(mode)}
-    </Radio>
-  ))
 }
 
 function SidebarButton({
@@ -337,7 +277,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
           <div className={styles.sidebarFooter}>
             <div className={styles.sidebarFooterMeta}>
-              <span>4 个支持源站</span>
+              <span>{SOURCE_IDS.length} 个支持源站</span>
               <strong>qBittorrent WebUI</strong>
             </div>
             <a
@@ -427,14 +367,16 @@ export function OptionsPage({ api }: OptionsPageProps) {
                         onClick={() => void handleTestConnection()}
                         loading={testing}
                         disabled={testing}>
-                        测试连接
+                        测试 qB 连接
                       </Button>
 
                       {connectionState !== "idle" ? (
                         <span
                           className={joinClassNames(
                             styles.inlineFeedback,
-                            connectionState === "success" ? styles.isSuccess : styles.isError
+                            connectionState === "success"
+                              ? styles.isSuccess
+                              : styles.isError
                           )}>
                           {connectionState === "success" ? "连接成功" : "连接失败"}
                           {connectionMessage ? ` · ${connectionMessage}` : ""}
@@ -496,125 +438,36 @@ export function OptionsPage({ api }: OptionsPageProps) {
                 </div>
               )}
 
-              {activeView === "kisssub" && (
-                <div className={styles.view}>
-                  <Card variant="borderless" className={styles.panel}>
-                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
-                      <div>
-                        <Typography.Title level={3}>Kisssub 解析参数</Typography.Title>
-                        <Typography.Paragraph>配置该站点的脚本解析参数。</Typography.Paragraph>
-                      </div>
-                    </div>
-
-                    <div className={styles.fieldGrid}>
-                      <Form.Item label="Kisssub 外部脚本地址" name="remoteScriptUrl">
-                        <Input />
-                      </Form.Item>
-                      <Form.Item label="Kisssub 脚本版本号" name="remoteScriptRevision">
-                        <Input />
-                      </Form.Item>
-                    </div>
-                  </Card>
-
-                  <Card variant="borderless" className={styles.panel}>
-                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
-                      <div>
-                        <Typography.Title level={3}>下载策略</Typography.Title>
-                        <Typography.Paragraph>{DELIVERY_MODE_DESCRIPTION}</Typography.Paragraph>
-                      </div>
-                    </div>
-
-                    <Form.Item label="下载策略" name={["sourceDeliveryModes", "kisssub"]}>
-                      <Radio.Group className={styles.radioGroup}>
-                        {renderDeliveryModeOptions("kisssub")}
-                      </Radio.Group>
-                    </Form.Item>
-                  </Card>
-                </div>
-              )}
-
-              {activeView === "dongmanhuayuan" && (
-                <div className={styles.view}>
-                  <Card
-                    variant="borderless"
-                    className={joinClassNames(styles.panel, styles.emptyState)}>
-                    <div className={styles.emptyStateIcon} aria-hidden="true">
-                      DM
-                    </div>
-                    <Typography.Title level={3}>暂无专属配置项</Typography.Title>
-                    <Typography.Paragraph>当前仅支持磁力链下载方式。</Typography.Paragraph>
-                  </Card>
-                </div>
-              )}
-
-              {activeView === "acgrip" && (
-                <div className={styles.view}>
-                  <Card variant="borderless" className={styles.panel}>
-                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
-                      <div>
-                        <Typography.Title level={3}>下载策略</Typography.Title>
-                        <Typography.Paragraph>{DELIVERY_MODE_DESCRIPTION}</Typography.Paragraph>
-                      </div>
-                    </div>
-
-                    <Form.Item label="下载策略" name={["sourceDeliveryModes", "acgrip"]}>
-                      <Radio.Group className={styles.radioGroup}>
-                        {renderDeliveryModeOptions("acgrip")}
-                      </Radio.Group>
-                    </Form.Item>
-
-                    <Alert
-                      showIcon
-                      type="info"
-                      className={styles.note}
-                      title="建议先下载种子再上传到 qB"
-                      description="qB 直接拉取该站种子链接可能失效。"
-                    />
-                  </Card>
-                </div>
-              )}
-
-              {activeView === "bangumimoe" && (
-                <div className={styles.view}>
-                  <Card variant="borderless" className={styles.panel}>
-                    <div className={joinClassNames(styles.panelHeader, styles.stackedHeader)}>
-                      <div>
-                        <Typography.Title level={3}>下载策略</Typography.Title>
-                        <Typography.Paragraph>{DELIVERY_MODE_DESCRIPTION}</Typography.Paragraph>
-                      </div>
-                    </div>
-
-                    <Form.Item label="下载策略" name={["sourceDeliveryModes", "bangumimoe"]}>
-                      <Radio.Group className={styles.radioGroup}>
-                        {renderDeliveryModeOptions("bangumimoe")}
-                      </Radio.Group>
-                    </Form.Item>
-                  </Card>
-                </div>
-              )}
+              {activeView === "sites" ? <SiteManagementView form={form} /> : null}
 
               {activeView === "overview" && (
                 <div className={styles.view}>
                   <div className={styles.overviewGrid}>
-                    {overviewSites.map((site) => (
-                      <Card
-                        key={site.name}
-                        variant="borderless"
-                        className={joinClassNames(
-                          styles.siteCard,
-                          siteCardAccentClassNames[site.accent]
-                        )}>
-                        <div className={styles.siteCardStatus}>
-                          <span className={styles.siteCardDot} aria-hidden="true" />
-                          <span>支持良好</span>
-                        </div>
-                        <Typography.Title level={3}>{site.name}</Typography.Title>
-                        <Typography.Paragraph>{site.summary}</Typography.Paragraph>
-                        <Button type="default" onClick={() => window.open(`https://${site.url}`, "_blank")}>
-                          访问站点
-                        </Button>
-                      </Card>
-                    ))}
+                    {SOURCE_IDS.map((sourceId) => {
+                      const site = SITE_CONFIG_META[sourceId]
+
+                      return (
+                        <Card
+                          key={site.id}
+                          variant="borderless"
+                          className={joinClassNames(
+                            styles.siteCard,
+                            siteCardAccentClassNames[sourceId]
+                          )}>
+                          <div className={styles.siteCardStatus}>
+                            <span className={styles.siteCardDot} aria-hidden="true" />
+                            <span>支持良好</span>
+                          </div>
+                          <Typography.Title level={3}>{site.displayName}</Typography.Title>
+                          <Typography.Paragraph>{site.summary}</Typography.Paragraph>
+                          <Button
+                            type="default"
+                            onClick={() => window.open(`https://${site.url}`, "_blank")}>
+                            访问站点
+                          </Button>
+                        </Card>
+                      )
+                    })}
                   </div>
 
                   <Card
@@ -622,9 +475,9 @@ export function OptionsPage({ api }: OptionsPageProps) {
                     className={joinClassNames(styles.panel, styles.darkPanel)}>
                     <Typography.Title level={3}>当前能力</Typography.Title>
                     <ul className={styles.bullets}>
-                      <li>配置页已按站点拆分导航，基础配置与站点专属配置分层管理。</li>
-                      <li>qB 连接与提取节奏集中维护，减少重复编辑和长滚动。</li>
-                      <li>站点专属视图保留扩展位，后续新增 BT 站点时无需继续拉长同一页面。</li>
+                      <li>统一的站点配置页集中管理 4 个受支持站点的启用状态和专属参数。</li>
+                      <li>禁用站点后不会注入批量下载 UI，后台批处理也会同步拒绝该站点请求。</li>
+                      <li>源站概览保留为独立页面，方便查看站点简介与快速访问。</li>
                     </ul>
                   </Card>
                 </div>

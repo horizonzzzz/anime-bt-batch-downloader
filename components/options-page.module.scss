@@ -304,13 +304,6 @@
   }
 }
 
-.stackedHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .note {
   border-radius: 22px;
   border-color: rgba($blue-600, 0.16);
@@ -382,68 +375,6 @@
   border-radius: $radius-sm;
   background: rgba($blue-600, 0.1);
   color: $blue-600;
-}
-
-.radioGroup {
-  display: grid;
-  gap: 12px;
-
-  :global(.ant-radio-wrapper) {
-    margin-inline-start: 0;
-    padding: 14px 16px;
-    border: 1px solid rgba($slate-400, 0.28);
-    border-radius: $radius-md;
-    background: rgba($white, 0.76);
-    transition:
-      border-color $transition-base,
-      background-color $transition-base,
-      box-shadow $transition-base;
-  }
-
-  :global(.ant-radio-wrapper:hover) {
-    border-color: rgba($blue-600, 0.28);
-    background: rgba(#eff6ff, 0.7);
-  }
-
-  :global(.ant-radio-wrapper-checked) {
-    border-color: rgba($blue-600, 0.46);
-    background: rgba(#eff6ff, 0.94);
-    box-shadow: inset 0 0 0 1px rgba($blue-600, 0.08);
-  }
-}
-
-.emptyState {
-  text-align: center;
-
-  :global(.ant-card-body) {
-    display: grid;
-    justify-items: center;
-    gap: 10px;
-    padding-block: 42px;
-  }
-
-  :global(h3.ant-typography) {
-    margin-bottom: 6px;
-    color: $slate-900;
-    font-size: 21px;
-    letter-spacing: -0.03em;
-  }
-
-  :global(.ant-typography) {
-    color: #526075;
-  }
-}
-
-.emptyStateIcon {
-  display: grid;
-  width: 64px;
-  height: 64px;
-  place-items: center;
-  border-radius: $radius-lg;
-  background: linear-gradient(135deg, #e0e7ff, #dbeafe);
-  color: $blue-600;
-  font-size: 18px;
-  font-weight: 700;
 }
 
 .overviewGrid {
@@ -616,7 +547,6 @@
     }
   }
 
-  .stackedHeader,
   .footer {
     flex-direction: column;
     align-items: stretch;

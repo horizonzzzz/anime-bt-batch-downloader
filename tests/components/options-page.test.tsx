@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -20,12 +20,18 @@ const settings = {
     dongmanhuayuan: "magnet",
     acgrip: "torrent-file",
     bangumimoe: "magnet"
+  },
+  enabledSources: {
+    kisssub: true,
+    dongmanhuayuan: true,
+    acgrip: true,
+    bangumimoe: true
   }
 }
 
 describe("OptionsPage", () => {
   it(
-    "renders the redesigned settings workspace and switches between views",
+    "renders the redesigned settings workspace and switches between the new views",
     async () => {
       const user = userEvent.setup()
       const api = {
@@ -38,56 +44,38 @@ describe("OptionsPage", () => {
 
       expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
       expect(screen.getAllByText("Anime BT Batch")).toHaveLength(2)
-      const brandIcon = screen.getByTestId("options-brand-icon")
-      expect(brandIcon.tagName).toBe("IMG")
-      expect(brandIcon).toHaveAttribute("src", expect.stringContaining("data:image/svg+xml"))
       expect(screen.getByText("通用设置")).toBeInTheDocument()
-      expect(screen.getByText("站点专属配置")).toBeInTheDocument()
+      expect(screen.getByText("站点管理")).toBeInTheDocument()
       expect(screen.getByText("关于与支持")).toBeInTheDocument()
-      expect(screen.getByTestId("options-sidebar-groups")).toBeInTheDocument()
-      expect(screen.getByRole("link", { name: "查看 GitHub 仓库" })).toHaveAttribute(
-        "href",
-        "https://github.com/horizonzzzz/anime-bt-batch-downloader"
-      )
+      expect(screen.getByRole("button", { name: "连接与基础设置" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "站点配置" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "源站概览" })).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "Kisssub" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "Dongmanhuayuan" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "ACG.RIP" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "Bangumi.moe" })).not.toBeInTheDocument()
       expect(screen.getByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
-      expect(screen.queryByText("支持站点")).not.toBeInTheDocument()
-      expect(screen.queryByText("4 个动漫 BT 源站")).not.toBeInTheDocument()
-      expect(screen.queryByText("默认投递目标")).not.toBeInTheDocument()
-      expect(screen.queryByText("连接配置集中管理，站点只保留专属项。")).not.toBeInTheDocument()
       expect(screen.getByText("qB WebUI 兼容性提示")).toBeInTheDocument()
-      expect(screen.queryByLabelText("Kisssub 外部脚本地址")).not.toBeInTheDocument()
 
-      await user.click(screen.getByRole("button", { name: "Kisssub" }))
-      expect(screen.getByRole("heading", { name: "Kisssub 专属配置" })).toBeInTheDocument()
-      expect(screen.getAllByText("单独配置该站点的下载方式。").length).toBeGreaterThan(0)
-      expect(screen.getByLabelText("Kisssub 外部脚本地址")).toBeInTheDocument()
-      expect(screen.getByLabelText("Kisssub 脚本版本号")).toBeInTheDocument()
-      expect(screen.queryByText("脚本解析")).not.toBeInTheDocument()
+      await user.click(screen.getByRole("button", { name: "站点配置" }))
 
-      await user.click(screen.getByRole("button", { name: "Dongmanhuayuan" }))
-      expect(screen.getByRole("heading", { name: "Dongmanhuayuan 专属配置" })).toBeInTheDocument()
-      expect(screen.getByText("暂无专属配置项")).toBeInTheDocument()
-      expect(screen.getByText("当前仅支持磁力链下载方式。")).toBeInTheDocument()
-
-      await user.click(screen.getByRole("button", { name: "ACG.RIP" }))
-      expect(screen.getByRole("heading", { name: "ACG.RIP 专属配置" })).toBeInTheDocument()
-      expect(screen.getByText("建议先下载种子再上传到 qB")).toBeInTheDocument()
-      expect(screen.getByText("qB 直接拉取该站种子链接可能失效。")).toBeInTheDocument()
-      expect(screen.queryByText("推荐上传")).not.toBeInTheDocument()
-
-      await user.click(screen.getByRole("button", { name: "Bangumi.moe" }))
-      expect(screen.getByRole("heading", { name: "Bangumi.moe 专属配置" })).toBeInTheDocument()
-      expect(screen.getAllByText("单独配置该站点的下载方式。").length).toBeGreaterThan(0)
+      expect(screen.getByRole("heading", { name: "站点配置" })).toBeInTheDocument()
+      expect(screen.getByRole("heading", { name: "BT 站点配置" })).toBeInTheDocument()
+      expect(screen.getByText("当前已启用 4 / 4 个站点")).toBeInTheDocument()
+      expect(screen.getByText("Kisssub 爱恋动漫")).toBeInTheDocument()
+      expect(screen.getByText("Dongmanhuayuan 动漫花园")).toBeInTheDocument()
+      expect(screen.getAllByText("ACG.RIP").length).toBeGreaterThan(0)
+      expect(screen.getByText("Bangumi.moe")).toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: "Kisssub 专属配置" })).not.toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "源站概览" }))
+
       expect(screen.getByRole("heading", { name: "源站概览" })).toBeInTheDocument()
       expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(4)
       expect(screen.getByText("整合番组表与字幕组的动漫资源站")).toBeInTheDocument()
       expect(screen.getByText("面向动漫爱好者的BT资源交流站")).toBeInTheDocument()
       expect(screen.getByText("分类清晰、以种子直下为主的ACG站")).toBeInTheDocument()
       expect(screen.getByText("追番日历结合最新种子发布的社区")).toBeInTheDocument()
-      expect(screen.queryByText("查看当前扩展支持的动漫 BT 站点状态。")).not.toBeInTheDocument()
-      expect(screen.queryByText("优先推荐种子下载后上传到 qB。")).not.toBeInTheDocument()
     },
     10000
   )
@@ -105,46 +93,53 @@ describe("OptionsPage", () => {
   })
 
   it(
-    "saves edited values across general and site-specific views",
+    "saves edited values across the general and site management views",
     async () => {
-    const user = userEvent.setup()
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
-      testConnection: vi.fn()
-    }
+      const user = userEvent.setup()
+      const api = {
+        loadSettings: vi.fn().mockResolvedValue(settings),
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
+        testConnection: vi.fn()
+      }
 
-    render(<OptionsPage api={api} />)
+      render(<OptionsPage api={api} />)
 
-    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
 
-    const usernameField = screen.getByLabelText("用户名")
-    await user.clear(usernameField)
-    await user.type(usernameField, "operator")
+      const usernameField = screen.getByLabelText("用户名")
+      await user.clear(usernameField)
+      await user.type(usernameField, "operator")
 
-    await user.click(screen.getByRole("button", { name: "Kisssub" }))
-    const revisionField = screen.getByLabelText("Kisssub 脚本版本号")
-    await user.clear(revisionField)
-    await user.type(revisionField, "20260324.1")
+      await user.click(screen.getByRole("button", { name: "站点配置" }))
 
-    await user.click(screen.getByRole("button", { name: "ACG.RIP" }))
-    await user.click(screen.getByRole("radio", { name: "直接提交种子链接" }))
+      const kisssubCard = screen.getByTestId("site-card-kisssub")
+      const revisionField = within(kisssubCard).getByLabelText("Kisssub 脚本版本号")
+      await user.clear(revisionField)
+      await user.type(revisionField, "20260324.1")
 
-    await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+      const acgripCard = screen.getByTestId("site-card-acgrip")
+      await user.click(within(acgripCard).getByRole("radio", { name: "直接提交种子链接" }))
 
-    await waitFor(() => {
-      expect(api.saveSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          qbUsername: "operator",
-          remoteScriptRevision: "20260324.1",
-          sourceDeliveryModes: expect.objectContaining({
-            acgrip: "torrent-url"
+      await user.click(screen.getByRole("switch", { name: "Bangumi.moe 启用开关" }))
+
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            qbUsername: "operator",
+            remoteScriptRevision: "20260324.1",
+            sourceDeliveryModes: expect.objectContaining({
+              acgrip: "torrent-url"
+            }),
+            enabledSources: expect.objectContaining({
+              bangumimoe: false
+            })
           })
-        })
-      )
-    })
+        )
+      })
 
-    expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
+      expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
     },
     10000
   )
@@ -152,38 +147,38 @@ describe("OptionsPage", () => {
   it(
     "shows a live status region and connection feedback while testing",
     async () => {
-    const user = userEvent.setup()
-    let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn().mockImplementation(
-        () =>
-          new Promise<{ baseUrl: string; version: string }>((resolve) => {
-            resolveConnection = resolve
-          })
-      )
-    }
+      const user = userEvent.setup()
+      let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
+      const api = {
+        loadSettings: vi.fn().mockResolvedValue(settings),
+        saveSettings: vi.fn(),
+        testConnection: vi.fn().mockImplementation(
+          () =>
+            new Promise<{ baseUrl: string; version: string }>((resolve) => {
+              resolveConnection = resolve
+            })
+        )
+      }
 
-    render(<OptionsPage api={api} />)
+      render(<OptionsPage api={api} />)
 
-    expect(await screen.findByRole("status")).toHaveTextContent("设置已加载。")
+      expect(await screen.findByRole("status")).toHaveTextContent("设置已加载。")
 
-    await user.click(screen.getByRole("button", { name: "测试 qB 连接" }))
+      await user.click(screen.getByRole("button", { name: "测试 qB 连接" }))
 
-    expect(api.testConnection).toHaveBeenCalledWith(settings)
-    expect(screen.getByRole("button", { name: "测试 qB 连接" })).toBeDisabled()
-    expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
+      expect(api.testConnection).toHaveBeenCalledWith(settings)
+      expect(screen.getByRole("button", { name: "测试 qB 连接" })).toBeDisabled()
+      expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
 
-    resolveConnection?.({
-      baseUrl: settings.qbBaseUrl,
-      version: "5.0.0"
-    })
+      resolveConnection?.({
+        baseUrl: settings.qbBaseUrl,
+        version: "5.0.0"
+      })
 
-    await waitFor(() => {
-      expect(screen.getByRole("status")).toHaveTextContent("连接成功。")
-      expect(screen.getByRole("status")).toHaveTextContent("5.0.0")
-    })
+      await waitFor(() => {
+        expect(screen.getByRole("status")).toHaveTextContent("连接成功。")
+        expect(screen.getByRole("status")).toHaveTextContent("5.0.0")
+      })
     },
     10000
   )
