@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { getSourceAdapterById, getSourceAdapterForPage } from "../../lib/sources"
 import { normalizeBatchItems } from "../../lib/batch"
 import { DEFAULT_SOURCE_DELIVERY_MODES, getSupportedDeliveryModes } from "../../lib/delivery"
+import { SITE_CONFIG_META, SOURCE_IDS } from "../../lib/source-config"
 
 describe("source registry", () => {
   it("resolves the source adapter for supported list pages", () => {
@@ -36,6 +37,16 @@ describe("source registry", () => {
       acgrip: "torrent-file",
       bangumimoe: "magnet"
     })
+  })
+
+  it("keeps shared source metadata aligned with the registered adapters", () => {
+    expect(SOURCE_IDS).toEqual(["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"])
+    expect(Object.keys(SITE_CONFIG_META)).toEqual(SOURCE_IDS)
+
+    for (const sourceId of SOURCE_IDS) {
+      expect(getSourceAdapterById(sourceId)?.id).toBe(sourceId)
+      expect(SITE_CONFIG_META[sourceId].id).toBe(sourceId)
+    }
   })
 })
 

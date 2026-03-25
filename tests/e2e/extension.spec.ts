@@ -97,6 +97,15 @@ async function assertBatchPanelInjection(
   await expect(popup).toHaveURL(/options\.html/)
 }
 
+async function openOptionsPage(
+  extension: Awaited<ReturnType<typeof launchExtensionContext>>
+) {
+  const page = await extension.context.newPage()
+  await page.goto(`chrome-extension://${extension.extensionId}/options.html`)
+  await expect(page.getByRole("heading", { name: "连接与基础设置" })).toBeVisible()
+  return page
+}
+
 test("options page saves settings through the background worker", async () => {
   const extension = await launchExtensionContext()
 
@@ -251,6 +260,54 @@ test("content script keeps watching a Bangumi.moe search page until results appe
     await expect(page.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2, {
       timeout: 5000
     })
+  } finally {
+    await extension.close()
+  }
+})
+
+test("disabling a source stops injection until it is enabled again", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", "acgrip-list.html")
+
+    await extension.context.route("https://acg.rip/", async (route) => {
+      await route.fulfill({
+        path: fixturePath,
+        contentType: "text/html"
+      })
+    })
+
+    const optionsPage = await openOptionsPage(extension)
+    await optionsPage.getByRole("button", { name: "站点配置" }).click()
+    await expect(optionsPage.getByRole("heading", { name: "BT 站点配置" })).toBeVisible()
+
+    const acgripSwitch = optionsPage.getByRole("switch", { name: "ACG.RIP 启用开关" })
+    await expect(acgripSwitch).toHaveAttribute("aria-checked", "true")
+    await acgripSwitch.click()
+    await expect(acgripSwitch).toHaveAttribute("aria-checked", "false")
+    await optionsPage.getByRole("button", { name: "保存所有设置" }).click()
+    await expect(optionsPage.getByText("设置已保存。")).toBeVisible()
+
+    const disabledPage = await extension.context.newPage()
+    await disabledPage.goto("https://acg.rip/")
+    await expect(disabledPage.locator("[data-kisssub-batch-checkbox]")).toHaveCount(0)
+    await expect(disabledPage.getByText("ACG.RIP 批量下载")).toHaveCount(0)
+
+    const reopenOptionsPage = await openOptionsPage(extension)
+    await reopenOptionsPage.getByRole("button", { name: "站点配置" }).click()
+
+    const reenabledSwitch = reopenOptionsPage.getByRole("switch", { name: "ACG.RIP 启用开关" })
+    await expect(reenabledSwitch).toHaveAttribute("aria-checked", "false")
+    await reenabledSwitch.click()
+    await expect(reenabledSwitch).toHaveAttribute("aria-checked", "true")
+    await reopenOptionsPage.getByRole("button", { name: "保存所有设置" }).click()
+    await expect(reopenOptionsPage.getByText("设置已保存。")).toBeVisible()
+
+    const reenabledPage = await extension.context.newPage()
+    await reenabledPage.goto("https://acg.rip/")
+    await expect(reenabledPage.getByText("ACG.RIP 批量下载")).toBeVisible()
+    await expect(reenabledPage.locator("[data-kisssub-batch-checkbox]")).toHaveCount(2)
   } finally {
     await extension.close()
   }
