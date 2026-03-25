@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+type MockSource = {
+  id: string
+  displayName: string
+}
+
 const createRoot = vi.fn(() => ({
   render: vi.fn(),
   unmount: vi.fn()
@@ -7,8 +12,8 @@ const createRoot = vi.fn(() => ({
 
 const runtimeSendMessage = vi.fn()
 const runtimeAddListener = vi.fn()
-const getSourceAdapterForLocation = vi.fn(() => null)
-const getEnabledSourceAdapterForLocation = vi.fn(() => null)
+const getSourceAdapterForLocation = vi.fn((): MockSource | null => null)
+const getEnabledSourceAdapterForLocation = vi.fn((): MockSource | null => null)
 
 vi.mock("react-dom/client", () => ({
   createRoot

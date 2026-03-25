@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from "vitest"
 
 import { addTorrentFilesToQb, addUrlsToQb, getQbLoginErrorMessage } from "../../lib/qb"
+import { DEFAULT_SETTINGS } from "../../lib/settings"
+
+const qbSettings = {
+  ...DEFAULT_SETTINGS,
+  qbBaseUrl: "http://127.0.0.1:17474",
+  qbUsername: "admin",
+  qbPassword: "secret"
+}
 
 describe("getQbLoginErrorMessage", () => {
   it("returns actionable guidance for 401 responses", () => {
@@ -29,23 +37,7 @@ describe("addUrlsToQb", () => {
     )
 
     await addUrlsToQb(
-      {
-        qbBaseUrl: "http://127.0.0.1:17474",
-        qbUsername: "admin",
-        qbPassword: "secret",
-        concurrency: 1,
-        injectTimeoutMs: 15000,
-        domSettleMs: 1200,
-        retryCount: 1,
-        remoteScriptUrl: "//1.acgscript.com/script/miobt/4.js?3",
-        remoteScriptRevision: "20181120.2",
-        lastSavePath: "",
-        sourceDeliveryModes: {
-          kisssub: "magnet",
-          dongmanhuayuan: "magnet",
-          acgrip: "torrent-file"
-        }
-      },
+      qbSettings,
       ["magnet:?xt=urn:btih:abc"],
       {
         savePath: "D:\\Downloads\\Anime"
@@ -68,23 +60,7 @@ describe("addUrlsToQb", () => {
     )
 
     await addUrlsToQb(
-      {
-        qbBaseUrl: "http://127.0.0.1:17474",
-        qbUsername: "admin",
-        qbPassword: "secret",
-        concurrency: 1,
-        injectTimeoutMs: 15000,
-        domSettleMs: 1200,
-        retryCount: 1,
-        remoteScriptUrl: "//1.acgscript.com/script/miobt/4.js?3",
-        remoteScriptRevision: "20181120.2",
-        lastSavePath: "",
-        sourceDeliveryModes: {
-          kisssub: "magnet",
-          dongmanhuayuan: "magnet",
-          acgrip: "torrent-file"
-        }
-      },
+      qbSettings,
       ["https://example.com/test.torrent"],
       undefined,
       fetchImpl
@@ -107,23 +83,7 @@ describe("addTorrentFilesToQb", () => {
     )
 
     await addTorrentFilesToQb(
-      {
-        qbBaseUrl: "http://127.0.0.1:17474",
-        qbUsername: "admin",
-        qbPassword: "secret",
-        concurrency: 1,
-        injectTimeoutMs: 15000,
-        domSettleMs: 1200,
-        retryCount: 1,
-        remoteScriptUrl: "//1.acgscript.com/script/miobt/4.js?3",
-        remoteScriptRevision: "20181120.2",
-        lastSavePath: "",
-        sourceDeliveryModes: {
-          kisssub: "magnet",
-          dongmanhuayuan: "magnet",
-          acgrip: "torrent-file"
-        }
-      },
+      qbSettings,
       [
         {
           filename: "episode-01.torrent",
