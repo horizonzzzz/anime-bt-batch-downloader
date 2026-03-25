@@ -366,19 +366,6 @@ export function OptionsPage({ api }: OptionsPageProps) {
 
               {activeView === "general" && (
                 <div className={styles.view}>
-                  <div className={styles.statGrid}>
-                    <Card variant="borderless" className={styles.statCard}>
-                      <span className={styles.statCardLabel}>支持站点</span>
-                      <strong>4 个动漫 BT 源站</strong>
-                      <p>按站点拆分配置，避免长表单继续膨胀。</p>
-                    </Card>
-                    <Card variant="borderless" className={styles.statCard}>
-                      <span className={styles.statCardLabel}>默认投递目标</span>
-                      <strong>qBittorrent WebUI</strong>
-                      <p>连接配置集中管理，站点只保留专属项。</p>
-                    </Card>
-                  </div>
-
                   <Alert
                     showIcon
                     type="info"

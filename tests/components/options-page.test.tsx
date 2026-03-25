@@ -50,6 +50,10 @@ describe("OptionsPage", () => {
         "https://github.com/horizonzzzz/anime-bt-batch-downloader"
       )
       expect(screen.getByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
+      expect(screen.queryByText("支持站点")).not.toBeInTheDocument()
+      expect(screen.queryByText("4 个动漫 BT 源站")).not.toBeInTheDocument()
+      expect(screen.queryByText("默认投递目标")).not.toBeInTheDocument()
+      expect(screen.queryByText("连接配置集中管理，站点只保留专属项。")).not.toBeInTheDocument()
       expect(screen.getByText("qB WebUI 兼容性提示")).toBeInTheDocument()
       expect(screen.queryByLabelText("Kisssub 外部脚本地址")).not.toBeInTheDocument()
 

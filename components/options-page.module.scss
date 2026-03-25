@@ -256,7 +256,6 @@
 }
 
 .view,
-.statGrid,
 .fieldGrid,
 .overviewGrid {
   display: grid;
@@ -267,7 +266,6 @@
   gap: 20px;
 }
 
-.statGrid,
 .fieldGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -283,7 +281,6 @@
 }
 
 .panel,
-.statCard,
 .siteCard {
   @include surface-card();
 
@@ -532,7 +529,6 @@
   }
 }
 
-.statCardLabel,
 .footerEyebrow {
   display: block;
   margin-bottom: 8px;
@@ -541,21 +537,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.statCard {
-  strong {
-    display: block;
-    color: $slate-900;
-    font-size: 19px;
-    letter-spacing: -0.03em;
-  }
-
-  p {
-    margin: 8px 0 0;
-    color: #526075;
-    line-height: 1.6;
-  }
 }
 
 .footer {
@@ -614,7 +595,6 @@
     padding: 28px 20px 96px;
   }
 
-  .statGrid,
   .fieldGrid {
     grid-template-columns: 1fr;
   }
@@ -630,7 +610,6 @@
   }
 
   .panel,
-  .statCard,
   .siteCard {
     :global(.ant-card-body) {
       padding: 20px;
