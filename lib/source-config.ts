@@ -15,6 +15,7 @@ export type SiteConfigMeta = {
   displayName: string
   summary: string
   url: string
+  overviewAccent: "default" | "emerald" | "cyan"
   badgeWhenEnabled: string
   badgeWhenDisabled: string
   strategyMode: "editable" | "locked"
@@ -32,6 +33,7 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     displayName: "Kisssub 爱恋动漫",
     summary: "整合番组表与字幕组的动漫资源站",
     url: "kisssub.org",
+    overviewAccent: "default",
     badgeWhenEnabled: "已启用",
     badgeWhenDisabled: "未启用",
     strategyMode: "editable",
@@ -43,6 +45,7 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     displayName: "Dongmanhuayuan 动漫花园",
     summary: "面向动漫爱好者的BT资源交流站",
     url: "dongmanhuayuan.com",
+    overviewAccent: "emerald",
     badgeWhenEnabled: "已启用",
     badgeWhenDisabled: "未启用",
     strategyMode: "locked",
@@ -56,6 +59,7 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     displayName: "ACG.RIP",
     summary: "分类清晰、以种子直下为主的ACG站",
     url: "acg.rip",
+    overviewAccent: "cyan",
     badgeWhenEnabled: "已启用",
     badgeWhenDisabled: "未启用",
     strategyMode: "editable",
@@ -69,6 +73,7 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     displayName: "Bangumi.moe",
     summary: "追番日历结合最新种子发布的社区",
     url: "bangumi.moe",
+    overviewAccent: "default",
     badgeWhenEnabled: "已启用",
     badgeWhenDisabled: "未启用",
     strategyMode: "editable",

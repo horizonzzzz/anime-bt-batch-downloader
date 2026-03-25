@@ -145,6 +145,61 @@ describe("OptionsPage", () => {
   )
 
   it(
+    "preserves site-specific settings when a site is disabled and then enabled again",
+    async () => {
+      const user = userEvent.setup()
+      const api = {
+        loadSettings: vi.fn().mockResolvedValue(settings),
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
+        testConnection: vi.fn()
+      }
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "站点配置" }))
+
+      const kisssubCard = screen.getByTestId("site-card-kisssub")
+      const revisionField = within(kisssubCard).getByLabelText("Kisssub 脚本版本号")
+      await user.clear(revisionField)
+      await user.type(revisionField, "20260324.1")
+      await user.click(within(kisssubCard).getByRole("radio", { name: "先下载种子再上传到 qB" }))
+
+      const kisssubSwitch = screen.getByRole("switch", { name: "Kisssub 启用开关" })
+      await user.click(kisssubSwitch)
+      expect(kisssubSwitch).toHaveAttribute("aria-checked", "false")
+      expect(within(kisssubCard).queryByLabelText("Kisssub 脚本版本号")).not.toBeInTheDocument()
+
+      await user.click(kisssubSwitch)
+      expect(kisssubSwitch).toHaveAttribute("aria-checked", "true")
+
+      const restoredRevisionField = await within(kisssubCard).findByLabelText("Kisssub 脚本版本号")
+      expect(restoredRevisionField).toHaveValue("20260324.1")
+      expect(
+        within(kisssubCard).getByRole("radio", { name: "先下载种子再上传到 qB" })
+      ).toBeChecked()
+
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            remoteScriptRevision: "20260324.1",
+            sourceDeliveryModes: expect.objectContaining({
+              kisssub: "torrent-file"
+            }),
+            enabledSources: expect.objectContaining({
+              kisssub: true
+            })
+          })
+        )
+      })
+    },
+    10000
+  )
+
+  it(
     "shows a live status region and connection feedback while testing",
     async () => {
       const user = userEvent.setup()

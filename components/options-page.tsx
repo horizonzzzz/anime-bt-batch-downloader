@@ -8,7 +8,7 @@ import { HiChevronDown, HiChevronUp } from "react-icons/hi2"
 import speedlineBrandIcon from "../assets/anime-bt-icon-speedline.svg"
 import { SOURCE_IDS, SITE_CONFIG_META } from "../lib/source-config"
 import { DEFAULT_SETTINGS } from "../lib/settings"
-import type { Settings, SourceId, TestQbConnectionResult } from "../lib/types"
+import type { Settings, TestQbConnectionResult } from "../lib/types"
 import { SiteManagementView } from "./site-management-view"
 import styles from "./options-page.module.scss"
 
@@ -78,9 +78,10 @@ const navGroups: Array<{
   }
 ]
 
-const siteCardAccentClassNames: Partial<Record<SourceId, string>> = {
-  dongmanhuayuan: styles.siteCardDongmanhuayuan,
-  acgrip: styles.siteCardAcgrip
+const siteCardAccentClassNames: Record<"default" | "emerald" | "cyan", string | undefined> = {
+  default: undefined,
+  emerald: styles.siteCardDongmanhuayuan,
+  cyan: styles.siteCardAcgrip
 }
 
 function joinClassNames(...classNames: Array<string | false | null | undefined>) {
@@ -456,7 +457,7 @@ export function OptionsPage({ api }: OptionsPageProps) {
                           variant="borderless"
                           className={joinClassNames(
                             styles.siteCard,
-                            siteCardAccentClassNames[sourceId]
+                            siteCardAccentClassNames[site.overviewAccent]
                           )}>
                           <div className={styles.siteCardStatus}>
                             <span className={styles.siteCardDot} aria-hidden="true" />

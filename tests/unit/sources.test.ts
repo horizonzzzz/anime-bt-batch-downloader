@@ -48,6 +48,13 @@ describe("source registry", () => {
       expect(SITE_CONFIG_META[sourceId].id).toBe(sourceId)
     }
   })
+
+  it("keeps overview accent metadata alongside the shared site configuration", () => {
+    expect(SITE_CONFIG_META.kisssub.overviewAccent).toBe("default")
+    expect(SITE_CONFIG_META.dongmanhuayuan.overviewAccent).toBe("emerald")
+    expect(SITE_CONFIG_META.acgrip.overviewAccent).toBe("cyan")
+    expect(SITE_CONFIG_META.bangumimoe.overviewAccent).toBe("default")
+  })
 })
 
 describe("normalizeBatchItems", () => {
