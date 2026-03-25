@@ -438,7 +438,11 @@ export function OptionsPage({ api }: OptionsPageProps) {
                 </div>
               )}
 
-              {activeView === "sites" ? <SiteManagementView form={form} /> : null}
+              {activeView === "sites" ? (
+                <Form.Item noStyle shouldUpdate>
+                  {() => <SiteManagementView form={form} />}
+                </Form.Item>
+              ) : null}
 
               {activeView === "overview" && (
                 <div className={styles.view}>

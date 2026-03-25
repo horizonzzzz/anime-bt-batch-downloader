@@ -56,10 +56,13 @@ function renderStrategyOptions(sourceId: SourceId) {
 
 export function SiteManagementView({ form }: SiteManagementViewProps) {
   const watchedValues = Form.useWatch([], form) ?? {}
-  const enabledSources = watchedValues.enabledSources ?? {}
-  const sourceDeliveryModes = watchedValues.sourceDeliveryModes ?? {}
-  const remoteScriptUrl = watchedValues.remoteScriptUrl ?? ""
-  const remoteScriptRevision = watchedValues.remoteScriptRevision ?? ""
+  const currentValues = form.getFieldsValue(true) as Partial<Settings>
+  const enabledSources = currentValues.enabledSources ?? watchedValues.enabledSources ?? {}
+  const sourceDeliveryModes =
+    currentValues.sourceDeliveryModes ?? watchedValues.sourceDeliveryModes ?? {}
+  const remoteScriptUrl = currentValues.remoteScriptUrl ?? watchedValues.remoteScriptUrl ?? ""
+  const remoteScriptRevision =
+    currentValues.remoteScriptRevision ?? watchedValues.remoteScriptRevision ?? ""
   const [expandedSites, setExpandedSites] = useState<SourceId[]>([])
   const hasSyncedExpandedSites = useRef(false)
   const previousEnabledSourcesRef = useRef<Settings["enabledSources"] | null>(null)
