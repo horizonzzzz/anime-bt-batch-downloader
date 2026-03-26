@@ -279,7 +279,7 @@ describe("OptionsPage", () => {
     10000
   )
 
-  it("renders an svg icon in the extraction cadence advanced toggle", async () => {
+  it("renders the extraction cadence advanced toggle icon inside a dedicated shell", async () => {
     const api = {
       loadSettings: vi.fn().mockResolvedValue(settings),
       saveSettings: vi.fn(),
@@ -291,6 +291,29 @@ describe("OptionsPage", () => {
     expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
 
     const advancedToggle = screen.getByRole("button", { name: /批量提取节奏/ })
-    expect(advancedToggle.querySelector("svg")).not.toBeNull()
+    const iconShell = advancedToggle.lastElementChild
+
+    expect(iconShell?.tagName).toBe("SPAN")
+    expect(iconShell?.querySelector("svg")).not.toBeNull()
+  })
+
+  it("expands the extraction cadence card by default", async () => {
+    const api = {
+      loadSettings: vi.fn().mockResolvedValue(settings),
+      saveSettings: vi.fn(),
+      testConnection: vi.fn()
+    }
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    const advancedToggle = screen.getByRole("button", { name: /批量提取节奏/ })
+
+    expect(advancedToggle).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByLabelText("并发数")).toBeInTheDocument()
+    expect(screen.getByLabelText("重试次数")).toBeInTheDocument()
+    expect(screen.getByLabelText("注入超时(ms)")).toBeInTheDocument()
+    expect(screen.getByLabelText("稳定等待(ms)")).toBeInTheDocument()
   })
 })

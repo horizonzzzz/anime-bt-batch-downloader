@@ -118,7 +118,7 @@ function SidebarButton({
 export function OptionsPage({ api }: OptionsPageProps) {
   const [form] = Form.useForm<Settings>()
   const [activeView, setActiveView] = useState<OptionsViewId>("general")
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(true)
   const [status, setStatus] = useState<{ tone: StatusTone; message: string }>({
     tone: "info",
     message: "正在读取已保存设置。"
@@ -385,19 +385,21 @@ export function OptionsPage({ api }: OptionsPageProps) {
                           配置并发数、重试次数以及注入和稳定等待时间。
                         </Typography.Paragraph>
                       </div>
-                      {advancedOpen ? (
-                        <HiChevronUp
-                          className={styles.advancedToggleIcon}
-                          aria-hidden="true"
-                          focusable="false"
-                        />
-                      ) : (
-                        <HiChevronDown
-                          className={styles.advancedToggleIcon}
-                          aria-hidden="true"
-                          focusable="false"
-                        />
-                      )}
+                      <span className={styles.advancedToggleIconShell} aria-hidden="true">
+                        {advancedOpen ? (
+                          <HiChevronUp
+                            className={styles.advancedToggleIcon}
+                            aria-hidden="true"
+                            focusable="false"
+                          />
+                        ) : (
+                          <HiChevronDown
+                            className={styles.advancedToggleIcon}
+                            aria-hidden="true"
+                            focusable="false"
+                          />
+                        )}
+                      </span>
                     </button>
 
                     {advancedOpen ? (
