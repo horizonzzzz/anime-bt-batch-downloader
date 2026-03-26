@@ -76,8 +76,6 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     overviewAccent: "default",
     badgeWhenEnabled: "已启用",
     badgeWhenDisabled: "未启用",
-    strategyMode: "editable",
-    noteTone: "neutral",
-    noteDescription: "此站点无需额外专属配置，保持默认即可。"
+    strategyMode: "editable"
   }
 })

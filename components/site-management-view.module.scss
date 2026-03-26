@@ -14,33 +14,14 @@
   gap: 20px;
 }
 
-.intro {
-  display: grid;
-  gap: 8px;
-
-  :global(h2.ant-typography) {
-    margin-bottom: 0;
-    color: $slate-900;
-    font-size: clamp(26px, 3vw, 34px);
-    letter-spacing: -0.04em;
-  }
-
-  :global(.ant-typography) {
-    max-width: 760px;
-    margin-bottom: 0;
-    color: #526075;
-    font-size: 15px;
-  }
-}
-
 .summaryBar {
   @include surface-card(rgba($blue-400, 0.18), rgba($white, 0.92));
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
-  padding: 20px 22px;
+  padding: 16px 18px;
   border-radius: $radius-lg;
   background:
     radial-gradient(circle at right top, rgba($blue-300, 0.22), transparent 34%),
@@ -48,27 +29,42 @@
 }
 
 .summaryEyebrow {
-  margin-bottom: 6px;
+  margin-bottom: 7px;
   color: $blue-700;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .summaryCount {
-  color: $slate-900;
-  font-family: $font-family-condensed;
-  font-size: clamp(22px, 2.4vw, 28px);
-  letter-spacing: -0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.summaryMeta {
-  max-width: 360px;
-  color: #526075;
-  font-size: 13px;
-  line-height: 1.6;
-  text-align: right;
+.summaryCountLabel {
+  color: $slate-700;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.summaryCountValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 4px 10px;
+  border: 1px solid rgba($blue-500, 0.14);
+  border-radius: $radius-pill;
+  background: rgba($blue-600, 0.08);
+  color: $blue-700;
+  font-family: $font-family-condensed;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .cardList {
@@ -99,9 +95,7 @@
       color: $slate-500;
     }
 
-    .siteTitleRow :global(h3.ant-typography),
-    .siteSummary,
-    .siteUrl {
+    .siteTitleRow :global(h3.ant-typography) {
       color: rgba($slate-600, 0.92);
     }
   }
@@ -173,22 +167,6 @@
     background: rgba($slate-300, 0.6);
     color: $slate-600;
   }
-}
-
-.siteSummary {
-  margin-top: 8px;
-  margin-bottom: 0;
-  color: #526075;
-  font-size: 15px;
-}
-
-.siteUrl {
-  margin-top: 10px;
-  color: $slate-500;
-  font-family: $font-family-mono;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
 }
 
 .cardActions {
@@ -316,15 +294,6 @@
   gap: 16px;
 }
 
-.scriptStatus {
-  padding: 12px 14px;
-  border-radius: $radius-md;
-  background: rgba($slate-100, 0.92);
-  color: $slate-700;
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .note {
   display: grid;
   gap: 6px;
@@ -373,11 +342,6 @@
     align-items: stretch;
   }
 
-  .summaryMeta {
-    max-width: none;
-    text-align: left;
-  }
-
   .cardActions {
     justify-content: space-between;
   }
@@ -392,6 +356,12 @@
   .cardHeader,
   .cardBody {
     padding-inline: 18px;
+  }
+
+  .summaryCount {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .cardHeader {

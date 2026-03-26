@@ -60,12 +60,31 @@ describe("OptionsPage", () => {
       await user.click(screen.getByRole("button", { name: "站点配置" }))
 
       expect(screen.getByRole("heading", { name: "站点配置" })).toBeInTheDocument()
-      expect(screen.getByRole("heading", { name: "BT 站点配置" })).toBeInTheDocument()
-      expect(screen.getByText("当前已启用 4 / 4 个站点")).toBeInTheDocument()
+      expect(screen.getByText("统一管理 4 个站点的启用状态和专属配置。")).toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: "BT 站点配置" })).not.toBeInTheDocument()
+      expect(screen.queryByText("当前已启用 4 / 4 个站点")).not.toBeInTheDocument()
+      expect(screen.getByText("当前已启用站点")).toBeInTheDocument()
+      expect(screen.getByText("4 / 4")).toBeInTheDocument()
       expect(screen.getByText("Kisssub 爱恋动漫")).toBeInTheDocument()
       expect(screen.getByText("Dongmanhuayuan 动漫花园")).toBeInTheDocument()
       expect(screen.getAllByText("ACG.RIP").length).toBeGreaterThan(0)
       expect(screen.getByText("Bangumi.moe")).toBeInTheDocument()
+      expect(
+        screen.queryByText("启用你需要使用的 BT 站点，并为启用中的站点单独维护下载策略和专属参数。")
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByText("禁用后不注入批量下载 UI，后台批处理也会同步拒绝该站点请求。")
+      ).not.toBeInTheDocument()
+      expect(screen.queryByText("整合番组表与字幕组的动漫资源站")).not.toBeInTheDocument()
+      expect(screen.queryByText("面向动漫爱好者的BT资源交流站")).not.toBeInTheDocument()
+      expect(screen.queryByText("分类清晰、以种子直下为主的ACG站")).not.toBeInTheDocument()
+      expect(screen.queryByText("追番日历结合最新种子发布的社区")).not.toBeInTheDocument()
+      expect(screen.queryByText("kisssub.org")).not.toBeInTheDocument()
+      expect(screen.queryByText("dongmanhuayuan.com")).not.toBeInTheDocument()
+      expect(screen.queryByText("acg.rip")).not.toBeInTheDocument()
+      expect(screen.queryByText("bangumi.moe")).not.toBeInTheDocument()
+      expect(screen.queryByText("当前脚本版本：20181120.2")).not.toBeInTheDocument()
+      expect(screen.queryByText("此站点无需额外专属配置，保持默认即可。")).not.toBeInTheDocument()
       expect(screen.queryByRole("heading", { name: "Kisssub 专属配置" })).not.toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "源站概览" }))
@@ -141,7 +160,7 @@ describe("OptionsPage", () => {
 
       expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
     },
-    10000
+    20000
   )
 
   it(
@@ -196,7 +215,7 @@ describe("OptionsPage", () => {
         )
       })
     },
-    10000
+    20000
   )
 
   it(

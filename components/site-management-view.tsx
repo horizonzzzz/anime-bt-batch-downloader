@@ -60,9 +60,6 @@ export function SiteManagementView({ form }: SiteManagementViewProps) {
   const enabledSources = currentValues.enabledSources ?? watchedValues.enabledSources ?? {}
   const sourceDeliveryModes =
     currentValues.sourceDeliveryModes ?? watchedValues.sourceDeliveryModes ?? {}
-  const remoteScriptUrl = currentValues.remoteScriptUrl ?? watchedValues.remoteScriptUrl ?? ""
-  const remoteScriptRevision =
-    currentValues.remoteScriptRevision ?? watchedValues.remoteScriptRevision ?? ""
   const [expandedSites, setExpandedSites] = useState<SourceId[]>([])
   const hasSyncedExpandedSites = useRef(false)
   const previousEnabledSourcesRef = useRef<Settings["enabledSources"] | null>(null)
@@ -120,10 +117,6 @@ export function SiteManagementView({ form }: SiteManagementViewProps) {
       ).length,
     [enabledSources]
   )
-
-  const kisssubScriptConfigured =
-    String(remoteScriptUrl).trim().length > 0 &&
-    String(remoteScriptRevision).trim().length > 0
 
   const toggleSiteExpanded = (sourceId: SourceId) => {
     if (!resolveSourceEnabled(sourceId, { enabledSources })) {
@@ -201,11 +194,6 @@ export function SiteManagementView({ form }: SiteManagementViewProps) {
             <Input />
           </Form.Item>
         </div>
-        <div className={styles.scriptStatus}>
-          {kisssubScriptConfigured
-            ? `当前脚本版本：${String(remoteScriptRevision).trim()}`
-            : "请确认 Kisssub 外部脚本地址和脚本版本号。"}
-        </div>
       </section>
     )
   }
@@ -232,22 +220,15 @@ export function SiteManagementView({ form }: SiteManagementViewProps) {
 
   return (
     <div className={styles.page}>
-      <section className={styles.intro}>
-        <Typography.Title level={2}>BT 站点配置</Typography.Title>
-        <Typography.Paragraph>
-          启用你需要使用的 BT 站点，并为启用中的站点单独维护下载策略和专属参数。
-        </Typography.Paragraph>
-      </section>
-
       <section className={styles.summaryBar}>
         <div>
           <div className={styles.summaryEyebrow}>站点启用状态</div>
           <div className={styles.summaryCount}>
-            当前已启用 {enabledCount} / {SOURCE_IDS.length} 个站点
+            <span className={styles.summaryCountLabel}>当前已启用站点</span>
+            <span className={styles.summaryCountValue}>
+              {enabledCount} / {SOURCE_IDS.length}
+            </span>
           </div>
-        </div>
-        <div className={styles.summaryMeta}>
-          禁用后不注入批量下载 UI，后台批处理也会同步拒绝该站点请求。
         </div>
       </section>
 
@@ -286,10 +267,6 @@ export function SiteManagementView({ form }: SiteManagementViewProps) {
                           : site.badgeWhenDisabled}
                       </span>
                     </div>
-                    <Typography.Paragraph className={styles.siteSummary}>
-                      {site.summary}
-                    </Typography.Paragraph>
-                    <div className={styles.siteUrl}>{site.url}</div>
                   </div>
                 </div>
 
