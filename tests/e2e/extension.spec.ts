@@ -280,7 +280,7 @@ test("disabling a source stops injection until it is enabled again", async () =>
 
     const optionsPage = await openOptionsPage(extension)
     await optionsPage.getByRole("button", { name: "站点配置" }).click()
-    await expect(optionsPage.getByRole("heading", { name: "BT 站点配置" })).toBeVisible()
+    await expect(optionsPage.getByRole("heading", { name: "站点配置" })).toBeVisible()
 
     const acgripSwitch = optionsPage.getByRole("switch", { name: "ACG.RIP 启用开关" })
     await expect(acgripSwitch).toHaveAttribute("aria-checked", "true")
