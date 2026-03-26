@@ -78,28 +78,9 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 26px;
+  gap: 6px;
   overflow: auto;
   padding-right: 4px;
-}
-
-.sidebarGroup {
-  display: grid;
-  gap: 10px;
-}
-
-.sidebarGroupTitle {
-  margin: 0;
-  padding: 0 10px;
-  color: rgba($slate-400, 0.62);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.sidebarGroupItems {
-  display: grid;
-  gap: 6px;
 }
 
 .sidebarButton {

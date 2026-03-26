@@ -60,22 +60,10 @@ const viewMeta: Record<
   }
 }
 
-const navGroups: Array<{
-  title: string
-  items: Array<{ key: OptionsViewId; label: string }>
-}> = [
-  {
-    title: "通用设置",
-    items: [{ key: "general", label: "连接与基础设置" }]
-  },
-  {
-    title: "站点管理",
-    items: [{ key: "sites", label: "站点配置" }]
-  },
-  {
-    title: "关于与支持",
-    items: [{ key: "overview", label: "源站概览" }]
-  }
+const navItems: Array<{ key: OptionsViewId; label: string }> = [
+  { key: "general", label: "连接与基础设置" },
+  { key: "sites", label: "站点配置" },
+  { key: "overview", label: "源站概览" }
 ]
 
 const siteCardAccentClassNames: Record<"default" | "emerald" | "cyan", string | undefined> = {
@@ -259,20 +247,13 @@ export function OptionsPage({ api }: OptionsPageProps) {
           </div>
 
           <div className={styles.sidebarGroups} data-testid="options-sidebar-groups">
-            {navGroups.map((group) => (
-              <section key={group.title} className={styles.sidebarGroup}>
-                <p className={styles.sidebarGroupTitle}>{group.title}</p>
-                <div className={styles.sidebarGroupItems}>
-                  {group.items.map((item) => (
-                    <SidebarButton
-                      key={item.key}
-                      active={activeView === item.key}
-                      label={item.label}
-                      onClick={() => setActiveView(item.key)}
-                    />
-                  ))}
-                </div>
-              </section>
+            {navItems.map((item) => (
+              <SidebarButton
+                key={item.key}
+                active={activeView === item.key}
+                label={item.label}
+                onClick={() => setActiveView(item.key)}
+              />
             ))}
           </div>
 
