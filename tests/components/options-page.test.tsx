@@ -70,7 +70,7 @@ describe("OptionsPage", () => {
 
       expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
       expect(window.location.hash).toBe("#/general")
-      expect(screen.getAllByText("Anime BT Batch")).toHaveLength(2)
+      expect(screen.getAllByText("Anime BT Batch")).toHaveLength(1)
       const sidebarNav = screen.getByTestId("options-sidebar-groups")
       expect(within(sidebarNav).getAllByRole("button")).toHaveLength(3)
       expect(screen.queryByText("通用设置")).not.toBeInTheDocument()
@@ -92,9 +92,8 @@ describe("OptionsPage", () => {
       expect(screen.getByRole("heading", { name: "站点配置" })).toBeInTheDocument()
       expect(screen.getByText("统一管理 4 个站点的启用状态和专属配置。")).toBeInTheDocument()
       expect(screen.queryByRole("heading", { name: "BT 站点配置" })).not.toBeInTheDocument()
-      expect(screen.queryByText("当前已启用 4 / 4 个站点")).not.toBeInTheDocument()
-      expect(screen.getByText("当前已启用站点")).toBeInTheDocument()
-      expect(screen.getByText("4 / 4")).toBeInTheDocument()
+      expect(screen.getByText("当前已启用 4 / 4 个站点")).toBeInTheDocument()
+      expect(screen.queryByText("当前已启用站点")).not.toBeInTheDocument()
       expect(screen.getByText("Kisssub 爱恋动漫")).toBeInTheDocument()
       expect(screen.getByText("Dongmanhuayuan 动漫花园")).toBeInTheDocument()
       expect(screen.getAllByText("ACG.RIP").length).toBeGreaterThan(0)
@@ -141,7 +140,7 @@ describe("OptionsPage", () => {
     const firstRender = render(<OptionsPage api={api} />)
 
     expect(await screen.findByRole("heading", { name: "站点配置" })).toBeInTheDocument()
-    expect(screen.getByText("当前已启用站点")).toBeInTheDocument()
+    expect(screen.getByText("当前已启用 4 / 4 个站点")).toBeInTheDocument()
 
     firstRender.unmount()
     window.location.hash = "#/overview"
@@ -169,6 +168,24 @@ describe("OptionsPage", () => {
     expect(screen.getByTestId("site-icon-dongmanhuayuan").tagName).toBe("IMG")
     expect(screen.getByTestId("site-icon-acgrip").tagName).toBe("IMG")
     expect(screen.getByTestId("site-icon-bangumimoe").tagName).toBe("IMG")
+  })
+
+  it("keeps the desktop sidebar constrained to the viewport height", async () => {
+    const api = {
+      loadSettings: vi.fn().mockResolvedValue(settings),
+      saveSettings: vi.fn(),
+      testConnection: vi.fn()
+    }
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    const sidebar = screen.getByTestId("options-brand-icon").closest("aside")
+
+    expect(sidebar).toHaveClass("lg:h-screen")
+    expect(sidebar).toHaveClass("lg:sticky")
+    expect(sidebar).toHaveClass("lg:top-0")
   })
 
   it("falls back to the 7474 default qB address when saved settings are incomplete", async () => {

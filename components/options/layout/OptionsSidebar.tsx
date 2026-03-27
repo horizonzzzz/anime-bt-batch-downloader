@@ -21,17 +21,17 @@ function SidebarButton({
     <button
       type="button"
       className={cn(
-        "group flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-all duration-200",
+        "group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
         active
-          ? "border-azure-400/30 bg-azure-500/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-          : "border-transparent bg-white/4 text-white/72 hover:border-white/8 hover:bg-white/8 hover:text-white"
+          ? "bg-blue-600/10 font-medium text-blue-400"
+          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
       )}
       onClick={onClick}>
       <span
         aria-hidden="true"
         className={cn(
-          "h-2.5 w-2.5 rounded-full transition-opacity",
-          active ? "bg-azure-400 opacity-100" : "bg-white opacity-45"
+          "h-1.5 w-1.5 rounded-full transition-colors",
+          active ? "bg-blue-400" : "bg-zinc-600 group-hover:bg-zinc-400"
         )}
       />
       <span>{label}</span>
@@ -51,32 +51,27 @@ export function OptionsSidebar({
   onNavigate
 }: OptionsSidebarProps) {
   return (
-    <aside className="flex flex-col gap-6 border-b border-white/6 bg-[linear-gradient(180deg,rgba(18,24,42,0.98),rgba(14,20,35,0.98)),radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_36%)] px-4 py-5 text-white md:px-5 md:py-6 xl:min-h-screen xl:w-[288px] xl:flex-none xl:border-b-0 xl:border-r xl:border-r-white/8">
-      <div className="flex items-center gap-4 px-2">
-        <div className="relative flex h-12 w-12 items-center justify-center">
-          <div className="absolute inset-0 rounded-2xl bg-azure-500/12 blur-md" aria-hidden="true" />
+    <aside className="flex w-full shrink-0 flex-col border-b border-zinc-800 bg-zinc-950 text-zinc-400 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:self-start lg:border-b-0 lg:border-r">
+      <div className="flex h-16 items-center gap-3 border-b border-zinc-800/80 px-6">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/15 ring-1 ring-inset ring-blue-500/25">
           <img
             src={speedlineBrandIcon}
             alt=""
             loading="eager"
             decoding="async"
             data-testid="options-brand-icon"
-            className="relative block h-12 w-12"
+            className="block h-6 w-6"
             aria-hidden="true"
           />
         </div>
         <div>
-          <div className="font-display text-lg tracking-[-0.04em] text-white">
-            {BRAND_NAME}
-          </div>
-          <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/45">
-            Extension Settings
-          </div>
+          <div className="font-semibold tracking-tight text-zinc-100">{BRAND_NAME}</div>
+          <div className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500">Extension Settings</div>
         </div>
       </div>
 
       <div
-        className="flex gap-2 overflow-auto px-1 xl:flex-1 xl:flex-col"
+        className="flex flex-1 flex-col gap-1 overflow-auto px-3 py-6"
         data-testid="options-sidebar-groups">
         {routes.map((route) => (
           <SidebarButton
@@ -88,18 +83,16 @@ export function OptionsSidebar({
         ))}
       </div>
 
-      <div className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/5 px-4 py-4 text-sm backdrop-blur-sm">
+      <div className="m-3 grid gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-4 text-sm">
         <div className="grid gap-2">
-          <div className="inline-flex items-center gap-2 text-white/55">
+          <div className="inline-flex items-center gap-2 text-zinc-500">
             <Globe2 className="h-4 w-4" aria-hidden="true" />
             <span>{SOURCE_IDS.length} 个支持源站</span>
           </div>
-          <strong className="font-display text-base tracking-[-0.03em] text-white">
-            qBittorrent WebUI
-          </strong>
+          <strong className="text-sm font-medium text-zinc-100">qBittorrent WebUI</strong>
         </div>
         <a
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/5 px-4 py-3 font-medium text-white/86 transition-all duration-200 hover:-translate-y-0.5 hover:border-azure-400/35 hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-800 bg-zinc-800/80 px-4 py-2.5 font-medium text-zinc-200 transition-colors hover:bg-zinc-800 hover:text-white"
           href={REPO_URL}
           target="_blank"
           rel="noopener noreferrer"

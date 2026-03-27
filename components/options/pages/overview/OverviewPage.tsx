@@ -4,9 +4,9 @@ import { SITE_CONFIG_META, SOURCE_IDS } from "../../../../lib/source-config"
 import { Button, Card } from "../../../ui"
 
 const accentClassNames: Record<"default" | "emerald" | "cyan", string> = {
-  default: "from-azure-400 to-azure-600",
-  emerald: "from-mint-500 to-mint-600",
-  cyan: "from-cyan-400 to-cyan-600"
+  default: "bg-blue-500",
+  emerald: "bg-emerald-500",
+  cyan: "bg-cyan-500"
 }
 
 export function OverviewPage() {
@@ -17,26 +17,23 @@ export function OverviewPage() {
           const site = SITE_CONFIG_META[sourceId]
 
           return (
-            <Card key={site.id} className="relative overflow-hidden">
-              <div
-                className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${accentClassNames[site.overviewAccent]}`}
-                aria-hidden="true"
-              />
+            <Card key={site.id} className="overflow-hidden">
               <div className="grid gap-4 px-6 py-6">
-                <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-500">
-                  <span className="h-2.5 w-2.5 rounded-full bg-mint-500 shadow-[0_0_0_6px_rgba(16,185,129,0.14)]" />
+                <div className="inline-flex items-center gap-2 text-xs font-medium text-zinc-500">
+                  <span className={`h-2.5 w-2.5 rounded-full ${accentClassNames[site.overviewAccent]}`} />
                   <span>支持良好</span>
                 </div>
                 <div className="space-y-2">
-                  <h2 className="font-display text-[1.35rem] tracking-[-0.04em] text-ink-950">
+                  <h2 className="text-lg font-medium text-zinc-900">
                     {site.displayName}
                   </h2>
-                  <p className="text-sm leading-6 text-ink-600">{site.summary}</p>
+                  <p className="text-sm leading-6 text-zinc-500">{site.summary}</p>
                 </div>
-                <div>
+                <div className="border-t border-zinc-100 pt-4">
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="outline"
+                    size="sm"
                     onClick={() => window.open(`https://${site.url}`, "_blank")}>
                     <span>访问站点</span>
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -48,12 +45,10 @@ export function OverviewPage() {
         })}
       </div>
 
-      <Card className="bg-[linear-gradient(145deg,rgba(22,30,54,1),rgba(14,20,35,1))] text-white">
+      <Card className="border-zinc-900 bg-zinc-900 text-white">
         <div className="grid gap-4 px-6 py-6">
           <div className="space-y-2">
-            <h2 className="font-display text-[1.4rem] tracking-[-0.04em] text-white">
-              当前能力
-            </h2>
+            <h2 className="text-lg font-medium text-white">当前能力</h2>
           </div>
           <ul className="grid gap-3 pl-5 text-sm leading-6 text-white/76">
             <li>统一的站点配置页集中管理 4 个受支持站点的启用状态和专属参数。</li>

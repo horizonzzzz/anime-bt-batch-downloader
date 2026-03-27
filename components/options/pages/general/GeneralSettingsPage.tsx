@@ -66,7 +66,7 @@ export function GeneralSettingsPage({
   const [advancedOpen, setAdvancedOpen] = useState(true)
 
   return (
-    <div className="grid gap-5">
+    <div className="space-y-6">
       <Alert
         tone="info"
         title="qB WebUI 兼容性提示"
@@ -88,12 +88,12 @@ export function GeneralSettingsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>qBittorrent 认证</CardTitle>
+          <CardTitle>qBittorrent 认证信息</CardTitle>
           <CardDescription>
             配置扩展用于测试连接和提交任务的 WebUI 地址与账号信息。
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-6 pt-6">
+        <CardContent className="space-y-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="md:col-span-2">
               <Field
@@ -144,15 +144,15 @@ export function GeneralSettingsPage({
               onClick={() => void onTestConnection()}
               disabled={testing}>
               {testing ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-              <span>{testing ? "测试中..." : "测试 qB 连接"}</span>
+              <span>{testing ? "测试中..." : "测试连接"}</span>
             </Button>
 
             {connectionState !== "idle" ? (
               <span
                 className={
                   connectionState === "success"
-                    ? "inline-flex items-center rounded-full border border-mint-500/20 bg-mint-500/10 px-3 py-2 text-sm font-medium text-mint-600"
-                    : "inline-flex items-center rounded-full border border-crimson-500/18 bg-crimson-500/10 px-3 py-2 text-sm font-medium text-crimson-600"
+                    ? "inline-flex items-center text-sm font-medium text-emerald-600"
+                    : "inline-flex items-center text-sm font-medium text-red-600"
                 }>
                 {connectionState === "success" ? "连接成功" : "连接失败"}
                 {connectionMessage ? ` · ${connectionMessage}` : ""}
@@ -163,19 +163,19 @@ export function GeneralSettingsPage({
       </Card>
 
       <Collapsible.Root open={advancedOpen} onOpenChange={setAdvancedOpen}>
-        <Card className={advancedOpen ? "border-azure-500/16" : undefined}>
-          <CardHeader className="pb-0">
+        <Card>
+          <CardHeader className="p-0">
             <Collapsible.Trigger
               type="button"
-              className="flex w-full items-center justify-between gap-4 text-left"
+              className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left hover:bg-zinc-50/80"
               aria-expanded={advancedOpen}>
               <div>
-                <CardTitle>批量提取节奏</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base">批量提取节奏</CardTitle>
+                <CardDescription className="mt-1">
                   配置并发数、重试次数以及注入和稳定等待时间。
                 </CardDescription>
               </div>
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-azure-500/10 text-azure-700">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-500">
                 {advancedOpen ? (
                   <ChevronUp className="h-5 w-5" aria-hidden="true" />
                 ) : (
@@ -186,7 +186,7 @@ export function GeneralSettingsPage({
           </CardHeader>
 
           <Collapsible.Content>
-            <CardContent className="grid gap-5 pt-6 md:grid-cols-2">
+            <CardContent className="grid gap-5 border-t border-zinc-100 bg-zinc-50/50 md:grid-cols-2">
               <Field label="并发数" htmlFor="concurrency" error={errors.concurrency?.message}>
                 <Input id="concurrency" type="number" min={1} max={3} {...register("concurrency")} />
               </Field>

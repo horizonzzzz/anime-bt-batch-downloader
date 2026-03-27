@@ -14,7 +14,6 @@ import {
 } from "../../../../lib/source-config"
 import { normalizeEnabledSources, resolveSourceEnabled } from "../../../../lib/source-enablement"
 import type { SourceId } from "../../../../lib/types"
-import { Card } from "../../../ui"
 import type {
   SettingsFormInput,
   SettingsFormValues
@@ -123,20 +122,10 @@ export function SiteManagementView() {
   }
 
   return (
-    <div className="grid gap-5">
-      <Card className="bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(239,246,255,0.9))]">
-        <div className="flex flex-col gap-2 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-azure-700">
-              站点启用状态
-            </div>
-            <div className="mt-2 text-sm text-ink-700">当前已启用站点</div>
-          </div>
-          <div className="inline-flex items-center justify-center rounded-full border border-azure-500/14 bg-azure-500/10 px-4 py-2 font-display text-sm tracking-[0.02em] text-azure-700">
-            {enabledCount} / {SOURCE_IDS.length}
-          </div>
-        </div>
-      </Card>
+    <div className="space-y-4">
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-700">
+        当前已启用 {enabledCount} / {SOURCE_IDS.length} 个站点
+      </div>
 
       <div className="grid gap-4">
         {sortedSites.map((site) => {

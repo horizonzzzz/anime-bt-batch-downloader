@@ -11,10 +11,10 @@ const iconByTone = {
 } as const
 
 const toneClassNames = {
-  info: "border-azure-500/15 bg-azure-500/8 text-ink-800",
-  success: "border-mint-500/18 bg-mint-500/10 text-ink-800",
-  warning: "border-amber-500/22 bg-amber-500/10 text-ink-800",
-  error: "border-crimson-500/16 bg-crimson-500/8 text-ink-800"
+  info: "border-blue-200 bg-blue-50 text-blue-900",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  warning: "border-amber-200 bg-amber-50 text-amber-900",
+  error: "border-red-200 bg-red-50 text-red-900"
 } as const
 
 type AlertProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -35,16 +35,16 @@ function Alert({
   return (
     <div
       className={cn(
-          "flex gap-3 rounded-[1.5rem] border px-4 py-4 shadow-panel",
+        "flex gap-3 rounded-lg border px-4 py-4",
         toneClassNames[tone],
         className
       )}
       {...props}>
-      <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+      <Icon className="mt-0.5 h-[18px] w-[18px] shrink-0" aria-hidden="true" />
       <div className="min-w-0 space-y-1">
-        <div className="text-sm font-semibold">{title}</div>
+        <div className="text-sm font-medium">{title}</div>
         {description ? (
-          <div className="text-sm leading-6 text-ink-700">{description}</div>
+          <div className="text-sm leading-6 text-current/85">{description}</div>
         ) : null}
       </div>
     </div>

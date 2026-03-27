@@ -5,22 +5,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-2xl border text-sm font-semibold transition-all duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-azure-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-paper-50 disabled:pointer-events-none disabled:opacity-45",
+  "inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "border-azure-600 bg-azure-600 text-white shadow-float hover:-translate-y-0.5 hover:bg-azure-700",
+          "border-blue-600 bg-blue-600 text-white shadow-sm hover:bg-blue-700",
         secondary:
-          "border-paper-300 bg-white/88 text-ink-900 hover:-translate-y-0.5 hover:bg-paper-50",
-        outline:
-          "border-paper-300 bg-transparent text-ink-700 hover:bg-white/75",
-        ghost: "border-transparent bg-transparent text-ink-700 hover:bg-ink-950/5"
+          "border-transparent bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
+        outline: "border-zinc-300 bg-transparent text-zinc-700 hover:bg-zinc-50",
+        ghost: "border-transparent bg-transparent text-zinc-700 hover:bg-zinc-100"
       },
       size: {
-        default: "h-11 px-4",
-        sm: "h-9 rounded-xl px-3 text-sm",
-        lg: "h-12 px-5 text-[15px]"
+        default: "h-10 px-4 py-2",
+        sm: "h-8 px-3 text-sm",
+        lg: "h-10 px-4 text-sm"
       }
     },
     defaultVariants: {

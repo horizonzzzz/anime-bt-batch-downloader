@@ -28,11 +28,9 @@ function SectionHeading({
 }) {
   return (
     <div className="grid gap-1">
-      <h3 className="font-display text-[1.05rem] tracking-[-0.03em] text-ink-950">
-        {title}
-      </h3>
+      <h3 className="text-base font-medium text-zinc-900">{title}</h3>
       {description ? (
-        <p className="text-sm leading-6 text-ink-600">{description}</p>
+        <p className="text-sm leading-6 text-zinc-500">{description}</p>
       ) : null}
     </div>
   )
@@ -68,20 +66,17 @@ export function SiteCard({
     <article data-testid={`site-card-${site.id}`}>
       <Card
         className={cn(
-          "overflow-hidden transition-all duration-200",
+          "overflow-hidden transition-colors duration-200",
           isEnabled
-            ? "border-azure-500/18 bg-white/92"
-            : "border-paper-300/70 bg-white/65 opacity-80"
+            ? "border-blue-200 bg-white shadow-sm"
+            : "border-zinc-200 bg-zinc-50/60 opacity-75 shadow-none"
         )}>
-        <div className="flex flex-col gap-4 px-5 py-5 md:px-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
+        <div>
+          <div className="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
               <div
                 className={cn(
-                  "grid h-13 w-13 place-items-center rounded-[1.25rem] border p-1.5",
-                  isEnabled
-                    ? "border-azure-500/14 bg-white"
-                    : "border-paper-300 bg-paper-100"
+                  "grid h-8 w-8 place-items-center rounded-full bg-zinc-100 p-1"
                 )}>
                 <img
                   src={siteIcon}
@@ -90,15 +85,15 @@ export function SiteCard({
                   decoding="async"
                   data-testid={`site-icon-${site.id}`}
                   className={cn(
-                    "block h-full w-full rounded-[0.9rem] object-contain",
+                    "block h-full w-full rounded-full object-contain",
                     isEnabled ? "" : "grayscale opacity-70"
                   )}
                 />
               </div>
 
-              <div className="min-w-0 space-y-2">
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-display text-[1.35rem] tracking-[-0.04em] text-ink-950">
+                  <h2 className={cn("text-base font-semibold", isEnabled ? "text-zinc-900" : "text-zinc-500")}>
                     {site.displayName}
                   </h2>
                   <Badge variant={isEnabled ? "brand" : "muted"}>
@@ -108,8 +103,8 @@ export function SiteCard({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-3 rounded-full bg-paper-100 px-3 py-2 text-sm font-medium text-ink-700">
+            <div className="flex items-center gap-4">
+              <div className="inline-flex items-center gap-3 text-sm font-medium text-zinc-600">
                 <span>启用</span>
                 <Switch
                   checked={isEnabled}
@@ -120,7 +115,7 @@ export function SiteCard({
               {isEnabled ? (
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-azure-500/10 text-azure-700 transition hover:-translate-y-0.5 hover:bg-azure-500/16"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
                   aria-label={`${site.navLabel} ${isExpanded ? "收起" : "展开"}配置`}
                   onClick={() => onToggleExpanded(site.id)}>
                   {isExpanded ? (
@@ -134,15 +129,15 @@ export function SiteCard({
           </div>
 
           {isExpanded ? (
-            <div className="grid gap-5 border-t border-paper-300/80 pt-5">
+            <div className="space-y-6 border-t border-zinc-100 bg-white px-5 py-6">
               {site.strategyMode === "locked" ? (
                 <section className="grid gap-3">
                   <SectionHeading
                     title="下载策略"
                     description="该站点当前使用固定下载方式，不提供额外切换项。"
                   />
-                  <div className="rounded-[1.25rem] border border-azure-500/15 bg-azure-500/8 px-4 py-4">
-                    <span className="text-sm font-semibold text-azure-700">
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
+                    <span className="text-sm font-medium text-zinc-700">
                       {site.lockedStrategyLabel}
                     </span>
                   </div>
@@ -168,9 +163,14 @@ export function SiteCard({
                       return (
                         <div
                           key={mode}
-                          className="flex items-start gap-3 rounded-[1.25rem] border border-paper-300/90 bg-white px-4 py-4 transition hover:border-azure-500/22 hover:bg-azure-500/6">
+                          className={cn(
+                            "flex items-start gap-3 rounded-lg border px-4 py-3 transition-colors",
+                            currentMode === mode
+                              ? "border-blue-200 bg-blue-50/60"
+                              : "border-zinc-200 bg-zinc-50 hover:bg-zinc-100"
+                          )}>
                           <RadioGroupItem value={mode} id={itemId} />
-                          <Label htmlFor={itemId} className="cursor-pointer font-normal text-ink-800">
+                          <Label htmlFor={itemId} className="flex-1 cursor-pointer font-normal text-zinc-700">
                             {getDeliveryModeLabel(mode)}
                           </Label>
                         </div>
@@ -181,7 +181,7 @@ export function SiteCard({
               )}
 
               {site.hasKisssubScriptFields ? (
-                <section className="grid gap-4">
+                <section className="grid gap-4 border-t border-zinc-100 pt-6">
                   <SectionHeading
                     title="脚本参数"
                     description="保留历史脚本配置，重新启用后会继续沿用当前参数。"
@@ -202,23 +202,23 @@ export function SiteCard({
               {site.noteDescription ? (
                 <div
                   className={cn(
-                    "grid gap-2 rounded-[1.25rem] border px-4 py-4",
+                    "grid gap-2 rounded-lg border px-4 py-4",
                     site.noteTone === "warning"
-                      ? "border-amber-500/22 bg-amber-500/10"
+                      ? "border-amber-200 bg-amber-50"
                       : site.noteTone === "neutral"
-                        ? "border-paper-300 bg-paper-100"
-                        : "border-azure-500/15 bg-azure-500/8"
+                        ? "border-zinc-200 bg-zinc-50"
+                        : "border-blue-100 bg-blue-50"
                   )}>
                   {site.noteTitle ? (
                     <div
                       className={cn(
                         "text-sm font-semibold",
-                        site.noteTone === "warning" ? "text-amber-600" : "text-azure-700"
+                        site.noteTone === "warning" ? "text-amber-800" : "text-blue-800"
                       )}>
                       {site.noteTitle}
                     </div>
                   ) : null}
-                  <div className="text-sm leading-6 text-ink-700">{site.noteDescription}</div>
+                  <div className="text-sm leading-6 text-zinc-700">{site.noteDescription}</div>
                 </div>
               ) : null}
             </div>

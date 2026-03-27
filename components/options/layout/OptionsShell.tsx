@@ -41,12 +41,12 @@ export function OptionsShell({
   children
 }: OptionsShellProps) {
   return (
-    <form className="min-h-screen xl:flex" onSubmit={onSubmit}>
+    <form className="min-h-screen bg-zinc-50 text-zinc-900 lg:flex lg:items-start" onSubmit={onSubmit}>
       <OptionsSidebar routes={routes} activePath={activePath} onNavigate={onNavigate} />
 
-      <section className="flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.1),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.76),rgba(245,247,252,0.96))]">
+      <section className="relative flex min-w-0 flex-1 flex-col lg:min-h-screen lg:self-stretch">
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-28 md:px-8 md:py-8 xl:px-10">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 pb-28 md:px-8 md:py-10">
             <OptionsHeader activeMeta={activeMeta} />
 
             <div role="status" aria-live="polite">
