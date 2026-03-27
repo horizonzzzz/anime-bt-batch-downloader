@@ -2,6 +2,8 @@ import { useState } from "react"
 import { HiChevronDown, HiChevronUp, HiOutlineCog6Tooth } from "react-icons/hi2"
 
 import speedlineBrandIcon from "../assets/anime-bt-icon-speedline.svg"
+import { ContentButton } from "./content-ui/button"
+import { ContentInput } from "./content-ui/input"
 import { cn } from "../lib/utils"
 
 type BatchPanelProps = {
@@ -48,8 +50,9 @@ export function BatchPanel({
     return (
       <div className="anime-bt-content-root anime-bt-batch-panel">
         <div className="anime-bt-batch-panel__launcher">
-          <button
+          <ContentButton
             type="button"
+            variant="launcher"
             className="anime-bt-batch-panel__launcher-button"
             aria-label="展开批量下载面板"
             onClick={() => {
@@ -72,7 +75,7 @@ export function BatchPanel({
               ) : null}
             </span>
             <span className="anime-bt-batch-panel__launcher-label">批量下载</span>
-          </button>
+          </ContentButton>
         </div>
       </div>
     )
@@ -101,8 +104,9 @@ export function BatchPanel({
           </div>
 
           <div className="anime-bt-batch-panel__header-actions">
-            <button
+            <ContentButton
               type="button"
+              variant="icon"
               className="anime-bt-batch-panel__icon-button"
               aria-label="打开设置页"
               onClick={onOpenSettings}>
@@ -111,9 +115,10 @@ export function BatchPanel({
                 aria-hidden="true"
                 focusable="false"
               />
-            </button>
-            <button
+            </ContentButton>
+            <ContentButton
               type="button"
+              variant="icon"
               className="anime-bt-batch-panel__icon-button"
               aria-label="最小化批量下载面板"
               onClick={() => {
@@ -124,7 +129,7 @@ export function BatchPanel({
                 aria-hidden="true"
                 focusable="false"
               />
-            </button>
+            </ContentButton>
           </div>
         </div>
 
@@ -137,8 +142,9 @@ export function BatchPanel({
 
           <section
             className={cn("anime-bt-batch-panel__advanced", showAdvanced && "is-open")}>
-            <button
+            <ContentButton
               type="button"
+              variant="toggle"
               className="anime-bt-batch-panel__advanced-toggle"
               aria-expanded={showAdvanced}
               aria-controls={advancedOptionsId}
@@ -159,7 +165,7 @@ export function BatchPanel({
                   focusable="false"
                 />
               )}
-            </button>
+            </ContentButton>
 
             {showAdvanced ? (
               <div className="anime-bt-batch-panel__advanced-body" id={advancedOptionsId}>
@@ -167,10 +173,9 @@ export function BatchPanel({
                   临时下载路径
                 </label>
                 <div className="anime-bt-batch-panel__path-row">
-                  <input
+                  <ContentInput
                     id={savePathInputId}
                     className="anime-bt-batch-panel__path-input"
-                    type="text"
                     value={savePath}
                     placeholder="留空使用默认目录"
                     onChange={(event) => {
@@ -178,13 +183,14 @@ export function BatchPanel({
                     }}
                     disabled={disablePathActions}
                   />
-                  <button
+                  <ContentButton
                     type="button"
+                    variant="control"
                     className="anime-bt-batch-panel__button anime-bt-batch-panel__path-clear"
                     onClick={onClearSavePath}
                     disabled={disablePathActions || !savePath}>
                     清空路径
-                  </button>
+                  </ContentButton>
                 </div>
                 <p className="anime-bt-batch-panel__path-hint">
                   {savePathHint ||
@@ -197,28 +203,31 @@ export function BatchPanel({
 
         <div className="anime-bt-batch-panel__footer">
           <div className="anime-bt-batch-panel__selection-actions">
-            <button
+            <ContentButton
               type="button"
+              variant="control"
               className="anime-bt-batch-panel__button anime-bt-batch-panel__selection-button"
               onClick={onSelectAll}
               disabled={running}>
               全选本页
-            </button>
-            <button
+            </ContentButton>
+            <ContentButton
               type="button"
+              variant="control"
               className="anime-bt-batch-panel__button anime-bt-batch-panel__selection-button"
               onClick={onClear}
               disabled={disableClear}>
               清空选择
-            </button>
+            </ContentButton>
           </div>
-          <button
+          <ContentButton
             type="button"
+            variant="primary"
             className={cn("anime-bt-batch-panel__download", running && "is-running")}
             onClick={onDownload}
             disabled={disableDownload}>
             {running ? "发送中..." : "批量下载"}
-          </button>
+          </ContentButton>
         </div>
       </aside>
     </div>

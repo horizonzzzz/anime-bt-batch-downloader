@@ -9,6 +9,28 @@ const localBrowserCandidates = [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 ]
+const supportedSiteFixtures = [
+  {
+    url: "https://www.kisssub.org/list-test.html",
+    fixtureName: "kisssub-list.html",
+    title: "Kisssub 批量下载"
+  },
+  {
+    url: "https://www.dongmanhuayuan.com/",
+    fixtureName: "dongmanhuayuan-list.html",
+    title: "动漫花园 批量下载"
+  },
+  {
+    url: "https://acg.rip/",
+    fixtureName: "acgrip-list.html",
+    title: "ACG.RIP 批量下载"
+  },
+  {
+    url: "https://bangumi.moe/",
+    fixtureName: "bangumimoe-list.html",
+    title: "Bangumi.moe 批量下载"
+  }
+] as const
 
 function getBundledBrowserExecutable() {
   const executablePath = chromium.executablePath()
@@ -136,6 +158,67 @@ async function clickInjectedCheckbox(page: import("@playwright/test").Page, inde
   })
 }
 
+async function getInjectedStyleSignature(page: import("@playwright/test").Page) {
+  const panel = await page.locator("[data-anime-bt-batch-panel-root]").evaluate((host) => {
+    const shadowRoot = (host as HTMLElement).shadowRoot
+    const surface = shadowRoot?.querySelector<HTMLElement>(".anime-bt-batch-panel__surface")
+    const advancedToggle = shadowRoot?.querySelector<HTMLElement>(
+      ".anime-bt-batch-panel__advanced-toggle"
+    )
+    const footerButton = shadowRoot?.querySelector<HTMLElement>(".anime-bt-batch-panel__selection-button")
+    const downloadButton = shadowRoot?.querySelector<HTMLElement>(".anime-bt-batch-panel__download")
+
+    if (!surface || !advancedToggle || !footerButton || !downloadButton) {
+      throw new Error("Panel style signature target is missing inside the shadow root.")
+    }
+
+    const surfaceStyle = getComputedStyle(surface)
+    const toggleStyle = getComputedStyle(advancedToggle)
+    const footerButtonStyle = getComputedStyle(footerButton)
+    const downloadButtonStyle = getComputedStyle(downloadButton)
+
+    return {
+      surfaceWidth: surfaceStyle.width,
+      surfaceBorderRadius: surfaceStyle.borderRadius,
+      togglePaddingTop: toggleStyle.paddingTop,
+      togglePaddingInline: `${toggleStyle.paddingLeft}/${toggleStyle.paddingRight}`,
+      footerButtonHeight: footerButtonStyle.height,
+      footerButtonRadius: footerButtonStyle.borderRadius,
+      downloadButtonHeight: downloadButtonStyle.height,
+      downloadButtonRadius: downloadButtonStyle.borderRadius
+    }
+  })
+
+  const checkbox = await page.locator("[data-anime-bt-batch-checkbox-root]").first().evaluate((host) => {
+    const shadowRoot = (host as HTMLElement).shadowRoot
+    const label = shadowRoot?.querySelector<HTMLElement>(".anime-bt-selection-checkbox")
+    const input = shadowRoot?.querySelector<HTMLInputElement>(".anime-bt-selection-checkbox__input")
+    const dot = shadowRoot?.querySelector<HTMLElement>(".anime-bt-selection-checkbox__dot")
+
+    if (!label || !input || !dot) {
+      throw new Error("Checkbox style signature target is missing inside the shadow root.")
+    }
+
+    const labelStyle = getComputedStyle(label)
+    const inputStyle = getComputedStyle(input)
+    const dotStyle = getComputedStyle(dot)
+
+    return {
+      checkboxDisplay: labelStyle.display,
+      checkboxMinHeight: labelStyle.minHeight,
+      checkboxPaddingInline: `${labelStyle.paddingLeft}/${labelStyle.paddingRight}`,
+      checkboxRadius: labelStyle.borderRadius,
+      inputSize: `${inputStyle.width}/${inputStyle.height}`,
+      dotSize: `${dotStyle.width}/${dotStyle.height}`
+    }
+  })
+
+  return {
+    ...panel,
+    ...checkbox
+  }
+}
+
 async function openOptionsPage(
   extension: Awaited<ReturnType<typeof launchExtensionContext>>,
   options?: {
@@ -196,6 +279,51 @@ test("content script injects the batch panel on a Kisssub list page", async () =
       url: "https://www.kisssub.org/list-test.html",
       fixtureName: "kisssub-list.html",
       title: "Kisssub 批量下载"
+    })
+  } finally {
+    await extension.close()
+  }
+})
+
+test("content script keeps injected control metrics consistent across supported sites", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    for (const site of supportedSiteFixtures) {
+      const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", site.fixtureName)
+
+      await extension.context.route(site.url, async (route) => {
+        await route.fulfill({
+          path: fixturePath,
+          contentType: "text/html"
+        })
+      })
+    }
+
+    const signatures: Array<Record<string, string>> = []
+
+    for (const site of supportedSiteFixtures) {
+      const page = await extension.context.newPage()
+      await page.goto(site.url)
+
+      await expect(page.getByText(site.title)).toBeVisible()
+      await expect.poll(() => countInjectedCheckboxes(page)).toBe(2)
+      signatures.push(await getInjectedStyleSignature(page))
+      await page.close()
+    }
+
+    expect(signatures).toHaveLength(4)
+    expect(signatures[0]).toEqual(signatures[1])
+    expect(signatures[0]).toEqual(signatures[2])
+    expect(signatures[0]).toEqual(signatures[3])
+    expect(signatures[0]).toMatchObject({
+      surfaceWidth: "336px",
+      footerButtonRadius: "14px",
+      downloadButtonRadius: "14px",
+      checkboxDisplay: "inline-flex",
+      checkboxMinHeight: "24px",
+      inputSize: "13px/13px",
+      dotSize: "6px/6px"
     })
   } finally {
     await extension.close()
