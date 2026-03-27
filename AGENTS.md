@@ -35,7 +35,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `Plasmo`
 - `React 19`
 - `TypeScript`
-- `Tailwind CSS` for the options UI layout and visual styling
+- `Tailwind CSS` for the options UI layout and visual styling, plus scoped contents UI styling compiled into injected shadow-root CSS text
 - lightweight `shadcn/ui`-style primitives built in-repo with `Radix UI`
 - icon-library policy:
   - project-owned UI outside `components/ui/` should use `react-icons`
@@ -55,7 +55,9 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `options.tsx`
   Boots the hash-routed options page, loads `styles/options.css`, and wires the React options UI to background message APIs.
 - `components/`
-  UI components for the floating batch panel and selection checkbox, plus the options workspace under `components/options/` and shared option-page primitives under `components/ui/`.
+  UI components for the floating batch panel and selection checkbox, plus the options workspace under `components/options/`, contents-specific primitives under `components/content-ui/`, and shared option-page primitives under `components/ui/`.
+- `components/content-ui/`
+  Contents-only Tailwind/shadcn-style primitives for the injected batch panel and selection checkbox visuals. Keep these isolated from `components/ui/` so third-party page injection stays on its own sizing, reset contract, and `data-*` test-anchor surface.
 - `components/options/`
   Source of truth for the options workspace shell, hash-route config, form hooks/schema, and the `general` / `sites` / `overview` page implementations.
 - `components/ui/`
@@ -63,7 +65,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `contents/`
   Content script entry for supported source pages, Shadow Root host orchestration, and injected React UI mounting.
 - `styles/`
-  `styles/options.css` is the Tailwind entry for the options page, while `styles/content.css` is the dedicated shadow-root CSS source for injected content UI.
+  `styles/options.css` is the Tailwind entry for the options page, while `styles/content.css` is the root-scoped Tailwind components/utilities entry for injected content UI tokens, reset rules, and shadow-root CSS-text injection.
 - `assets/`
   Static icon assets used by the extension UI. `anime-bt-icon-speedline.svg` is the extension brand icon, packaged site icons for the options-page site-management cards are normalized to local `site-icon-*.(png|svg)` assets, and `icon.png` is the generated packaging icon consumed by Plasmo for extension icon sizes.
 - `CHANGELOG.md`
@@ -108,7 +110,7 @@ Commands are defined in `package.json`:
 - `pnpm test`
   Vitest unit and component tests under `tests/unit/` and `tests/components/` using `jsdom`.
 - `pnpm test:e2e`
-  Playwright extension-level tests under `tests/e2e/`, including options-page coverage and list-page injection flows for all 4 supported BT sources.
+  Playwright extension-level tests under `tests/e2e/`, including options-page coverage, list-page injection flows for all 4 supported BT sources, and cross-site injected style consistency checks.
 - `pnpm test:all`
   Full verification: typecheck + Vitest + Playwright.
 

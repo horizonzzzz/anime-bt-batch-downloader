@@ -54,7 +54,7 @@ describe("BatchPanel", () => {
     expect(onToggleExpanded).toHaveBeenCalledWith(true)
   })
 
-  it("exposes contents-specific styling hooks for the launcher and expanded panel", async () => {
+  it("exposes data anchors for the launcher and expanded panel surfaces", async () => {
     const user = userEvent.setup()
 
     const { rerender } = renderBatchPanel({
@@ -62,8 +62,9 @@ describe("BatchPanel", () => {
       selectedCount: 2
     })
 
-    expect(screen.getByRole("button", { name: "展开批量下载面板" })).toHaveClass(
-      "anime-bt-batch-panel__launcher-button"
+    expect(screen.getByRole("button", { name: "展开批量下载面板" })).toHaveAttribute(
+      "data-anime-bt-role",
+      "launcher-button"
     )
 
     rerender(
@@ -87,16 +88,24 @@ describe("BatchPanel", () => {
       />
     )
 
-    expect(screen.getByLabelText("批量下载面板")).toHaveClass("anime-bt-batch-panel__surface")
-    expect(screen.getByRole("button", { name: "批量下载" })).toHaveClass(
-      "anime-bt-batch-panel__download"
+    expect(screen.getByLabelText("批量下载面板")).toHaveAttribute(
+      "data-anime-bt-role",
+      "panel-shell"
+    )
+    expect(screen.getByRole("button", { name: "批量下载" })).toHaveAttribute(
+      "data-anime-bt-role",
+      "footer-primary"
     )
 
     await user.click(screen.getByRole("button", { name: "高级选项" }))
 
-    expect(screen.getByLabelText("临时下载路径")).toHaveClass("anime-bt-batch-panel__path-input")
-    expect(screen.getByRole("button", { name: "清空路径" })).toHaveClass(
-      "anime-bt-batch-panel__button"
+    expect(screen.getByLabelText("临时下载路径")).toHaveAttribute(
+      "data-anime-bt-role",
+      "path-input"
+    )
+    expect(screen.getByRole("button", { name: "清空路径" })).toHaveAttribute(
+      "data-anime-bt-role",
+      "path-clear"
     )
   })
 

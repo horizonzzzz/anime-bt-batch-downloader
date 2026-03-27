@@ -31,11 +31,14 @@ describe("content styles", () => {
     expect(css).toContain("--anime-bt-checkbox-pill-height: 24px;")
   })
 
-  it("keeps the selection checkbox on a native checkbox appearance contract", () => {
+  it("keeps content.css limited to the root-scoped entry layer", () => {
     const css = readContentStyles()
 
-    expect(css).toContain(".anime-bt-selection-checkbox__input {")
-    expect(css).toContain("-webkit-appearance: checkbox;")
-    expect(css).toContain("appearance: auto;")
+    expect(css).toContain(".anime-bt-content-root {")
+    expect(css).toContain("@media (max-width: 680px) {")
+    expect(css).not.toContain(".anime-bt-batch-panel")
+    expect(css).not.toContain(".anime-bt-batch-panel__")
+    expect(css).not.toContain(".anime-bt-selection-checkbox")
+    expect(css).not.toContain(".anime-bt-selection-checkbox__")
   })
 })

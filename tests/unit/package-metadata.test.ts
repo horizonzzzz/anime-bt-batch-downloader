@@ -7,6 +7,7 @@ type PackageJson = {
   name?: string
   displayName?: string
   license?: string
+  devDependencies?: Record<string, string>
   manifest?: {
     name?: string
     description?: string
@@ -19,6 +20,10 @@ type PackageJson = {
 function readPackageJson(): PackageJson {
   const packageJsonPath = resolve(process.cwd(), "package.json")
   return JSON.parse(readFileSync(packageJsonPath, "utf8")) as PackageJson
+}
+
+function readGlobalTypes() {
+  return readFileSync(resolve(process.cwd(), "global.d.ts"), "utf8")
 }
 
 function listSourceFiles(directory: string): string[] {
@@ -65,5 +70,14 @@ describe("package metadata", () => {
     )
 
     expect(filesUsingLucide).toEqual([])
+  })
+
+  it("does not keep legacy sass dependencies or scss module declarations", () => {
+    const packageJson = readPackageJson()
+    const globalTypes = readGlobalTypes()
+
+    expect(packageJson.devDependencies?.sass).toBeUndefined()
+    expect(globalTypes).not.toContain('declare module "*.module.scss"')
+    expect(globalTypes).not.toContain('declare module "*.scss"')
   })
 })

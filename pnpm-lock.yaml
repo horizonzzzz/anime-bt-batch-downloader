@@ -90,9 +90,6 @@ importers:
       postcss:
         specifier: ^8.5.8
         version: 8.5.8
-      sass:
-        specifier: ^1.93.2
-        version: 1.98.0
       tailwindcss:
         specifier: ^3.4.17
         version: 3.4.19

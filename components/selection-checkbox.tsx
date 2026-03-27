@@ -1,6 +1,6 @@
 import type { SyntheticEvent } from "react"
 
-import { cn } from "../lib/utils"
+import { ContentCheckbox } from "./content-ui/checkbox"
 
 type SelectionCheckboxProps = {
   checked: boolean
@@ -14,23 +14,20 @@ export function SelectionCheckbox({ checked, onChange }: SelectionCheckboxProps)
 
   return (
     <div className="anime-bt-content-root">
-      <label
-        className={cn("anime-bt-selection-checkbox", checked && "is-checked")}
+      <ContentCheckbox
+        checked={checked}
+        label="批量"
         title="选择这条帖子进行批量下载"
-        onClick={stopPropagation}
-        onMouseDown={stopPropagation}
-        onPointerDown={stopPropagation}>
-        <input
-          type="checkbox"
-          className="anime-bt-selection-checkbox__input"
-          data-anime-bt-batch-checkbox="1"
-          aria-label="选择这条帖子进行批量下载"
-          checked={checked}
-          onChange={(event) => onChange(event.currentTarget.checked)}
-        />
-        <span className="anime-bt-selection-checkbox__dot" aria-hidden="true" />
-        <span>批量</span>
-      </label>
+        aria-label="选择这条帖子进行批量下载"
+        data-anime-bt-batch-checkbox="1"
+        onCheckedChange={onChange}
+        containerClassName="mr-[8px]"
+        containerProps={{
+          onClick: stopPropagation,
+          onMouseDown: stopPropagation,
+          onPointerDown: stopPropagation
+        }}
+      />
     </div>
   )
 }

@@ -149,7 +149,9 @@ async function countInjectedCheckboxes(page: import("@playwright/test").Page) {
 
 async function clickInjectedCheckbox(page: import("@playwright/test").Page, index: number) {
   await page.locator("[data-anime-bt-batch-checkbox-root]").nth(index).evaluate((host) => {
-    const label = (host as HTMLElement).shadowRoot?.querySelector<HTMLElement>("label")
+    const label = (host as HTMLElement).shadowRoot?.querySelector<HTMLElement>(
+      '[data-anime-bt-role="selection-pill"]'
+    )
     if (!label) {
       throw new Error("Injected checkbox label was not found inside the shadow root.")
     }
@@ -161,12 +163,14 @@ async function clickInjectedCheckbox(page: import("@playwright/test").Page, inde
 async function getInjectedStyleSignature(page: import("@playwright/test").Page) {
   const panel = await page.locator("[data-anime-bt-batch-panel-root]").evaluate((host) => {
     const shadowRoot = (host as HTMLElement).shadowRoot
-    const surface = shadowRoot?.querySelector<HTMLElement>(".anime-bt-batch-panel__surface")
+    const surface = shadowRoot?.querySelector<HTMLElement>('[data-anime-bt-role="panel-shell"]')
     const advancedToggle = shadowRoot?.querySelector<HTMLElement>(
-      ".anime-bt-batch-panel__advanced-toggle"
+      '[data-anime-bt-role="advanced-toggle"]'
     )
-    const footerButton = shadowRoot?.querySelector<HTMLElement>(".anime-bt-batch-panel__selection-button")
-    const downloadButton = shadowRoot?.querySelector<HTMLElement>(".anime-bt-batch-panel__download")
+    const footerButton = shadowRoot?.querySelector<HTMLElement>('[data-anime-bt-role="select-all"]')
+    const downloadButton = shadowRoot?.querySelector<HTMLElement>(
+      '[data-anime-bt-role="footer-primary"]'
+    )
 
     if (!surface || !advancedToggle || !footerButton || !downloadButton) {
       throw new Error("Panel style signature target is missing inside the shadow root.")
@@ -191,9 +195,9 @@ async function getInjectedStyleSignature(page: import("@playwright/test").Page) 
 
   const checkbox = await page.locator("[data-anime-bt-batch-checkbox-root]").first().evaluate((host) => {
     const shadowRoot = (host as HTMLElement).shadowRoot
-    const label = shadowRoot?.querySelector<HTMLElement>(".anime-bt-selection-checkbox")
-    const input = shadowRoot?.querySelector<HTMLInputElement>(".anime-bt-selection-checkbox__input")
-    const dot = shadowRoot?.querySelector<HTMLElement>(".anime-bt-selection-checkbox__dot")
+    const label = shadowRoot?.querySelector<HTMLElement>('[data-anime-bt-role="selection-pill"]')
+    const input = shadowRoot?.querySelector<HTMLInputElement>('[data-anime-bt-role="selection-input"]')
+    const dot = shadowRoot?.querySelector<HTMLElement>('[data-anime-bt-role="selection-dot"]')
 
     if (!label || !input || !dot) {
       throw new Error("Checkbox style signature target is missing inside the shadow root.")
