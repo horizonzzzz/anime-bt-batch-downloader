@@ -1,7 +1,11 @@
 import { useState } from "react"
 
 import * as Collapsible from "@radix-ui/react-collapsible"
-import { ChevronDown, ChevronUp, LoaderCircle } from "lucide-react"
+import {
+  HiChevronDown,
+  HiChevronUp,
+  HiOutlineArrowPath
+} from "react-icons/hi2"
 import { useFormContext } from "react-hook-form"
 
 import {
@@ -143,7 +147,7 @@ export function GeneralSettingsPage({
               aria-label="测试 qB 连接"
               onClick={() => void onTestConnection()}
               disabled={testing}>
-              {testing ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+              {testing ? <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
               <span>{testing ? "测试中..." : "测试连接"}</span>
             </Button>
 
@@ -177,9 +181,9 @@ export function GeneralSettingsPage({
               </div>
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-500">
                 {advancedOpen ? (
-                  <ChevronUp className="h-5 w-5" aria-hidden="true" />
+                  <HiChevronUp className="h-5 w-5" aria-hidden="true" />
                 ) : (
-                  <ChevronDown className="h-5 w-5" aria-hidden="true" />
+                  <HiChevronDown className="h-5 w-5" aria-hidden="true" />
                 )}
               </span>
             </Collapsible.Trigger>

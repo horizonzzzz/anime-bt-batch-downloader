@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { HiChevronDown, HiChevronUp } from "react-icons/hi2"
 import { useFormContext } from "react-hook-form"
 
 import { getDeliveryModeLabel, getSupportedDeliveryModes } from "../../../../lib/delivery"
@@ -119,9 +119,9 @@ export function SiteCard({
                   aria-label={`${site.navLabel} ${isExpanded ? "收起" : "展开"}配置`}
                   onClick={() => onToggleExpanded(site.id)}>
                   {isExpanded ? (
-                    <ChevronUp className="h-5 w-5" aria-hidden="true" />
+                    <HiChevronUp className="h-5 w-5" aria-hidden="true" />
                   ) : (
-                    <ChevronDown className="h-5 w-5" aria-hidden="true" />
+                    <HiChevronDown className="h-5 w-5" aria-hidden="true" />
                   )}
                 </button>
               ) : null}

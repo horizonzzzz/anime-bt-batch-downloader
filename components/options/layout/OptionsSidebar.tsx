@@ -1,4 +1,5 @@
-import { ExternalLink, Globe2 } from "lucide-react"
+import { FaGithub } from "react-icons/fa6"
+import { HiOutlineGlobeAlt } from "react-icons/hi2"
 
 import speedlineBrandIcon from "../../../assets/anime-bt-icon-speedline.svg"
 import { SOURCE_IDS } from "../../../lib/source-config"
@@ -86,7 +87,7 @@ export function OptionsSidebar({
       <div className="m-3 grid gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-4 text-sm">
         <div className="grid gap-2">
           <div className="inline-flex items-center gap-2 text-zinc-500">
-            <Globe2 className="h-4 w-4" aria-hidden="true" />
+            <HiOutlineGlobeAlt className="h-4 w-4" aria-hidden="true" />
             <span>{SOURCE_IDS.length} 个支持源站</span>
           </div>
           <strong className="text-sm font-medium text-zinc-100">qBittorrent WebUI</strong>
@@ -97,7 +98,7 @@ export function OptionsSidebar({
           target="_blank"
           rel="noopener noreferrer"
           aria-label="查看 GitHub 仓库">
-          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          <FaGithub className="h-4 w-4" aria-hidden="true" />
           <span>查看 GitHub 仓库</span>
         </a>
       </div>

@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react"
+import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2"
 
 import { SITE_CONFIG_META, SOURCE_IDS } from "../../../../lib/source-config"
 import { Button, Card } from "../../../ui"
@@ -36,7 +36,7 @@ export function OverviewPage() {
                     size="sm"
                     onClick={() => window.open(`https://${site.url}`, "_blank")}>
                     <span>访问站点</span>
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    <HiOutlineArrowTopRightOnSquare className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>

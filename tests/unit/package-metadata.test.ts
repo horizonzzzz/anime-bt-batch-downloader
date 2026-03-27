@@ -7,6 +7,7 @@ type PackageJson = {
   name?: string
   displayName?: string
   license?: string
+  dependencies?: Record<string, string>
   manifest?: {
     name?: string
     description?: string
@@ -31,5 +32,12 @@ describe("package metadata", () => {
     expect(packageJson.manifest?.name).toBe("Anime BT Batch")
     expect(packageJson.manifest?.action?.default_title).toBe("Anime BT Batch")
     expect(packageJson.manifest?.description).toContain("anime BT source")
+  })
+
+  it("uses react-icons as the only icon library dependency", () => {
+    const packageJson = readPackageJson()
+
+    expect(packageJson.dependencies?.["react-icons"]).toBeDefined()
+    expect(packageJson.dependencies?.["lucide-react"]).toBeUndefined()
   })
 })

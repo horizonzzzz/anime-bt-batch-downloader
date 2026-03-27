@@ -1,13 +1,18 @@
 import * as React from "react"
-import { AlertCircle, AlertTriangle, CheckCircle2, CircleX } from "lucide-react"
+import {
+  HiOutlineCheckCircle,
+  HiOutlineExclamationTriangle,
+  HiOutlineInformationCircle,
+  HiOutlineXCircle
+} from "react-icons/hi2"
 
 import { cn } from "../../lib/utils"
 
 const iconByTone = {
-  info: AlertCircle,
-  success: CheckCircle2,
-  warning: AlertTriangle,
-  error: CircleX
+  info: HiOutlineInformationCircle,
+  success: HiOutlineCheckCircle,
+  warning: HiOutlineExclamationTriangle,
+  error: HiOutlineXCircle
 } as const
 
 const toneClassNames = {
