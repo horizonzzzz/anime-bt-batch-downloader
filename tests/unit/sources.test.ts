@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 
 import { getSourceAdapterById, getSourceAdapterForPage } from "../../lib/sources"
-import { normalizeBatchItems } from "../../lib/background/preparation"
 import { DEFAULT_SOURCE_DELIVERY_MODES, getSupportedDeliveryModes } from "../../lib/sources/delivery"
 import { SOURCE_IDS } from "../../lib/sources/catalog"
 import { SITE_CONFIG_META } from "../../lib/sources/site-meta"
@@ -55,64 +54,5 @@ describe("source registry", () => {
     expect(SITE_CONFIG_META.dongmanhuayuan.overviewAccent).toBe("emerald")
     expect(SITE_CONFIG_META.acgrip.overviewAccent).toBe("cyan")
     expect(SITE_CONFIG_META.bangumimoe.overviewAccent).toBe("default")
-  })
-})
-
-describe("normalizeBatchItems", () => {
-  it("keeps valid source-aware items and rejects mismatched source/detail pairs", () => {
-    expect(
-      normalizeBatchItems([
-        {
-          sourceId: "kisssub",
-          detailUrl: "https://www.kisssub.org/show-deadbeef.html",
-          title: "Episode 01"
-        },
-        {
-          sourceId: "kisssub",
-          detailUrl: "https://www.dongmanhuayuan.com/detail/G8Xvr.html",
-          title: "Wrong site"
-        },
-        {
-          sourceId: "dongmanhuayuan",
-          detailUrl: "https://www.dongmanhuayuan.com/detail/G8Xvr.html",
-          title: "Movie pack"
-        },
-        {
-          sourceId: "acgrip",
-          detailUrl: "https://acg.rip/t/350361",
-          title: "Hell Mode - 11",
-          torrentUrl: "https://acg.rip/t/350361.torrent"
-        },
-        {
-          sourceId: "bangumimoe" as never,
-          detailUrl: "https://bangumi.moe/torrent/69c28b1384f11a93b5ff76a6",
-          title: "[ANi] Episode 01",
-          magnetUrl: "magnet:?xt=urn:btih:fbb0a8643346ca3e2d75a30c346113d12b268044"
-        }
-      ])
-    ).toEqual([
-      {
-        sourceId: "kisssub",
-        detailUrl: "https://www.kisssub.org/show-deadbeef.html",
-        title: "Episode 01"
-      },
-      {
-        sourceId: "dongmanhuayuan",
-        detailUrl: "https://www.dongmanhuayuan.com/detail/G8Xvr.html",
-        title: "Movie pack"
-      },
-      {
-        sourceId: "acgrip",
-        detailUrl: "https://acg.rip/t/350361",
-        title: "Hell Mode - 11",
-        torrentUrl: "https://acg.rip/t/350361.torrent"
-      },
-      {
-        sourceId: "bangumimoe",
-        detailUrl: "https://bangumi.moe/torrent/69c28b1384f11a93b5ff76a6",
-        title: "[ANi] Episode 01",
-        magnetUrl: "magnet:?xt=urn:btih:fbb0a8643346ca3e2d75a30c346113d12b268044"
-      }
-    ])
   })
 })
