@@ -31,6 +31,18 @@ describe("content styles", () => {
     expect(css).toContain("--anime-bt-checkbox-pill-height: 24px;")
   })
 
+  it("initializes Tailwind transform variables inside the contents root", () => {
+    const css = readContentStyles()
+
+    expect(css).toContain("--tw-translate-x: 0;")
+    expect(css).toContain("--tw-translate-y: 0;")
+    expect(css).toContain("--tw-rotate: 0;")
+    expect(css).toContain("--tw-skew-x: 0;")
+    expect(css).toContain("--tw-skew-y: 0;")
+    expect(css).toContain("--tw-scale-x: 1;")
+    expect(css).toContain("--tw-scale-y: 1;")
+  })
+
   it("keeps content.css limited to the root-scoped entry layer", () => {
     const css = readContentStyles()
 

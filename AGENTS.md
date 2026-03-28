@@ -189,7 +189,7 @@ Commands are defined in `package.json`:
 - `pnpm test`
   Vitest unit and component tests under `tests/unit/` and `tests/components/` using `jsdom`.
 - `pnpm test:e2e`
-  Playwright extension-level tests under `tests/e2e/`, including options-page coverage, list-page injection flows for all 4 supported BT sources, and cross-site injected style consistency checks.
+  Playwright extension-level tests under `tests/e2e/`, including options-page coverage, list-page injection flows for all 4 supported BT sources, cross-site injected style consistency checks, and minimized-launcher hover transform regression checks.
 - `pnpm test:all`
   Full verification: typecheck + Vitest + Playwright.
 

@@ -240,6 +240,33 @@ async function openOptionsPage(
   return page
 }
 
+async function routeSupportedSiteFixtures(
+  extension: Awaited<ReturnType<typeof launchExtensionContext>>
+) {
+  for (const site of supportedSiteFixtures) {
+    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", site.fixtureName)
+
+    await extension.context.route(site.url, async (route) => {
+      await route.fulfill({
+        path: fixturePath,
+        contentType: "text/html"
+      })
+    })
+  }
+}
+
+async function readLauncherHoverState(page: import("@playwright/test").Page) {
+  return page.getByRole("button", { name: "展开批量下载面板" }).evaluate((button) => {
+    const style = getComputedStyle(button)
+
+    return {
+      transform: style.transform,
+      boxShadow: style.boxShadow,
+      hovered: button.matches(":hover")
+    }
+  })
+}
+
 test("options page saves settings through the background worker", async () => {
   const extension = await launchExtensionContext()
 
@@ -278,16 +305,7 @@ test("content script keeps injected control metrics consistent across supported 
   const extension = await launchExtensionContext()
 
   try {
-    for (const site of supportedSiteFixtures) {
-      const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", site.fixtureName)
-
-      await extension.context.route(site.url, async (route) => {
-        await route.fulfill({
-          path: fixturePath,
-          contentType: "text/html"
-        })
-      })
-    }
+    await routeSupportedSiteFixtures(extension)
 
     const signatures: Array<Record<string, string>> = []
 
@@ -314,6 +332,45 @@ test("content script keeps injected control metrics consistent across supported 
       inputSize: "13px/13px",
       dotSize: "6px/6px"
     })
+  } finally {
+    await extension.close()
+  }
+})
+
+test("content script keeps the minimized launcher hover transform consistent across supported sites", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    await routeSupportedSiteFixtures(extension)
+
+    for (const site of supportedSiteFixtures) {
+      const page = await extension.context.newPage()
+      await page.goto(site.url)
+
+      await expect(page.getByText(site.title)).toBeVisible()
+      await page.getByRole("button", { name: "最小化批量下载面板" }).click()
+
+      const launcher = page.getByRole("button", { name: "展开批量下载面板" })
+      await expect(launcher).toBeVisible()
+
+      const beforeHover = await readLauncherHoverState(page)
+      expect(beforeHover.transform).toBe("none")
+      expect(beforeHover.hovered).toBe(false)
+
+      await launcher.hover()
+
+      await expect
+        .poll(() => readLauncherHoverState(page))
+        .toMatchObject({
+          hovered: true
+        })
+
+      const afterHover = await readLauncherHoverState(page)
+      expect(afterHover.transform).not.toBe("none")
+      expect(afterHover.boxShadow).not.toBe(beforeHover.boxShadow)
+
+      await page.close()
+    }
   } finally {
     await extension.close()
   }
