@@ -133,6 +133,33 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 - `lib/content/` may help mount and scan pages, but downloader submission must stay out of content-side helpers.
 - During development, prefer splitting code by responsibility instead of letting a single file keep growing; when a file starts carrying multiple concerns or becomes hard to hold in context, extract focused modules before adding more logic.
 
+## Refactor Lessons Promoted To Policy
+
+These constraints were learned during the `lib/`, `components/`, and contents-style refactors and should now be treated as normal project rules, not optional preferences.
+
+### Runtime And Module Boundaries
+
+- Keep `background.ts` thin: runtime listener + message routing + dependency wiring only. New orchestration logic belongs under `lib/background/`.
+- Add new cross-runtime request/response types, helpers, and protocol constants in `lib/shared/`, not in runtime entry files.
+- Keep tests aligned with ownership boundaries: `background`, `settings`, `shared`, `content`, and `sources` should each have direct tests for their own helpers instead of relying on indirect coverage from another domain.
+- When a helper becomes pure derivation or normalization logic, prefer extracting it and testing it directly rather than growing page components or orchestration files.
+
+### Contents Injection And Styling
+
+- Contents UI styling must come from bundled CSS text injected directly into each shadow root. Do not reintroduce `document.styleSheets` readback or any page-stylesheet dependency.
+- `styles/content.css` is limited to root-scoped tokens, low-specificity reset rules, `::selection`, and minimal root-level responsive constraints. Component visuals should live in `components/content-ui/*` and injected UI components, not in new component-level CSS selectors.
+- Treat `checkbox`, `button`, `input`, and other native form controls in contents UI as high-risk controls. Keep reset scope explicit and low-specificity, and preserve native checkbox appearance unless there is a deliberate full custom replacement.
+- Contents UI must stay isolated from options-page primitives unless a contents-specific variant is explicitly designed and verified. Code reuse is not a goal if it weakens cross-site stability.
+- Prefer `px`-based sizing tokens for contents UI dimensions that must stay stable across `kisssub`, `dongmanhuayuan`, `acg.rip`, and `bangumi.moe`; avoid depending on host-page `rem` scaling for panel and checkbox metrics.
+- When changing Shadow Root styling behavior, validate in real browser/E2E flows. `jsdom` is useful for regression coverage, but it is not sufficient evidence for Shadow DOM or adopted stylesheet behavior.
+
+### Testing Expectations
+
+- Prefer behavior- and contract-level assertions over DOM-shell assertions. Avoid pinning tests to tag names, icon internals, Tailwind class lists, or other replaceable structure unless that structure is the contract.
+- For contents UI and E2E coverage, prefer stable `data-*` anchors and accessibility queries over semantic CSS classes or brittle nested selectors.
+- Cross-site contents E2E checks should focus on stable runtime outcomes and agreed style signatures, not incidental layout implementation details.
+- If a refactor changes module boundaries or UI composition without changing behavior, update tests to match the new ownership and contract surfaces instead of preserving stale implementation-level assertions.
+
 ## Generated Or Derived Directories
 
 These paths are generated or derived artifacts and should not be treated as the primary place to implement source changes:
