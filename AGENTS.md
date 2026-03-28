@@ -55,11 +55,13 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `options.tsx`
   Boots the hash-routed options page, loads `styles/options.css`, and wires the React options UI to background message APIs.
 - `components/`
-  UI components for the floating batch panel and selection checkbox, plus the options workspace under `components/options/`, contents-specific primitives under `components/content-ui/`, and shared option-page primitives under `components/ui/`.
+  UI components for the floating batch panel and selection checkbox. The root `components/batch-panel.tsx` now acts as the injected panel entry shell and delegates focused panel sections to `components/batch-panel/`; the options workspace lives under `components/options/`, contents-specific primitives under `components/content-ui/`, and shared option-page primitives under `components/ui/`.
+- `components/batch-panel/`
+  Focused injected batch-panel sections and pure view-state helpers for launcher/header/summary/advanced/actions composition. Keep batch-panel-specific UI derivation here instead of growing `components/batch-panel.tsx` again.
 - `components/content-ui/`
   Contents-only Tailwind/shadcn-style primitives for the injected batch panel and selection checkbox visuals. Keep these isolated from `components/ui/` so third-party page injection stays on its own sizing, reset contract, and `data-*` test-anchor surface.
 - `components/options/`
-  Source of truth for the options workspace shell, hash-route config, form hooks/schema, and the `general` / `sites` / `overview` page implementations.
+  Source of truth for the options workspace shell, hash-route config, form hooks/schema, shared options-only form fragments under `components/options/form/`, and the `general` / `sites` / `overview` page implementations.
 - `components/ui/`
   Tailwind-first primitive components used by the options workspace, including buttons, inputs, cards, badges, alerts, switches, and radio groups.
 - `contents/`

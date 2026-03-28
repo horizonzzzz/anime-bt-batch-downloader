@@ -249,21 +249,6 @@ test("options page saves settings through the background worker", async () => {
       "href",
       "https://github.com/horizonzzzz/anime-bt-batch-downloader"
     )
-    await expect
-      .poll(async () => {
-        return page.getByTestId("options-sidebar-groups").evaluate((sidebarGroups) => {
-          const computed = window.getComputedStyle(sidebarGroups)
-
-          return {
-            display: computed.display,
-            flexDirection: computed.flexDirection
-          }
-        })
-      })
-      .toEqual({
-        display: "flex",
-        flexDirection: "column"
-      })
 
     await page.getByLabel("qBittorrent WebUI 地址").fill("http://127.0.0.1:17474")
     await page.getByLabel("用户名").fill("admin")

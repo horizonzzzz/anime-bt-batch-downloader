@@ -1,14 +1,18 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { describe, expect, it, vi } from "vitest"
 
 import { ContentButton } from "../../components/content-ui/button"
 import { ContentCheckbox } from "../../components/content-ui/checkbox"
 import { ContentInput } from "../../components/content-ui/input"
 
 describe("contents UI primitives", () => {
-  it("renders a shadcn-style content button contract through utilities", () => {
+  it("renders a content button with the provided data anchor and disabled state", () => {
     render(
-      <ContentButton variant="primary" data-anime-bt-role="footer-primary">
+      <ContentButton
+        variant="primary"
+        data-anime-bt-role="footer-primary"
+        disabled>
         批量下载
       </ContentButton>
     )
@@ -16,13 +20,12 @@ describe("contents UI primitives", () => {
     const button = screen.getByRole("button", { name: "批量下载" })
 
     expect(button).toHaveAttribute("data-anime-bt-role", "footer-primary")
-    expect(button).toHaveClass("inline-flex")
-    expect(button).toHaveClass("items-center")
-    expect(button).toHaveClass("min-h-[var(--anime-bt-control-height)]")
-    expect(button).toHaveClass("rounded-[var(--anime-bt-radius-control)]")
+    expect(button).toBeDisabled()
   })
 
-  it("renders a content input contract that keeps sizing and focus styling local to contents", () => {
+  it("renders a content input that keeps its anchor and accepts text entry", async () => {
+    const user = userEvent.setup()
+
     render(
       <ContentInput
         aria-label="临时下载路径"
@@ -32,21 +35,23 @@ describe("contents UI primitives", () => {
     )
 
     const input = screen.getByLabelText("临时下载路径")
+    await user.type(input, "D:/Anime")
 
     expect(input).toHaveAttribute("data-anime-bt-role", "path-input")
-    expect(input).toHaveClass("min-h-[var(--anime-bt-control-height)]")
-    expect(input).toHaveClass("rounded-[var(--anime-bt-radius-control)]")
-    expect(input).toHaveClass("focus-visible:ring-[3px]")
+    expect(input).toHaveValue("D:/Anime")
   })
 
-  it("renders a content checkbox pill with native checkbox appearance and data anchors", () => {
+  it("renders a content checkbox pill with state anchors and change callbacks", async () => {
+    const user = userEvent.setup()
+    const onCheckedChange = vi.fn()
+
     render(
       <ContentCheckbox
-        checked={true}
+        checked={false}
         label="批量"
         title="选择这条帖子进行批量下载"
         aria-label="选择这条帖子进行批量下载"
-        onCheckedChange={() => {}}
+        onCheckedChange={onCheckedChange}
       />
     )
 
@@ -55,13 +60,12 @@ describe("contents UI primitives", () => {
     const dot = pill.querySelector('[data-anime-bt-role="selection-dot"]')
 
     expect(pill).toHaveAttribute("data-anime-bt-role", "selection-pill")
-    expect(pill).toHaveAttribute("data-state", "checked")
-    expect(pill).toHaveClass("inline-flex")
-    expect(pill).toHaveClass("min-h-[var(--anime-bt-checkbox-pill-height)]")
+    expect(pill).toHaveAttribute("data-state", "unchecked")
     expect(checkbox).toHaveAttribute("data-anime-bt-role", "selection-input")
-    expect(checkbox).not.toHaveClass("appearance-none")
     expect(dot).toHaveAttribute("data-anime-bt-role", "selection-dot")
-    expect(dot).toHaveClass("h-[6px]")
-    expect(dot).toHaveClass("w-[6px]")
+
+    await user.click(checkbox)
+
+    expect(onCheckedChange).toHaveBeenCalledWith(true)
   })
 })

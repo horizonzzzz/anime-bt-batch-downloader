@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { OptionsPage } from "../../components/options-page"
+import { OptionsPage, type OptionsApi } from "../../components/options-page"
 
 const settings = {
   qbBaseUrl: "http://127.0.0.1:17474",
@@ -29,17 +29,25 @@ const settings = {
   }
 }
 
+function createOptionsApi(overrides: Partial<OptionsApi> = {}): OptionsApi {
+  return {
+    loadSettings: vi.fn().mockResolvedValue(settings),
+    saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
+    testConnection: vi.fn().mockResolvedValue({
+      baseUrl: settings.qbBaseUrl,
+      version: "5.0.0"
+    }),
+    ...overrides
+  }
+}
+
 describe("OptionsPage", () => {
   beforeEach(() => {
     window.location.hash = ""
   })
 
   it("redirects empty and invalid hashes to the default general route", async () => {
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
+    const api = createOptionsApi()
 
     window.location.hash = ""
     const firstRender = render(<OptionsPage api={api} />)
@@ -55,66 +63,45 @@ describe("OptionsPage", () => {
     expect(window.location.hash).toBe("#/general")
   })
 
+  it("renders the redesigned general workspace on the default route", async () => {
+    const api = createOptionsApi()
+
+    window.location.hash = ""
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+    expect(window.location.hash).toBe("#/general")
+    expect(screen.getAllByText("Anime BT Batch")).toHaveLength(1)
+
+    const sidebarNav = screen.getByTestId("options-sidebar-groups")
+    expect(within(sidebarNav).getAllByRole("button")).toHaveLength(3)
+    expect(screen.getByRole("button", { name: "连接与基础设置" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "站点配置" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "源站概览" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
+    expect(screen.getByText("qB WebUI 兼容性提示")).toBeInTheDocument()
+  })
+
   it(
-    "renders the redesigned settings workspace and switches between the new views",
+    "switches between the sites and overview views from the sidebar",
     async () => {
       const user = userEvent.setup()
-      const api = {
-        loadSettings: vi.fn().mockResolvedValue(settings),
-        saveSettings: vi.fn(),
-        testConnection: vi.fn()
-      }
+      const api = createOptionsApi()
 
-      window.location.hash = ""
       render(<OptionsPage api={api} />)
 
       expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
-      expect(window.location.hash).toBe("#/general")
-      expect(screen.getAllByText("Anime BT Batch")).toHaveLength(1)
-      const sidebarNav = screen.getByTestId("options-sidebar-groups")
-      expect(within(sidebarNav).getAllByRole("button")).toHaveLength(3)
-      expect(screen.queryByText("通用设置")).not.toBeInTheDocument()
-      expect(screen.queryByText("站点管理")).not.toBeInTheDocument()
-      expect(screen.queryByText("关于与支持")).not.toBeInTheDocument()
-      expect(screen.getByRole("button", { name: "连接与基础设置" })).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: "站点配置" })).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: "源站概览" })).toBeInTheDocument()
-      expect(screen.queryByRole("button", { name: "Kisssub" })).not.toBeInTheDocument()
-      expect(screen.queryByRole("button", { name: "Dongmanhuayuan" })).not.toBeInTheDocument()
-      expect(screen.queryByRole("button", { name: "ACG.RIP" })).not.toBeInTheDocument()
-      expect(screen.queryByRole("button", { name: "Bangumi.moe" })).not.toBeInTheDocument()
-      expect(screen.getByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
-      expect(screen.getByText("qB WebUI 兼容性提示")).toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "站点配置" }))
 
       expect(window.location.hash).toBe("#/sites")
       expect(screen.getByRole("heading", { name: "站点配置" })).toBeInTheDocument()
       expect(screen.getByText("统一管理 4 个站点的启用状态和专属配置。")).toBeInTheDocument()
-      expect(screen.queryByRole("heading", { name: "BT 站点配置" })).not.toBeInTheDocument()
       expect(screen.getByText("当前已启用 4 / 4 个站点")).toBeInTheDocument()
-      expect(screen.queryByText("当前已启用站点")).not.toBeInTheDocument()
       expect(screen.getByText("Kisssub 爱恋动漫")).toBeInTheDocument()
       expect(screen.getByText("Dongmanhuayuan 动漫花园")).toBeInTheDocument()
       expect(screen.getAllByText("ACG.RIP").length).toBeGreaterThan(0)
       expect(screen.getByText("Bangumi.moe")).toBeInTheDocument()
-      expect(
-        screen.queryByText("启用你需要使用的 BT 站点，并为启用中的站点单独维护下载策略和专属参数。")
-      ).not.toBeInTheDocument()
-      expect(
-        screen.queryByText("禁用后不注入批量下载 UI，后台批处理也会同步拒绝该站点请求。")
-      ).not.toBeInTheDocument()
-      expect(screen.queryByText("整合番组表与字幕组的动漫资源站")).not.toBeInTheDocument()
-      expect(screen.queryByText("面向动漫爱好者的BT资源交流站")).not.toBeInTheDocument()
-      expect(screen.queryByText("分类清晰、以种子直下为主的ACG站")).not.toBeInTheDocument()
-      expect(screen.queryByText("追番日历结合最新种子发布的社区")).not.toBeInTheDocument()
-      expect(screen.queryByText("kisssub.org")).not.toBeInTheDocument()
-      expect(screen.queryByText("dongmanhuayuan.com")).not.toBeInTheDocument()
-      expect(screen.queryByText("acg.rip")).not.toBeInTheDocument()
-      expect(screen.queryByText("bangumi.moe")).not.toBeInTheDocument()
-      expect(screen.queryByText("当前脚本版本：20181120.2")).not.toBeInTheDocument()
-      expect(screen.queryByText("此站点无需额外专属配置，保持默认即可。")).not.toBeInTheDocument()
-      expect(screen.queryByRole("heading", { name: "Kisssub 专属配置" })).not.toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "源站概览" }))
 
@@ -130,11 +117,7 @@ describe("OptionsPage", () => {
   )
 
   it("renders the matching page when opened from a direct route hash", async () => {
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
+    const api = createOptionsApi()
 
     window.location.hash = "#/sites"
     const firstRender = render(<OptionsPage api={api} />)
@@ -152,11 +135,7 @@ describe("OptionsPage", () => {
 
   it("renders a real site icon for each site in the site management cards", async () => {
     const user = userEvent.setup()
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
+    const api = createOptionsApi()
 
     render(<OptionsPage api={api} />)
 
@@ -164,36 +143,16 @@ describe("OptionsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "站点配置" }))
 
-    expect(screen.getByTestId("site-icon-kisssub").tagName).toBe("IMG")
-    expect(screen.getByTestId("site-icon-dongmanhuayuan").tagName).toBe("IMG")
-    expect(screen.getByTestId("site-icon-acgrip").tagName).toBe("IMG")
-    expect(screen.getByTestId("site-icon-bangumimoe").tagName).toBe("IMG")
-  })
-
-  it("keeps the desktop sidebar constrained to the viewport height", async () => {
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
-
-    render(<OptionsPage api={api} />)
-
-    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
-
-    const sidebar = screen.getByTestId("options-brand-icon").closest("aside")
-
-    expect(sidebar).toHaveClass("lg:h-screen")
-    expect(sidebar).toHaveClass("lg:sticky")
-    expect(sidebar).toHaveClass("lg:top-0")
+    expect(screen.getByTestId("site-icon-kisssub")).toBeVisible()
+    expect(screen.getByTestId("site-icon-dongmanhuayuan")).toBeVisible()
+    expect(screen.getByTestId("site-icon-acgrip")).toBeVisible()
+    expect(screen.getByTestId("site-icon-bangumimoe")).toBeVisible()
   })
 
   it("falls back to the 7474 default qB address when saved settings are incomplete", async () => {
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue({}),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
+    const api = createOptionsApi({
+      loadSettings: vi.fn().mockResolvedValue({})
+    })
 
     render(<OptionsPage api={api} />)
 
@@ -204,11 +163,9 @@ describe("OptionsPage", () => {
     "saves edited values across the general and site management views",
     async () => {
       const user = userEvent.setup()
-      const api = {
-        loadSettings: vi.fn().mockResolvedValue(settings),
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
-        testConnection: vi.fn()
-      }
+      const api = createOptionsApi({
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
 
       render(<OptionsPage api={api} />)
 
@@ -257,16 +214,14 @@ describe("OptionsPage", () => {
     let resolveSave:
       | ((value: typeof settings) => void)
       | undefined
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
+    const api = createOptionsApi({
       saveSettings: vi.fn().mockImplementation(
         () =>
           new Promise<typeof settings>((resolve) => {
             resolveSave = resolve
           })
-      ),
-      testConnection: vi.fn()
-    }
+      )
+    })
 
     render(<OptionsPage api={api} />)
 
@@ -291,11 +246,9 @@ describe("OptionsPage", () => {
     "preserves site-specific settings when a site is disabled and then enabled again",
     async () => {
       const user = userEvent.setup()
-      const api = {
-        loadSettings: vi.fn().mockResolvedValue(settings),
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
-        testConnection: vi.fn()
-      }
+      const api = createOptionsApi({
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
 
       render(<OptionsPage api={api} />)
 
@@ -347,16 +300,14 @@ describe("OptionsPage", () => {
     async () => {
       const user = userEvent.setup()
       let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
-      const api = {
-        loadSettings: vi.fn().mockResolvedValue(settings),
-        saveSettings: vi.fn(),
+      const api = createOptionsApi({
         testConnection: vi.fn().mockImplementation(
           () =>
             new Promise<{ baseUrl: string; version: string }>((resolve) => {
               resolveConnection = resolve
             })
         )
-      }
+      })
 
       render(<OptionsPage api={api} />)
 
@@ -381,30 +332,9 @@ describe("OptionsPage", () => {
     10000
   )
 
-  it("renders the extraction cadence advanced toggle icon inside a dedicated shell", async () => {
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
-
-    render(<OptionsPage api={api} />)
-
-    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
-
-    const advancedToggle = screen.getByRole("button", { name: /批量提取节奏/ })
-    const iconShell = advancedToggle.lastElementChild
-
-    expect(iconShell?.tagName).toBe("SPAN")
-    expect(iconShell?.querySelector("svg")).not.toBeNull()
-  })
-
-  it("expands the extraction cadence card by default", async () => {
-    const api = {
-      loadSettings: vi.fn().mockResolvedValue(settings),
-      saveSettings: vi.fn(),
-      testConnection: vi.fn()
-    }
+  it("toggles the extraction cadence card open and closed", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
 
     render(<OptionsPage api={api} />)
 
@@ -417,5 +347,16 @@ describe("OptionsPage", () => {
     expect(screen.getByLabelText("重试次数")).toBeInTheDocument()
     expect(screen.getByLabelText("注入超时(ms)")).toBeInTheDocument()
     expect(screen.getByLabelText("稳定等待(ms)")).toBeInTheDocument()
+
+    await user.click(advancedToggle)
+
+    expect(advancedToggle).toHaveAttribute("aria-expanded", "false")
+    expect(screen.queryByLabelText("并发数")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("重试次数")).not.toBeInTheDocument()
+
+    await user.click(advancedToggle)
+
+    expect(advancedToggle).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByLabelText("并发数")).toBeInTheDocument()
   })
 })

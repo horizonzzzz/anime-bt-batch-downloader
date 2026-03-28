@@ -7,10 +7,6 @@ import bangumiMoeSiteIcon from "../../../../assets/site-icon-bangumimoe.svg"
 import dongmanhuayuanSiteIcon from "../../../../assets/site-icon-dongmanhuayuan.png"
 import kisssubSiteIcon from "../../../../assets/site-icon-kisssub.png"
 import { resolveSourceDeliveryMode } from "../../../../lib/sources/delivery"
-import {
-  SITE_CONFIG_META,
-  type SiteConfigMeta
-} from "../../../../lib/sources/site-meta"
 import { SOURCE_IDS } from "../../../../lib/sources/catalog"
 import { normalizeEnabledSources, resolveSourceEnabled } from "../../../../lib/settings"
 import type { SourceId } from "../../../../lib/shared/types"
@@ -19,25 +15,18 @@ import type {
   SettingsFormValues
 } from "../../schema/settings-form"
 import { SiteCard } from "./SiteCard"
+import {
+  buildSortedSites,
+  countEnabledSites,
+  getInitialExpandedSites,
+  reconcileExpandedSites
+} from "./site-management"
 
 const SITE_ICONS: Record<SourceId, string> = {
   kisssub: kisssubSiteIcon,
   dongmanhuayuan: dongmanhuayuanSiteIcon,
   acgrip: acgripSiteIcon,
   bangumimoe: bangumiMoeSiteIcon
-}
-
-function buildSortedSites(enabledSources: SettingsFormValues["enabledSources"]): SiteConfigMeta[] {
-  return SOURCE_IDS.map((sourceId) => SITE_CONFIG_META[sourceId]).sort((left, right) => {
-    const leftEnabled = resolveSourceEnabled(left.id, { enabledSources })
-    const rightEnabled = resolveSourceEnabled(right.id, { enabledSources })
-
-    if (leftEnabled === rightEnabled) {
-      return SOURCE_IDS.indexOf(left.id) - SOURCE_IDS.indexOf(right.id)
-    }
-
-    return leftEnabled ? -1 : 1
-  })
 }
 
 export function SiteManagementView() {
@@ -58,7 +47,7 @@ export function SiteManagementView() {
     const currentEnabledSources = normalizeEnabledSources(enabledSources)
 
     if (!hasSyncedExpandedSites.current) {
-      setExpandedSites(SOURCE_IDS.filter((sourceId) => currentEnabledSources[sourceId]))
+      setExpandedSites(getInitialExpandedSites(currentEnabledSources))
       hasSyncedExpandedSites.current = true
       previousEnabledSourcesRef.current = currentEnabledSources
       return
@@ -66,44 +55,20 @@ export function SiteManagementView() {
 
     const previousEnabledSources =
       previousEnabledSourcesRef.current ?? currentEnabledSources
-
-    const newlyEnabled = SOURCE_IDS.filter(
-      (sourceId) =>
-        !previousEnabledSources[sourceId] && currentEnabledSources[sourceId]
-    )
-    const newlyDisabled = SOURCE_IDS.filter(
-      (sourceId) =>
-        previousEnabledSources[sourceId] && !currentEnabledSources[sourceId]
-    )
-
-    if (newlyEnabled.length || newlyDisabled.length) {
-      setExpandedSites((currentExpandedSites) => {
-        const nextExpandedSites = currentExpandedSites.filter(
-          (sourceId) => !newlyDisabled.includes(sourceId)
-        )
-
-        for (const sourceId of newlyEnabled) {
-          if (!nextExpandedSites.includes(sourceId)) {
-            nextExpandedSites.push(sourceId)
-          }
-        }
-
-        return nextExpandedSites
+    setExpandedSites((currentExpandedSites) =>
+      reconcileExpandedSites({
+        currentExpandedSites,
+        previousEnabledSources,
+        nextEnabledSources: currentEnabledSources
       })
-    }
+    )
 
     previousEnabledSourcesRef.current = currentEnabledSources
   }, [enabledSources])
 
   const sortedSites = useMemo(() => buildSortedSites(enabledSources), [enabledSources])
 
-  const enabledCount = useMemo(
-    () =>
-      SOURCE_IDS.filter((sourceId) =>
-        resolveSourceEnabled(sourceId, { enabledSources })
-      ).length,
-    [enabledSources]
-  )
+  const enabledCount = useMemo(() => countEnabledSites(enabledSources), [enabledSources])
 
   const toggleSiteExpanded = (sourceId: SourceId) => {
     if (!resolveSourceEnabled(sourceId, { enabledSources })) {

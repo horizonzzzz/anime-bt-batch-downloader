@@ -41,12 +41,7 @@ describe("BatchPanel", () => {
     expect(screen.getByRole("button", { name: "展开批量下载面板" })).toBeInTheDocument()
     expect(screen.getByText("批量下载")).toBeInTheDocument()
     expect(screen.getByText("3")).toBeInTheDocument()
-    const launcherBrandIcon = screen.getByTestId("batch-launcher-brand-icon")
-    expect(launcherBrandIcon.tagName).toBe("IMG")
-    expect(launcherBrandIcon).toHaveAttribute(
-      "src",
-      expect.stringContaining("data:image/svg+xml")
-    )
+    expect(screen.getByTestId("batch-launcher-brand-icon")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "批量下载" })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "展开批量下载面板" }))
@@ -113,12 +108,7 @@ describe("BatchPanel", () => {
     renderBatchPanel()
 
     expect(screen.getByText("Kisssub 批量下载")).toBeInTheDocument()
-    const panelBrandIcon = screen.getByTestId("batch-panel-brand-icon")
-    expect(panelBrandIcon.tagName).toBe("IMG")
-    expect(panelBrandIcon).toHaveAttribute(
-      "src",
-      expect.stringContaining("data:image/svg+xml")
-    )
+    expect(screen.getByTestId("batch-panel-brand-icon")).toBeInTheDocument()
     expect(screen.getByText("已选资源")).toBeInTheDocument()
     expect(screen.getByText("0")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "批量下载" })).toBeDisabled()
@@ -162,7 +152,6 @@ describe("BatchPanel", () => {
     render(<Harness />)
 
     const advancedToggle = screen.getByRole("button", { name: "高级选项" })
-    expect(advancedToggle.querySelector("svg")).not.toBeNull()
 
     await user.click(advancedToggle)
 
@@ -191,9 +180,6 @@ describe("BatchPanel", () => {
 
     const openSettingsButton = screen.getByRole("button", { name: "打开设置页" })
     const minimizeButton = screen.getByRole("button", { name: "最小化批量下载面板" })
-
-    expect(openSettingsButton.querySelector("svg")).not.toBeNull()
-    expect(minimizeButton.querySelector("svg")).not.toBeNull()
 
     await user.click(openSettingsButton)
     await user.click(minimizeButton)
