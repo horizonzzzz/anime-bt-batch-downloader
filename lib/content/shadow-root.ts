@@ -12,8 +12,6 @@ type ShadowMountHost<TagName extends keyof HTMLElementTagNameMap> = {
   container: HTMLElement
 }
 
-const constructedStylesheetCache = new Map<string, CSSStyleSheet | null>()
-
 export function createShadowMountHost<TagName extends keyof HTMLElementTagNameMap>({
   hostTagName,
   containerTagName = "div",
@@ -51,17 +49,6 @@ export function ensureShadowStyle(
     return null
   }
 
-  const constructedStylesheet = getConstructedStylesheet(styleId, styleText)
-  const adoptedStyleSheets = shadowRoot.adoptedStyleSheets
-
-  if (constructedStylesheet && Array.isArray(adoptedStyleSheets)) {
-    if (!adoptedStyleSheets.includes(constructedStylesheet)) {
-      shadowRoot.adoptedStyleSheets = [...adoptedStyleSheets, constructedStylesheet]
-    }
-
-    return constructedStylesheet
-  }
-
   const selector = `style[data-anime-bt-batch-shadow-style="${styleId}"]`
   const existing = shadowRoot.querySelector<HTMLStyleElement>(selector)
   if (existing) {
@@ -73,23 +60,4 @@ export function ensureShadowStyle(
   style.textContent = styleText
   shadowRoot.prepend(style)
   return style
-}
-function getConstructedStylesheet(cacheKey: string, styleText: string) {
-  const cached = constructedStylesheetCache.get(cacheKey)
-  if (cached !== undefined) {
-    return cached
-  }
-
-  if (
-    typeof CSSStyleSheet === "undefined" ||
-    typeof CSSStyleSheet.prototype.replaceSync !== "function"
-  ) {
-    constructedStylesheetCache.set(cacheKey, null)
-    return null
-  }
-
-  const stylesheet = new CSSStyleSheet()
-  stylesheet.replaceSync(styleText)
-  constructedStylesheetCache.set(cacheKey, stylesheet)
-  return stylesheet
 }

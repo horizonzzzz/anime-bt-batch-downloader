@@ -258,11 +258,20 @@ async function routeSupportedSiteFixtures(
 async function readLauncherHoverState(page: import("@playwright/test").Page) {
   return page.getByRole("button", { name: "展开批量下载面板" }).evaluate((button) => {
     const style = getComputedStyle(button)
+    const rect = button.getBoundingClientRect()
 
     return {
       transform: style.transform,
+      translate: style.translate,
+      scale: style.scale,
       boxShadow: style.boxShadow,
-      hovered: button.matches(":hover")
+      hovered: button.matches(":hover"),
+      rect: {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height
+      }
     }
   })
 }
@@ -354,7 +363,6 @@ test("content script keeps the minimized launcher hover transform consistent acr
       await expect(launcher).toBeVisible()
 
       const beforeHover = await readLauncherHoverState(page)
-      expect(beforeHover.transform).toBe("none")
       expect(beforeHover.hovered).toBe(false)
 
       await launcher.hover()
@@ -366,8 +374,18 @@ test("content script keeps the minimized launcher hover transform consistent acr
         })
 
       const afterHover = await readLauncherHoverState(page)
-      expect(afterHover.transform).not.toBe("none")
       expect(afterHover.boxShadow).not.toBe(beforeHover.boxShadow)
+      expect(
+        afterHover.transform !== beforeHover.transform ||
+          afterHover.translate !== beforeHover.translate ||
+          afterHover.scale !== beforeHover.scale
+      ).toBe(true)
+      expect(
+        afterHover.rect.x !== beforeHover.rect.x ||
+          afterHover.rect.y !== beforeHover.rect.y ||
+          afterHover.rect.width !== beforeHover.rect.width ||
+          afterHover.rect.height !== beforeHover.rect.height
+      ).toBe(true)
 
       await page.close()
     }

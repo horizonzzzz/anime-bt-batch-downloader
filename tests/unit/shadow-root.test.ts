@@ -64,4 +64,54 @@ describe("shadow-root helpers", () => {
       mount.shadowRoot.querySelectorAll("[data-anime-bt-batch-shadow-style='content-ui']")
     ).toHaveLength(1)
   })
+
+  it("keeps using a real style tag even when constructed stylesheets are available", async () => {
+    const replaceSync = vi.fn()
+    const OriginalCSSStyleSheet = globalThis.CSSStyleSheet
+
+    class FakeCSSStyleSheet {
+      replaceSync(text: string) {
+        replaceSync(text)
+      }
+    }
+
+    Object.defineProperty(globalThis, "CSSStyleSheet", {
+      configurable: true,
+      value: FakeCSSStyleSheet
+    })
+
+    try {
+      const { createShadowMountHost, ensureShadowStyle } = await import("../../lib/content/shadow-root")
+
+      const mount = createShadowMountHost({
+        hostTagName: "div",
+        dataset: {
+          animeBtBatchPanelRoot: "1"
+        },
+        parent: document.body
+      })
+
+      Object.defineProperty(mount.shadowRoot, "adoptedStyleSheets", {
+        configurable: true,
+        writable: true,
+        value: []
+      })
+
+      const style = ensureShadowStyle(
+        mount.shadowRoot,
+        "content-ui",
+        ".anime-bt-content-root { color: rgb(37, 99, 235); }"
+      )
+
+      expect(style).toBeInstanceOf(HTMLStyleElement)
+      expect(replaceSync).not.toHaveBeenCalled()
+      expect(mount.shadowRoot.adoptedStyleSheets).toEqual([])
+      expect(style?.textContent).toContain(".anime-bt-content-root")
+    } finally {
+      Object.defineProperty(globalThis, "CSSStyleSheet", {
+        configurable: true,
+        value: OriginalCSSStyleSheet
+      })
+    }
+  })
 })
