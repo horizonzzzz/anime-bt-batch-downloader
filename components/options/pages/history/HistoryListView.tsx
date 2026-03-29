@@ -2,7 +2,7 @@ import type { TaskHistoryRecord } from "../../../../lib/history/types"
 import { SITE_CONFIG_META } from "../../../../lib/sources/site-meta"
 import { cn } from "../../../../lib/shared/cn"
 import { Button } from "../../../ui/button"
-import { HiOutlineCheckCircle, HiOutlineClock, HiOutlineExclamationTriangle, HiOutlineGlobeAlt } from "react-icons/hi2"
+import { HiOutlineClock, HiOutlineGlobeAlt } from "react-icons/hi2"
 import { DeleteRecordButton } from "./DeleteRecordButton"
 import { ClearHistoryButton } from "./ClearHistoryButton"
 
@@ -10,23 +10,6 @@ type HistoryListViewProps = {
   records: TaskHistoryRecord[]
   onViewDetail: (recordId: string) => void
   onRefresh: () => void
-}
-
-function StatusBadge({ status }: { status: TaskHistoryRecord["status"] }) {
-  if (status === "completed") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-        <HiOutlineCheckCircle className="w-3.5 h-3.5" />
-        已完成
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-      <HiOutlineExclamationTriangle className="w-3.5 h-3.5" />
-      部分失败
-    </span>
-  )
 }
 
 function StatusDot({ status }: { status: TaskHistoryRecord["status"] }) {
@@ -91,7 +74,7 @@ export function HistoryListView({ records, onViewDetail, onRefresh }: HistoryLis
                 : "bg-white border-zinc-100 hover:bg-zinc-50"
             )}
           >
-            <div className="col-span-4 flex items-center gap-2">
+            <div className="col-span-5 flex items-center gap-2">
               <StatusDot status={record.status} />
               <span className="text-sm font-medium text-zinc-900 truncate">
                 {record.name}
@@ -108,25 +91,20 @@ export function HistoryListView({ records, onViewDetail, onRefresh }: HistoryLis
               <span className="truncate">{siteMeta?.displayName ?? record.sourceId}</span>
             </div>
 
-            <div className="col-span-2 flex flex-col gap-0.5">
+            <div className="col-span-1 flex flex-col gap-0.5">
               <span className="text-sm text-zinc-900">{formatDate(record.createdAt)}</span>
               <span className="text-xs text-zinc-500">{formatTime(record.createdAt)}</span>
             </div>
 
-            <div className="col-span-3 flex items-center gap-3">
-              <StatusBadge status={record.status} />
-              <span className="text-sm text-zinc-600">
-                <span className="font-medium text-zinc-900">{formatStats(record.stats)}</span>
-                <span className="text-xs ml-1">成功</span>
-              </span>
+<div className="col-span-2 flex items-center gap-2 text-sm">
+              <span className="font-medium text-zinc-900">{formatStats(record.stats)}</span>
+              <span className="text-zinc-500">成功</span>
               {record.stats.failed > 0 && (
-                <span className="text-xs text-red-600">
-                  {record.stats.failed} 失败
-                </span>
+                <span className="text-red-600">{record.stats.failed} 失败</span>
               )}
             </div>
 
-<div className="col-span-1 flex items-center justify-end gap-1">
+            <div className="col-span-2 flex items-center justify-end gap-1">
                <DeleteRecordButton
                  recordId={record.id}
                  recordName={record.name}
