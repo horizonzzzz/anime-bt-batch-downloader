@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it, vi } from "vitest"
@@ -185,7 +185,17 @@ describe("BatchPanel", () => {
     await user.click(minimizeButton)
 
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
-    expect(onToggleExpanded).toHaveBeenCalledWith(false)
+
+    const panel = screen.getByRole("complementary", { name: "批量下载面板" })
+    const animationEndEvent = new Event("animationend", { bubbles: true })
+    Object.defineProperty(animationEndEvent, "animationName", {
+      value: "anime-bt-panel-collapse-keyframes"
+    })
+    panel.dispatchEvent(animationEndEvent)
+
+    await waitFor(() => {
+      expect(onToggleExpanded).toHaveBeenCalledWith(false)
+    })
   })
 
   it("shows a loading download action and locks editing while the batch is running", async () => {
