@@ -10,22 +10,27 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function loadHistory() {
-      try {
-        const response = await sendRuntimeRequest({ type: "GET_HISTORY" })
-        if (!response.ok) {
-          setError(response.error)
-          return
-        }
-        setRecords(response.records)
-      } catch {
-        setError("加载历史记录失败")
-      } finally {
-        setLoading(false)
+  async function loadRecords() {
+    try {
+      const response = await sendRuntimeRequest({ type: "GET_HISTORY" })
+      if (!response.ok) {
+        setError(response.error)
+        return
       }
+      setRecords(response.records)
+      if (selectedRecord) {
+        const updated = response.records.find((r) => r.id === selectedRecord.id)
+        setSelectedRecord(updated ?? null)
+      }
+    } catch {
+      setError("加载历史记录失败")
+    } finally {
+      setLoading(false)
     }
-    loadHistory()
+  }
+
+  useEffect(() => {
+    loadRecords()
   }, [])
 
   if (loading) {
@@ -49,6 +54,7 @@ export function HistoryPage() {
       <HistoryDetailView
         record={selectedRecord}
         onBack={() => setSelectedRecord(null)}
+        onRecordChanged={loadRecords}
       />
     )
   }
@@ -62,6 +68,7 @@ export function HistoryPage() {
           setSelectedRecord(record)
         }
       }}
+      onRefresh={loadRecords}
     />
   )
 }

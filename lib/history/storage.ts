@@ -52,6 +52,27 @@ export async function clearHistory(): Promise<void> {
   await chrome.storage.local.set({ [HISTORY_STORAGE_KEY]: createEmptyStorage() })
 }
 
+export async function getHistoryRecord(recordId: string): Promise<TaskHistoryRecord | null> {
+  const records = await getHistoryRecords()
+  return records.find(r => r.id === recordId) ?? null
+}
+
+export async function updateHistoryRecord(record: TaskHistoryRecord): Promise<void> {
+  const storage = await getHistoryStorage()
+  const updatedRecords = storage.records.map(r => r.id === record.id ? record : r)
+  await chrome.storage.local.set({
+    [HISTORY_STORAGE_KEY]: { ...storage, records: updatedRecords }
+  })
+}
+
+export async function deleteHistoryRecord(recordId: string): Promise<void> {
+  const storage = await getHistoryStorage()
+  const updatedRecords = storage.records.filter(r => r.id !== recordId)
+  await chrome.storage.local.set({
+    [HISTORY_STORAGE_KEY]: { ...storage, records: updatedRecords }
+  })
+}
+
 export function createHistoryRecordId(): string {
   const timestamp = Date.now()
   const suffix = Math.random().toString(36).slice(2, 6)

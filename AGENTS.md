@@ -90,8 +90,14 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Unit, component, and Playwright end-to-end coverage.
 - `lib/history/`
   任务历史持久化模块，包括类型定义、存储读写、自动清理逻辑。批次完成时由后台自动保存。
+- `lib/background/retry.ts`
+  重试失败条目的编排逻辑，从历史记录提取失败条目并重新提交到 qBittorrent。
 - `components/options/pages/history/`
-  批次历史页面组件，包括列表视图、详情视图和失败原因说明。
+  批次历史页面组件，包括列表视图、详情视图、重试按钮和删除按钮。
+- `components/options/ui/alert-dialog.tsx`
+  AlertDialog 组件（shadcn/ui 风格），用于确认对话框。
+- `components/options/ui/confirmation-dialog.tsx`
+  确认对话框封装组件，基于 AlertDialog。
 
 ## Module Map
 

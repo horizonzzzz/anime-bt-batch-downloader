@@ -13,10 +13,14 @@ import {
   HiOutlineXCircle
 } from "react-icons/hi2"
 import { getFailureExplanation } from "./FailureExplanation"
+import { DeleteRecordButton } from "./DeleteRecordButton"
+import { RetryAllButton } from "./RetryAllButton"
+import { RetryItemButton } from "./RetryItemButton"
 
 type HistoryDetailViewProps = {
   record: TaskHistoryRecord
   onBack: () => void
+  onRecordChanged: () => void
 }
 
 function StatusBadge({ status }: { status: TaskHistoryRecord["status"] }) {
@@ -79,7 +83,7 @@ function aggregateFailures(items: TaskHistoryItem[]): Map<FailureReason, { count
   return map
 }
 
-export function HistoryDetailView({ record, onBack }: HistoryDetailViewProps) {
+export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDetailViewProps) {
   const siteMeta = SITE_CONFIG_META[record.sourceId]
   const failures = aggregateFailures(record.items)
   const hasFailures = record.stats.failed > 0
@@ -93,6 +97,12 @@ export function HistoryDetailView({ record, onBack }: HistoryDetailViewProps) {
         </Button>
         <span className="text-lg font-medium text-zinc-900 truncate">{record.name}</span>
         <StatusBadge status={record.status} />
+        <DeleteRecordButton
+          recordId={record.id}
+          recordName={record.name}
+          onDeleted={onBack}
+          variant="button"
+        />
         <div className="flex items-center gap-1.5 text-sm text-zinc-500 ml-auto">
           <HiOutlineGlobeAlt className="w-4 h-4" />
           <span>{siteMeta?.displayName ?? record.sourceId}</span>
@@ -160,9 +170,10 @@ export function HistoryDetailView({ record, onBack }: HistoryDetailViewProps) {
                 </div>
               )
             })}
-            <Button variant="outline" size="sm" disabled title="功能开发中">
-              重试全部失败项
-            </Button>
+            <RetryAllButton
+              record={record}
+              onRetryComplete={() => onRecordChanged()}
+            />
           </CardContent>
         </Card>
       )}
@@ -192,9 +203,11 @@ export function HistoryDetailView({ record, onBack }: HistoryDetailViewProps) {
               </div>
               <div className="col-span-3 flex justify-end">
                 {item.status === "failed" && (
-                  <Button variant="ghost" size="sm" disabled title="功能开发中">
-                    重试
-                  </Button>
+                  <RetryItemButton
+                    item={item}
+                    record={record}
+                    onRetryComplete={() => onRecordChanged()}
+                  />
                 )}
               </div>
               {item.status === "failed" && item.failure && (

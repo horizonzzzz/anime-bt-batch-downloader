@@ -1,6 +1,12 @@
-import { createBatchDownloadManager, testQbConnection } from "./lib/background"
+import { createBatchDownloadManager, retryFailedItems, testQbConnection } from "./lib/background"
 import { addTorrentFilesToQb, addUrlsToQb, loginQb } from "./lib/downloader/qb"
-import { getHistoryRecords, clearHistory } from "./lib/history/storage"
+import {
+  clearHistory,
+  deleteHistoryRecord,
+  getHistoryRecord,
+  getHistoryRecords,
+  updateHistoryRecord
+} from "./lib/history/storage"
 import { ensureSettings, getSettings, saveSettings } from "./lib/settings"
 import {
   BATCH_EVENT,
@@ -74,6 +80,36 @@ chrome.runtime.onMessage.addListener((message: RuntimeRequest, sender, sendRespo
         case "CLEAR_HISTORY": {
           await clearHistory()
           sendResponse(createRuntimeSuccessResponse("CLEAR_HISTORY", {}))
+          return
+        }
+        case "DELETE_HISTORY_RECORD": {
+          await deleteHistoryRecord(message.recordId)
+          sendResponse(createRuntimeSuccessResponse("DELETE_HISTORY_RECORD", {}))
+          return
+        }
+        case "RETRY_FAILED_ITEMS": {
+          try {
+            const result = await retryFailedItems(
+              { recordId: message.recordId, itemIds: message.itemIds },
+              {
+                getSettings,
+                getHistoryRecord,
+                updateHistoryRecord,
+                loginQb,
+                addUrlsToQb
+              }
+            )
+            sendResponse(
+              createRuntimeSuccessResponse("RETRY_FAILED_ITEMS", {
+                successCount: result.successCount,
+                failedCount: result.failedCount
+              })
+            )
+          } catch (error) {
+            sendResponse(
+              createRuntimeErrorResponse(error instanceof Error ? error.message : String(error))
+            )
+          }
           return
         }
         default:

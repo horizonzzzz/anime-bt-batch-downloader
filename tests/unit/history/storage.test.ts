@@ -4,9 +4,12 @@ import {
   clearHistory,
   createHistoryItemId,
   createHistoryRecordId,
+  deleteHistoryRecord,
+  getHistoryRecord,
   getHistoryRecords,
   getHistoryStorage,
-  saveTaskHistory
+  saveTaskHistory,
+  updateHistoryRecord
 } from "../../../lib/history/storage"
 import {
   DEFAULT_MAX_RECORDS,
@@ -206,6 +209,96 @@ describe("history storage", () => {
     })
   })
 
+  describe("getHistoryRecord", () => {
+    it("returns null when record not found", async () => {
+      const result = await getHistoryRecord("nonexistent")
+      expect(result).toBeNull()
+    })
+
+    it("returns matching record when found", async () => {
+      const existingRecords: TaskHistoryRecord[] = [
+        {
+          id: "batch-1",
+          name: "Test",
+          sourceId: "kisssub",
+          status: "completed",
+          createdAt: "2026-01-01T00:00:00Z",
+          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          items: [],
+          version: 1
+        }
+      ]
+      state[HISTORY_STORAGE_KEY] = {
+        records: existingRecords,
+        maxRecords: DEFAULT_MAX_RECORDS
+      }
+
+      const result = await getHistoryRecord("batch-1")
+      expect(result).not.toBeNull()
+      expect(result?.id).toBe("batch-1")
+    })
+  })
+
+  describe("updateHistoryRecord", () => {
+    it("updates existing record in storage", async () => {
+      const existingRecords: TaskHistoryRecord[] = [
+        {
+          id: "batch-1",
+          name: "Test",
+          sourceId: "kisssub",
+          status: "completed",
+          createdAt: "2026-01-01T00:00:00Z",
+          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          items: [],
+          version: 1
+        }
+      ]
+      state[HISTORY_STORAGE_KEY] = {
+        records: existingRecords,
+        maxRecords: DEFAULT_MAX_RECORDS
+      }
+
+      const updatedRecord: TaskHistoryRecord = {
+        ...existingRecords[0],
+        name: "Updated Test",
+        status: "partial_failure",
+        stats: { total: 1, success: 0, duplicated: 0, failed: 1 }
+      }
+
+      await updateHistoryRecord(updatedRecord)
+
+      expect(storage.set).toHaveBeenCalled()
+      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
+      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(savedStorage.records[0].name).toBe("Updated Test")
+      expect(savedStorage.records[0].status).toBe("partial_failure")
+    })
+
+    it("does not add new record if id not found", async () => {
+      state[HISTORY_STORAGE_KEY] = {
+        records: [],
+        maxRecords: DEFAULT_MAX_RECORDS
+      }
+
+      const newRecord: TaskHistoryRecord = {
+        id: "batch-new",
+        name: "New",
+        sourceId: "kisssub",
+        status: "completed",
+        createdAt: "2026-01-01T00:00:00Z",
+        stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+        items: [],
+        version: 1
+      }
+
+      await updateHistoryRecord(newRecord)
+
+      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
+      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(savedStorage.records).toHaveLength(0)
+    })
+  })
+
   describe("id helpers", () => {
     it("creates unique record id with timestamp and suffix", () => {
       const id = createHistoryRecordId()
@@ -221,6 +314,82 @@ describe("history storage", () => {
       const recordId = "batch-123-abc"
       expect(createHistoryItemId(recordId, 0)).toBe("batch-123-abc-0")
       expect(createHistoryItemId(recordId, 5)).toBe("batch-123-abc-5")
+    })
+  })
+
+  describe("deleteHistoryRecord", () => {
+    it("removes matching record from storage", async () => {
+      const existingRecords: TaskHistoryRecord[] = [
+        {
+          id: "batch-1",
+          name: "Test 1",
+          sourceId: "kisssub",
+          status: "completed",
+          createdAt: "2026-01-01T00:00:00Z",
+          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          items: [],
+          version: 1
+        },
+        {
+          id: "batch-2",
+          name: "Test 2",
+          sourceId: "kisssub",
+          status: "completed",
+          createdAt: "2026-01-02T00:00:00Z",
+          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          items: [],
+          version: 1
+        }
+      ]
+      state[HISTORY_STORAGE_KEY] = {
+        records: existingRecords,
+        maxRecords: DEFAULT_MAX_RECORDS
+      }
+
+      await deleteHistoryRecord("batch-1")
+
+      expect(storage.set).toHaveBeenCalled()
+      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
+      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(savedStorage.records).toHaveLength(1)
+      expect(savedStorage.records[0].id).toBe("batch-2")
+    })
+
+    it("does nothing when record not found", async () => {
+      state[HISTORY_STORAGE_KEY] = {
+        records: [
+          {
+            id: "batch-1",
+            name: "Test",
+            sourceId: "kisssub",
+            status: "completed",
+            createdAt: "2026-01-01T00:00:00Z",
+            stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+            items: [],
+            version: 1
+          }
+        ],
+        maxRecords: DEFAULT_MAX_RECORDS
+      }
+
+      await deleteHistoryRecord("nonexistent")
+
+      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
+      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(savedStorage.records).toHaveLength(1)
+    })
+
+    it("handles empty storage", async () => {
+      state[HISTORY_STORAGE_KEY] = {
+        records: [],
+        maxRecords: DEFAULT_MAX_RECORDS
+      }
+
+      await deleteHistoryRecord("nonexistent")
+
+      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
+      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(savedStorage.records).toHaveLength(0)
     })
   })
 })

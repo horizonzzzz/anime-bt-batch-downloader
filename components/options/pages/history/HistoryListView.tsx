@@ -3,10 +3,13 @@ import { SITE_CONFIG_META } from "../../../../lib/sources/site-meta"
 import { cn } from "../../../../lib/shared/cn"
 import { Button } from "../../../ui/button"
 import { HiOutlineCheckCircle, HiOutlineClock, HiOutlineExclamationTriangle, HiOutlineGlobeAlt } from "react-icons/hi2"
+import { DeleteRecordButton } from "./DeleteRecordButton"
+import { ClearHistoryButton } from "./ClearHistoryButton"
 
 type HistoryListViewProps = {
   records: TaskHistoryRecord[]
   onViewDetail: (recordId: string) => void
+  onRefresh: () => void
 }
 
 function StatusBadge({ status }: { status: TaskHistoryRecord["status"] }) {
@@ -58,7 +61,7 @@ function formatStats(stats: TaskHistoryRecord["stats"]): string {
   return `${stats.success}/${stats.total}`
 }
 
-export function HistoryListView({ records, onViewDetail }: HistoryListViewProps) {
+export function HistoryListView({ records, onViewDetail, onRefresh }: HistoryListViewProps) {
   if (records.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
@@ -71,6 +74,9 @@ export function HistoryListView({ records, onViewDetail }: HistoryListViewProps)
 
   return (
     <div className="grid gap-2">
+      <div className="flex justify-end mb-2">
+        <ClearHistoryButton onCleared={onRefresh} disabled={records.length === 0} />
+      </div>
       {records.map((record, index) => {
         const siteMeta = SITE_CONFIG_META[record.sourceId]
         const isLatest = index === 0
@@ -120,16 +126,22 @@ export function HistoryListView({ records, onViewDetail }: HistoryListViewProps)
               )}
             </div>
 
-            <div className="col-span-1 flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onViewDetail(record.id)}
-                className="text-xs"
-              >
-                详情
-              </Button>
-            </div>
+<div className="col-span-1 flex items-center justify-end gap-1">
+               <DeleteRecordButton
+                 recordId={record.id}
+                 recordName={record.name}
+                 onDeleted={onRefresh}
+                 variant="icon"
+               />
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => onViewDetail(record.id)}
+                 className="text-xs"
+               >
+                 详情
+               </Button>
+             </div>
           </div>
         )
       })}
