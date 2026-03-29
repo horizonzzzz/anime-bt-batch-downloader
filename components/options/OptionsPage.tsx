@@ -17,8 +17,7 @@ import {
   getOptionsRouteMeta
 } from "./config/routes"
 import { useSettingsForm } from "./hooks/use-settings-form"
-import { HistoryShell } from "./layout/HistoryShell"
-import { OptionsShell } from "./layout/OptionsShell"
+import { PageShell } from "./layout/PageShell"
 import { OptionsSidebar } from "./layout/OptionsSidebar"
 import { GeneralSettingsPage } from "./pages/general/GeneralSettingsPage"
 import { HistoryPage } from "./pages/history/HistoryPage"
@@ -53,7 +52,18 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
     handleTestConnection
   } = useSettingsForm(api)
 
-  const isHistoryRoute = location.pathname === "/history"
+  const isFormMode = activeMeta.mode === "form"
+
+  const shellProps = isFormMode
+    ? {
+        activeMeta,
+        status,
+        saving,
+        onSubmit: handleSave
+      }
+    : {
+        activeMeta
+      }
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 lg:flex lg:items-start">
@@ -63,19 +73,9 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
         onNavigate={navigate}
       />
 
-      {isHistoryRoute ? (
-        <HistoryShell>
-          <Routes>
-            <Route path="/history" element={<HistoryPage />} />
-          </Routes>
-        </HistoryShell>
-      ) : (
+      {isFormMode ? (
         <FormProvider {...form}>
-          <OptionsShell
-            activeMeta={activeMeta}
-            status={status}
-            saving={saving}
-            onSubmit={handleSave}>
+          <PageShell {...shellProps}>
             <Routes>
               <Route path="/" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
               <Route
@@ -90,11 +90,18 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
                 }
               />
               <Route path="/sites" element={<SitesPage />} />
-              <Route path="/overview" element={<OverviewPage />} />
               <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
             </Routes>
-          </OptionsShell>
+          </PageShell>
         </FormProvider>
+      ) : (
+        <PageShell {...shellProps}>
+          <Routes>
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/overview" element={<OverviewPage />} />
+            <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
+          </Routes>
+        </PageShell>
       )}
     </div>
   )

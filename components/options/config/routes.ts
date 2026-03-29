@@ -1,5 +1,7 @@
 export type OptionsRouteId = "general" | "sites" | "history" | "overview"
 
+export type OptionsRouteMode = "form" | "view"
+
 export type OptionsRouteMeta = {
   id: OptionsRouteId
   path: string
@@ -7,6 +9,7 @@ export type OptionsRouteMeta = {
   title: string
   description: string
   footerLabel: string
+  mode: OptionsRouteMode
 }
 
 export const DEFAULT_OPTIONS_ROUTE = "/general"
@@ -18,7 +21,8 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
     label: "连接与基础设置",
     title: "连接与基础设置",
     description: "配置 qBittorrent WebUI 的连接信息，以及全局批量提取节奏。",
-    footerLabel: "正在编辑全局配置"
+    footerLabel: "正在编辑全局配置",
+    mode: "form"
   },
   {
     id: "sites",
@@ -26,7 +30,8 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
     label: "站点配置",
     title: "站点配置",
     description: "统一管理 4 个站点的启用状态和专属配置。",
-    footerLabel: "正在编辑站点配置"
+    footerLabel: "正在编辑站点配置",
+    mode: "form"
   },
   {
     id: "history",
@@ -34,7 +39,8 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
     label: "批次历史",
     title: "批次历史",
     description: "查看历史批量提交记录，追溯下载状态和失败原因。",
-    footerLabel: "正在查看批次历史"
+    footerLabel: "正在查看批次历史",
+    mode: "view"
   },
   {
     id: "overview",
@@ -42,7 +48,8 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
     label: "源站概览",
     title: "源站概览",
     description: "查看当前支持站点的简介与访问入口。",
-    footerLabel: "正在查看支持源站概览"
+    footerLabel: "正在查看支持源站概览",
+    mode: "view"
   }
 ]
 
