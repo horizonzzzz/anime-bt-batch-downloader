@@ -1,5 +1,3 @@
-// components/options/pages/history/FailureExplanation.tsx
-
 import type { FailureReason } from "../../../../lib/history/types"
 
 type FailureExplanation = {

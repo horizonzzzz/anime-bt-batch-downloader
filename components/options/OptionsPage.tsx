@@ -34,13 +34,12 @@ type OptionsPageProps = {
   api: OptionsApi
 }
 
-function OptionsWorkspace({ api }: OptionsPageProps) {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const activeMeta = useMemo(
-    () => getOptionsRouteMeta(location.pathname),
-    [location.pathname]
-  )
+type RouteShellProps = {
+  api: OptionsApi
+  activeMeta: ReturnType<typeof getOptionsRouteMeta>
+}
+
+function FormRouteShell({ api, activeMeta }: RouteShellProps) {
   const {
     form,
     status,
@@ -52,18 +51,51 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
     handleTestConnection
   } = useSettingsForm(api)
 
-  const isFormMode = activeMeta.mode === "form"
+  return (
+    <FormProvider {...form}>
+      <PageShell activeMeta={activeMeta} status={status} saving={saving} onSubmit={handleSave}>
+        <Routes>
+          <Route path="/" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
+          <Route
+            path="/general"
+            element={
+              <GeneralSettingsPage
+                connectionMessage={connectionMessage}
+                connectionState={connectionState}
+                testing={testing}
+                onTestConnection={handleTestConnection}
+              />
+            }
+          />
+          <Route path="/sites" element={<SitesPage />} />
+          <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
+        </Routes>
+      </PageShell>
+    </FormProvider>
+  )
+}
 
-  const shellProps = isFormMode
-    ? {
-        activeMeta,
-        status,
-        saving,
-        onSubmit: handleSave
-      }
-    : {
-        activeMeta
-      }
+function ViewRouteShell({ activeMeta }: RouteShellProps) {
+  return (
+    <PageShell activeMeta={activeMeta}>
+      <Routes>
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/overview" element={<OverviewPage />} />
+        <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
+      </Routes>
+    </PageShell>
+  )
+}
+
+function OptionsWorkspace({ api }: OptionsPageProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const activeMeta = useMemo(
+    () => getOptionsRouteMeta(location.pathname),
+    [location.pathname]
+  )
+
+  const RouteShell = activeMeta.mode === "form" ? FormRouteShell : ViewRouteShell
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 lg:flex lg:items-start">
@@ -72,37 +104,7 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
         activePath={activeMeta.path}
         onNavigate={navigate}
       />
-
-      {isFormMode ? (
-        <FormProvider {...form}>
-          <PageShell {...shellProps}>
-            <Routes>
-              <Route path="/" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
-              <Route
-                path="/general"
-                element={
-                  <GeneralSettingsPage
-                    connectionMessage={connectionMessage}
-                    connectionState={connectionState}
-                    testing={testing}
-                    onTestConnection={handleTestConnection}
-                  />
-                }
-              />
-              <Route path="/sites" element={<SitesPage />} />
-              <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
-            </Routes>
-          </PageShell>
-        </FormProvider>
-      ) : (
-        <PageShell {...shellProps}>
-          <Routes>
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/overview" element={<OverviewPage />} />
-            <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
-          </Routes>
-        </PageShell>
-      )}
+      <RouteShell api={api} activeMeta={activeMeta} />
     </div>
   )
 }

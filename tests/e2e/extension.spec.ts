@@ -226,7 +226,7 @@ async function getInjectedStyleSignature(page: import("@playwright/test").Page) 
 async function openOptionsPage(
   extension: Awaited<ReturnType<typeof launchExtensionContext>>,
   options?: {
-    route?: "/general" | "/sites" | "/overview"
+    route?: "/general" | "/sites" | "/history" | "/overview"
     heading?: string
   }
 ) {
@@ -547,6 +547,23 @@ test("disabling a source stops injection until it is enabled again", async () =>
     await reenabledPage.goto("https://acg.rip/")
     await expect(reenabledPage.getByText("ACG.RIP 批量下载")).toBeVisible()
     await expect.poll(() => countInjectedCheckboxes(reenabledPage)).toBe(2)
+  } finally {
+    await extension.close()
+  }
+})
+
+test("history page shows empty state when no records exist", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const page = await openOptionsPage(extension, {
+      route: "/history",
+      heading: "批次历史"
+    })
+
+    await expect(page.getByText("暂无下载历史记录")).toBeVisible()
+    await expect(page.getByText("开始批量下载后，历史记录将在此显示")).toBeVisible()
+    await expect(page.getByRole("button", { name: "清空历史" })).toBeDisabled()
   } finally {
     await extension.close()
   }

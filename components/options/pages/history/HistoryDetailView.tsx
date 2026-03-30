@@ -5,6 +5,7 @@ import { Button } from "../../../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card"
 import {
   HiOutlineArrowLeft,
+  HiOutlineArrowTopRightOnSquare,
   HiOutlineCheckCircle,
   HiOutlineClock,
   HiOutlineDocumentDuplicate,
@@ -198,10 +199,22 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
               <div className="col-span-1 flex justify-center">
                 <ItemStatusIcon status={item.status} />
               </div>
-              <div className="col-span-8 min-w-0">
+              <div className="col-span-7 min-w-0">
                 <span className="text-sm text-zinc-900 truncate block">{item.title}</span>
               </div>
-              <div className="col-span-3 flex justify-end">
+              <div className="col-span-2 flex justify-center">
+                <a
+                  href={item.detailUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                  title="在源站查看详情"
+                >
+                  <HiOutlineArrowTopRightOnSquare className="w-3.5 h-3.5" />
+                  详情
+                </a>
+              </div>
+              <div className="col-span-2 flex justify-end">
                 {item.status === "failed" && (
                   <RetryItemButton
                     item={item}
