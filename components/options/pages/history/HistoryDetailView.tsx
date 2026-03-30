@@ -3,6 +3,7 @@ import { SITE_CONFIG_META } from "../../../../lib/sources/site-meta"
 import { cn } from "../../../../lib/shared/cn"
 import { Button } from "../../../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../../../ui/tooltip"
 import {
   HiOutlineArrowLeft,
   HiOutlineArrowTopRightOnSquare,
@@ -95,7 +96,8 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
   }
 
   return (
-    <div className="grid gap-4">
+    <TooltipProvider>
+      <div className="grid gap-4">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <HiOutlineArrowLeft className="w-4 h-4" />
@@ -205,7 +207,14 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
                 <ItemStatusIcon status={item.status} />
               </div>
               <div className="col-span-7 min-w-0">
-                <span className="text-sm text-zinc-900 truncate block">{item.title}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm text-zinc-900 truncate block cursor-default">{item.title}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{item.title}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="col-span-2 flex justify-center">
                 <a
@@ -243,5 +252,6 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   )
 }
