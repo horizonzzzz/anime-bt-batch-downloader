@@ -26,6 +26,7 @@ export function createBatchStats(total: number): BatchStats {
     prepared: 0,
     submitted: 0,
     duplicated: 0,
+    filtered: 0,
     failed: 0
   }
 }
@@ -44,6 +45,11 @@ export function recordBatchResult(job: BatchJob, classified: ClassifiedBatchResu
     return
   }
 
+  if (classified.status === "filtered") {
+    job.stats.filtered += 1
+    return
+  }
+
   if (classified.status === "failed") {
     job.stats.failed += 1
   }
@@ -53,6 +59,7 @@ export function summarizeBatchResults(results: ClassifiedBatchResult[]): BatchSu
   return {
     submitted: results.filter((entry) => entry.status === "submitted").length,
     duplicated: results.filter((entry) => entry.status === "duplicate").length,
+    filtered: results.filter((entry) => entry.status === "filtered").length,
     failed: results.filter((entry) => entry.status === "failed").length
   }
 }

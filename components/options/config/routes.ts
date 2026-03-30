@@ -1,4 +1,4 @@
-export type OptionsRouteId = "general" | "sites" | "history" | "overview"
+export type OptionsRouteId = "general" | "sites" | "filters" | "history" | "overview"
 
 export type OptionsRouteMode = "form" | "view"
 
@@ -31,6 +31,15 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
     title: "站点配置",
     description: "统一管理 4 个站点的启用状态和专属配置。",
     footerLabel: "正在编辑站点配置",
+    mode: "form"
+  },
+  {
+    id: "filters",
+    path: "/filters",
+    label: "过滤规则",
+    title: "过滤规则",
+    description: "在批量提交到 qBittorrent 之前，按规则自动保留或排除资源。",
+    footerLabel: "正在编辑过滤规则",
     mode: "form"
   },
   {

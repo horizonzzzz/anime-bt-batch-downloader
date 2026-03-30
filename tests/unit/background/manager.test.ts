@@ -107,6 +107,7 @@ describe("createBatchDownloadManager", () => {
     expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].summary).toEqual({
       submitted: 1,
       duplicated: 0,
+      filtered: 0,
       failed: 0
     })
   })
@@ -161,8 +162,74 @@ describe("createBatchDownloadManager", () => {
     expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].summary).toEqual({
       submitted: 1,
       duplicated: 1,
+      filtered: 0,
       failed: 0
     })
+  })
+
+  it("filters excluded items before submitting them to qBittorrent", async () => {
+    const settings = createSettings({
+      filterRules: [
+        {
+          id: "rule-raw",
+          name: "排除 RAW",
+          enabled: true,
+          action: "exclude",
+          sourceIds: ["kisssub"],
+          order: 0,
+          conditions: {
+            titleIncludes: [],
+            titleExcludes: ["RAW"],
+            subgroupIncludes: []
+          }
+        }
+      ]
+    })
+    const { manager, dependencies } = createManager({
+      saveSettings: vi.fn().mockResolvedValue(settings)
+    })
+
+    await expect(
+      manager.startBatchDownload(
+        16,
+        [
+          {
+            sourceId: "kisssub",
+            detailUrl: "https://www.kisssub.org/show-deadbeef.html",
+            title: "[喵萌奶茶屋] Episode 01 [1080p][RAW]"
+          }
+        ],
+        ""
+      )
+    ).resolves.toEqual({
+      ok: true,
+      total: 1
+    })
+
+    await vi.waitFor(() => {
+      expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1]).toMatchObject({
+        stage: "completed",
+        summary: {
+          submitted: 0,
+          duplicated: 0,
+          filtered: 1,
+          failed: 0
+        }
+      })
+    })
+
+    expect(dependencies.extractSingleItem).not.toHaveBeenCalled()
+    expect(dependencies.loginQb).not.toHaveBeenCalled()
+    expect(dependencies.addUrlsToQb).not.toHaveBeenCalled()
+    expect(dependencies.addTorrentFilesToQb).not.toHaveBeenCalled()
+    expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].results).toEqual([
+      {
+        title: "[喵萌奶茶屋] Episode 01 [1080p][RAW]",
+        detailUrl: "https://www.kisssub.org/show-deadbeef.html",
+        status: "filtered",
+        message: "Filtered by rule: 排除 RAW"
+      }
+    ])
   })
 
   it("prevents concurrent jobs from starting in the same tab", async () => {

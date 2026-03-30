@@ -26,7 +26,8 @@ const settings = {
     dongmanhuayuan: true,
     acgrip: true,
     bangumimoe: true
-  }
+  },
+  filterRules: []
 }
 
 function createOptionsApi(overrides: Partial<OptionsApi> = {}): OptionsApi {
@@ -74,9 +75,10 @@ describe("OptionsPage", () => {
     expect(screen.getAllByText("Anime BT Batch")).toHaveLength(1)
 
     const sidebarNav = screen.getByTestId("options-sidebar-groups")
-    expect(within(sidebarNav).getAllByRole("button")).toHaveLength(4)
+    expect(within(sidebarNav).getAllByRole("button")).toHaveLength(5)
     expect(screen.getByRole("button", { name: "连接与基础设置" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "站点配置" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "过滤规则" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "批次历史" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "源站概览" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
@@ -127,11 +129,60 @@ describe("OptionsPage", () => {
     expect(screen.getByText("当前已启用 4 / 4 个站点")).toBeInTheDocument()
 
     firstRender.unmount()
+    window.location.hash = "#/filters"
+    const secondRender = render(<OptionsPage api={api} />)
+
+    expect(await screen.findByRole("heading", { name: "过滤规则" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "新建规则" })).toBeInTheDocument()
+
+    secondRender.unmount()
     window.location.hash = "#/overview"
     render(<OptionsPage api={api} />)
 
     expect(await screen.findByRole("heading", { name: "源站概览" })).toBeInTheDocument()
     expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(4)
+  })
+
+  it("creates and saves a filter rule from the filters route", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi({
+      saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+    })
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "过滤规则" }))
+
+    expect(screen.getByRole("heading", { name: "过滤规则" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "新建规则" }))
+
+    await user.type(screen.getByLabelText("规则名称"), "排除 RAW")
+    await user.click(screen.getByRole("radio", { name: "排除" }))
+    await user.type(screen.getByLabelText("标题排除"), "RAW")
+
+    await user.click(screen.getByRole("button", { name: "保存规则" }))
+
+    expect(screen.getByRole("button", { name: "拖拽排序 排除 RAW" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+    await waitFor(() => {
+      expect(api.saveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterRules: [
+            expect.objectContaining({
+              name: "排除 RAW",
+              action: "exclude",
+              conditions: expect.objectContaining({
+                titleExcludes: ["RAW"]
+              })
+            })
+          ]
+        })
+      )
+    })
   })
 
   it("renders a real site icon for each site in the site management cards", async () => {

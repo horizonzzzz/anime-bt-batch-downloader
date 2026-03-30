@@ -12,14 +12,17 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - Supported source management in the options page:
   - `连接与基础设置`
   - `站点配置`
+  - `过滤规则`
   - `批次历史`
   - `源站概览`
-  - the options workspace uses hash-routed navigation with:
-    - `options.html#/general`
-    - `options.html#/sites`
-    - `options.html#/overview`
+- the options workspace uses hash-routed navigation with:
+  - `options.html#/general`
+  - `options.html#/sites`
+  - `options.html#/filters`
+  - `options.html#/overview`
 - Supported downloader target: `qBittorrent WebUI` only
 - Optional per-batch save path override is supported
+- Pre-submit filter rules can include or exclude resources by source scope, title keywords, and extracted subgroup name
 - Magnet links are preferred; torrent URLs are the fallback
 - Each supported source can be enabled or disabled by the user:
   - disabled sources keep their saved per-site configuration
@@ -63,6 +66,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Contents-only Tailwind/shadcn-style primitives for the injected batch panel and selection checkbox visuals. Keep these isolated from `components/ui/` so third-party page injection stays on its own sizing, reset contract, and `data-*` test-anchor surface.
 - `components/options/`
   Source of truth for the options workspace shell, hash-route config, form hooks/schema, shared options-only form fragments under `components/options/form/`, and the `general` / `sites` / `overview` page implementations.
+  Filtering rules UI lives under `components/options/pages/filters/` and participates in the same form-save flow as other editable options routes.
 - `components/ui/`
   Tailwind-first primitive components used by the options workspace, including buttons, inputs, cards, badges, alerts, switches, and radio groups.
 - `contents/`
@@ -134,6 +138,8 @@ Use this section as the shortest runtime-oriented guide to the current code layo
   qBittorrent WebUI client and submission APIs.
 - `lib/shared/`
   Cross-runtime message contracts, shared types, and utility helpers used by multiple domains.
+- `lib/filter-rules/`
+  过滤规则匹配与字幕组提取逻辑，负责提交前保留/排除决策。
 - `lib/history/`
   任务历史持久化，类型定义和存储逻辑，后台批次完成时自动保存。
 
@@ -143,6 +149,7 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 - Source-specific parsing, page matching, and capability defaults belong in `lib/sources/`.
 - Batch orchestration belongs in `lib/background/`; source adapters should not take over job-level concerns.
 - `lib/settings/` may normalize or persist settings, but qB/network behavior belongs outside it.
+- 过滤规则存储在 `Settings` 中，但匹配逻辑必须保持在 `lib/filter-rules/`，不要把规则判断散落到 options 组件或源站适配器里。
 - `lib/content/` may help mount and scan pages, but downloader submission must stay out of content-side helpers.
 - During development, prefer splitting code by responsibility instead of letting a single file keep growing; when a file starts carrying multiple concerns or becomes hard to hold in context, extract focused modules before adding more logic.
 

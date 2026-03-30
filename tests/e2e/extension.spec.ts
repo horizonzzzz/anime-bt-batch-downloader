@@ -226,7 +226,7 @@ async function getInjectedStyleSignature(page: import("@playwright/test").Page) 
 async function openOptionsPage(
   extension: Awaited<ReturnType<typeof launchExtensionContext>>,
   options?: {
-    route?: "/general" | "/sites" | "/history" | "/overview"
+    route?: "/general" | "/sites" | "/filters" | "/history" | "/overview"
     heading?: string
   }
 ) {
@@ -236,7 +236,7 @@ async function openOptionsPage(
   const page = await extension.context.newPage()
   await page.goto(`chrome-extension://${extension.extensionId}/options.html${route ? `#${route}` : ""}`)
   await expect(page).toHaveURL(new RegExp(`options\\.html#${expectedRoute.replace("/", "\\/")}$`))
-  await expect(page.getByRole("heading", { name: expectedHeading })).toBeVisible()
+  await expect(page.getByRole("heading", { name: expectedHeading, exact: true }).first()).toBeVisible()
   return page
 }
 
@@ -291,6 +291,31 @@ test("options page saves settings through the background worker", async () => {
     await page.getByRole("button", { name: "保存所有设置" }).click()
 
     await expect(page.getByText("设置已保存。")).toBeVisible()
+  } finally {
+    await extension.close()
+  }
+})
+
+test("options page saves filter rules through the background worker", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const page = await openOptionsPage(extension, {
+      route: "/filters",
+      heading: "过滤规则"
+    })
+
+    await page.getByRole("button", { name: "新建规则" }).click()
+    await page.getByLabel("规则名称").fill("排除 RAW")
+    await page.getByRole("radio", { name: "排除" }).click()
+    await page.getByLabel("标题排除").fill("RAW")
+    await page.getByRole("button", { name: "保存规则" }).click()
+
+    await expect(page.getByRole("button", { name: "拖拽排序 排除 RAW" })).toBeVisible()
+
+    await page.getByRole("button", { name: "保存所有设置" }).click()
+
+    await expect(page.getByText("设置已保存。" )).toBeVisible()
   } finally {
     await extension.close()
   }

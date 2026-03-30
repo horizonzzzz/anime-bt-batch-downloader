@@ -110,4 +110,92 @@ describe("sanitizeSettings", () => {
       lastSavePath: "D:\\Downloads\\Anime"
     })
   })
+
+  it("defaults filter rules to an empty array", () => {
+    expect(sanitizeSettings({}).filterRules).toEqual([])
+  })
+
+  it("normalizes filter rules, trims conditions, and rewrites order", () => {
+    expect(
+      sanitizeSettings({
+        filterRules: [
+          {
+            id: "rule-2",
+            name: "  排除生肉  ",
+            enabled: true,
+            action: "exclude",
+            sourceIds: ["kisssub", "kisssub", "bangumimoe"],
+            order: 99,
+            conditions: {
+              titleIncludes: ["  1080p ", "", "  "],
+              titleExcludes: [" RAW ", ""],
+              subgroupIncludes: []
+            }
+          },
+          {
+            id: "rule-1",
+            name: "  仅保留喵萌  ",
+            enabled: false,
+            action: "include",
+            sourceIds: ["acgrip"],
+            order: -1,
+            conditions: {
+              titleIncludes: [],
+              titleExcludes: [],
+              subgroupIncludes: [" 喵萌奶茶屋 ", ""]
+            }
+          }
+        ]
+      }).filterRules
+    ).toEqual([
+      {
+        id: "rule-2",
+        name: "排除生肉",
+        enabled: true,
+        action: "exclude",
+        sourceIds: ["kisssub", "bangumimoe"],
+        order: 0,
+        conditions: {
+          titleIncludes: ["1080p"],
+          titleExcludes: ["RAW"],
+          subgroupIncludes: []
+        }
+      },
+      {
+        id: "rule-1",
+        name: "仅保留喵萌",
+        enabled: false,
+        action: "include",
+        sourceIds: ["acgrip"],
+        order: 1,
+        conditions: {
+          titleIncludes: [],
+          titleExcludes: [],
+          subgroupIncludes: ["喵萌奶茶屋"]
+        }
+      }
+    ])
+  })
+
+  it("drops title exclude conditions from include rules during sanitization", () => {
+    expect(
+      sanitizeSettings({
+        filterRules: [
+          {
+            id: "rule-include",
+            name: "保留 1080p",
+            enabled: true,
+            action: "include",
+            sourceIds: ["kisssub"],
+            order: 0,
+            conditions: {
+              titleIncludes: ["1080p"],
+              titleExcludes: ["RAW"],
+              subgroupIncludes: []
+            }
+          }
+        ]
+      }).filterRules[0]?.conditions.titleExcludes
+    ).toEqual([])
+  })
 })

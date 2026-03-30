@@ -69,4 +69,63 @@ describe("options settings form helpers", () => {
       "请输入 qBittorrent WebUI 地址"
     )
   })
+
+  it("hydrates filter rules from stored settings", () => {
+    expect(
+      createSettingsFormDefaults({
+        filterRules: [
+          {
+            id: "rule-1",
+            name: "排除生肉",
+            enabled: true,
+            action: "exclude",
+            sourceIds: ["kisssub"],
+            order: 0,
+            conditions: {
+              titleIncludes: [],
+              titleExcludes: ["RAW"],
+              subgroupIncludes: []
+            }
+          }
+        ]
+      }).filterRules
+    ).toEqual([
+      {
+        id: "rule-1",
+        name: "排除生肉",
+        enabled: true,
+        action: "exclude",
+        sourceIds: ["kisssub"],
+        order: 0,
+        conditions: {
+          titleIncludes: [],
+          titleExcludes: ["RAW"],
+          subgroupIncludes: []
+        }
+      }
+    ])
+  })
+
+  it("rejects filter rules without any conditions", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      filterRules: [
+        {
+          id: "rule-empty",
+          name: "空规则",
+          enabled: true,
+          action: "exclude",
+          sourceIds: ["kisssub"],
+          order: 0,
+          conditions: {
+            titleIncludes: [],
+            titleExcludes: [],
+            subgroupIncludes: []
+          }
+        }
+      ]
+    })
+
+    expect(result.success).toBe(false)
+  })
 })

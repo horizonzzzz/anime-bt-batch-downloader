@@ -1,6 +1,8 @@
+import { decideFilterRuleAction } from "../filter-rules"
 import { getDisabledSources, normalizeSavePath } from "../settings"
 import type { StartBatchDownloadSuccessResponse } from "../shared/messages"
 import type { BatchItem, ClassifiedBatchResult } from "../shared/types"
+import { getDeliveryModePriority } from "../sources/delivery"
 import { createBatchJob, recordBatchResult, summarizeBatchResults } from "./job-state"
 import { getBatchStartedMessage, getBatchSubmittingMessage } from "./messages"
 import { classifyExtractionResult, classifyPreparedBatchItem, normalizeBatchItems } from "./preparation"
@@ -200,6 +202,15 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
     seenHashes: Set<string>,
     seenUrls: Set<string>
   ): Promise<ClassifiedBatchResult> {
+    const ruleDecision = decideFilterRuleAction({
+      sourceId: item.sourceId,
+      title: item.title,
+      rules: job.settings.filterRules
+    })
+    if (!ruleDecision.accepted) {
+      return createFilteredResult(item, job.settings, ruleDecision.matchedRule?.name ?? "Unnamed rule")
+    }
+
     const prepared = classifyPreparedBatchItem(item, job.settings, seenHashes, seenUrls)
     if (prepared) {
       return prepared
@@ -217,6 +228,28 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
   return {
     activeJobs,
     startBatchDownload
+  }
+}
+
+function createFilteredResult(
+  item: BatchItem,
+  settings: BatchJob["settings"],
+  ruleName: string
+): ClassifiedBatchResult {
+  const preferredDeliveryMode = getDeliveryModePriority(item.sourceId, settings)[0] ?? "magnet"
+
+  return {
+    ok: false,
+    title: item.title,
+    detailUrl: item.detailUrl,
+    hash: "",
+    magnetUrl: item.magnetUrl || "",
+    torrentUrl: item.torrentUrl || "",
+    failureReason: "",
+    status: "filtered",
+    deliveryMode: preferredDeliveryMode,
+    submitUrl: "",
+    message: `Filtered by rule: ${ruleName}`
   }
 }
 

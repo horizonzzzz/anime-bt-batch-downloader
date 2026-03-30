@@ -20,6 +20,7 @@ import { useSettingsForm } from "./hooks/use-settings-form"
 import { PageShell } from "./layout/PageShell"
 import { OptionsSidebar } from "./layout/OptionsSidebar"
 import { GeneralSettingsPage } from "./pages/general/GeneralSettingsPage"
+import { FiltersPage } from "./pages/filters/FiltersPage"
 import { HistoryPage } from "./pages/history/HistoryPage"
 import { OverviewPage } from "./pages/overview/OverviewPage"
 import { SitesPage } from "./pages/sites/SitesPage"
@@ -74,6 +75,7 @@ function FormShell({
             }
           />
           <Route path="/sites" element={<SitesPage />} />
+          <Route path="/filters" element={<FiltersPage />} />
           <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
         </Routes>
       </PageShell>

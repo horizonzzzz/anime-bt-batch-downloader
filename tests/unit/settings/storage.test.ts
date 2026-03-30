@@ -74,6 +74,7 @@ describe("settings storage helpers", () => {
       qbBaseUrl: "http://127.0.0.1:17474",
       qbUsername: "admin",
       lastSavePath: "D:\\Anime",
+      filterRules: [],
       enabledSources: {
         kisssub: false,
         dongmanhuayuan: true,
@@ -89,6 +90,21 @@ describe("settings storage helpers", () => {
     state.settings = {
       qbBaseUrl: " http://127.0.0.1:7474/// ",
       qbUsername: " admin ",
+      filterRules: [
+        {
+          id: "rule-old",
+          name: "  排除 RAW  ",
+          enabled: true,
+          action: "exclude",
+          sourceIds: ["kisssub"],
+          order: 0,
+          conditions: {
+            titleIncludes: [],
+            titleExcludes: [" RAW "],
+            subgroupIncludes: []
+          }
+        }
+      ],
       enabledSources: {
         kisssub: false
       }
@@ -100,13 +116,43 @@ describe("settings storage helpers", () => {
         lastSavePath: "  D:\\Downloads\\Anime  ",
         enabledSources: {
           acgrip: false
-        }
+        },
+        filterRules: [
+          {
+            id: "rule-new",
+            name: "  仅保留喵萌  ",
+            enabled: true,
+            action: "include",
+            sourceIds: ["bangumimoe", "bangumimoe"],
+            order: 9,
+            conditions: {
+              titleIncludes: [],
+              titleExcludes: [],
+              subgroupIncludes: [" 喵萌奶茶屋 ", ""]
+            }
+          }
+        ]
       })
     ).resolves.toEqual({
       ...DEFAULT_SETTINGS,
       qbBaseUrl: "http://127.0.0.1:17474",
       qbUsername: "admin",
       lastSavePath: "D:\\Downloads\\Anime",
+      filterRules: [
+        {
+          id: "rule-new",
+          name: "仅保留喵萌",
+          enabled: true,
+          action: "include",
+          sourceIds: ["bangumimoe"],
+          order: 0,
+          conditions: {
+            titleIncludes: [],
+            titleExcludes: [],
+            subgroupIncludes: ["喵萌奶茶屋"]
+          }
+        }
+      ],
       enabledSources: {
         kisssub: true,
         dongmanhuayuan: true,
@@ -121,6 +167,21 @@ describe("settings storage helpers", () => {
         qbBaseUrl: "http://127.0.0.1:17474",
         qbUsername: "admin",
         lastSavePath: "D:\\Downloads\\Anime",
+        filterRules: [
+          {
+            id: "rule-new",
+            name: "仅保留喵萌",
+            enabled: true,
+            action: "include",
+            sourceIds: ["bangumimoe"],
+            order: 0,
+            conditions: {
+              titleIncludes: [],
+              titleExcludes: [],
+              subgroupIncludes: ["喵萌奶茶屋"]
+            }
+          }
+        ],
         enabledSources: {
           kisssub: true,
           dongmanhuayuan: true,

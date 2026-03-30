@@ -19,9 +19,10 @@ function classifyFailureReason(message: string): string {
 
 function mapItemStatus(
   status: string
-): "success" | "duplicate" | "failed" {
+): "success" | "duplicate" | "filtered" | "failed" {
   if (status === "submitted") return "success"
   if (status === "duplicate") return "duplicate"
+  if (status === "filtered") return "filtered"
   return "failed"
 }
 
@@ -35,12 +36,13 @@ function buildHistoryItems(
     title: result.title,
     detailUrl: result.detailUrl,
     sourceId,
+    message: result.message,
     magnetUrl: result.magnetUrl,
     torrentUrl: result.torrentUrl,
     hash: result.hash,
-    status: mapItemStatus(result.status),
-    failure: result.status === "failed" ? {
-      reason: classifyFailureReason(result.message) as "parse_error" | "timeout" | "qb_error" | "network_error" | "unknown",
+      status: mapItemStatus(result.status),
+      failure: result.status === "failed" ? {
+        reason: classifyFailureReason(result.message) as "parse_error" | "timeout" | "qb_error" | "network_error" | "unknown",
       message: result.message,
       retryable: true,
       retryCount: 0
@@ -68,6 +70,7 @@ export function buildHistoryRecord(
       total: job.stats.total,
       success: job.stats.submitted,
       duplicated: job.stats.duplicated,
+      filtered: job.stats.filtered,
       failed: job.stats.failed
     },
     items,

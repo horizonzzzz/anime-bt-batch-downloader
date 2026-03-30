@@ -60,8 +60,9 @@ function recalculateStats(items: TaskHistoryItem[]): TaskHistoryRecord["stats"] 
   const total = items.length
   const success = items.filter(i => i.status === "success").length
   const duplicated = items.filter(i => i.status === "duplicate").length
+  const filtered = items.filter(i => i.status === "filtered").length
   const failed = items.filter(i => i.status === "failed").length
-  return { total, success, duplicated, failed }
+  return { total, success, duplicated, filtered, failed }
 }
 
 export async function retryFailedItems(
@@ -74,7 +75,7 @@ export async function retryFailedItems(
   }
 
   const targetItems = request.itemIds
-    ? record.items.filter(i => request.itemIds!.includes(i.id))
+    ? record.items.filter(i => request.itemIds!.includes(i.id) && i.status === "failed")
     : record.items.filter(i => i.status === "failed")
 
   if (targetItems.length === 0) {

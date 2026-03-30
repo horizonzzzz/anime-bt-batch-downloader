@@ -388,10 +388,8 @@ function handleBatchEvent(event: BatchEventPayload) {
 
   if (event.stage === "completed") {
     snapshot.running = false
-    const summary = event.summary ?? { submitted: 0, duplicated: 0, failed: 0 }
-    snapshot.statusText = `完成。成功提交 ${summary.submitted || 0} 项，重复 ${summary.duplicated || 0} 项，失败 ${
-      summary.failed || 0
-    } 项。`
+    const summary = event.summary ?? { submitted: 0, duplicated: 0, filtered: 0, failed: 0 }
+    snapshot.statusText = `完成。成功提交 ${summary.submitted || 0} 项，重复 ${summary.duplicated || 0} 项，过滤 ${summary.filtered || 0} 项，失败 ${summary.failed || 0} 项。`
     renderAll()
     return
   }
@@ -427,6 +425,10 @@ function buildProgressStatus(event: BatchEventPayload) {
 
   if (itemStatus === "duplicate") {
     return `已处理 ${processed}/${total} 项，检测到重复资源。`
+  }
+
+  if (itemStatus === "filtered") {
+    return `已处理 ${processed}/${total} 项，部分资源已被过滤规则排除。`
   }
 
   return `正在提取真实链接（${processed}/${total}）。`

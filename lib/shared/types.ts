@@ -2,6 +2,24 @@ export type SourceId = "kisssub" | "dongmanhuayuan" | "acgrip" | "bangumimoe"
 
 export type DeliveryMode = "magnet" | "torrent-url" | "torrent-file"
 
+export type FilterRuleAction = "include" | "exclude"
+
+export type FilterRuleConditions = {
+  titleIncludes: string[]
+  titleExcludes: string[]
+  subgroupIncludes: string[]
+}
+
+export type FilterRule = {
+  id: string
+  name: string
+  enabled: boolean
+  action: FilterRuleAction
+  sourceIds: SourceId[]
+  order: number
+  conditions: FilterRuleConditions
+}
+
 export type BatchEventStage =
   | "started"
   | "progress"
@@ -18,7 +36,7 @@ export type BatchItem = {
   torrentUrl?: string
 }
 
-export type BatchLogStatus = "ready" | "submitted" | "duplicate" | "failed"
+export type BatchLogStatus = "ready" | "submitted" | "duplicate" | "filtered" | "failed"
 
 export type BatchLogItem = {
   title: string
@@ -33,6 +51,7 @@ export type BatchStats = {
   prepared: number
   submitted: number
   duplicated: number
+  filtered: number
   failed: number
 }
 
@@ -49,6 +68,7 @@ export type Settings = {
   lastSavePath: string
   sourceDeliveryModes: Partial<Record<SourceId, DeliveryMode>>
   enabledSources: Partial<Record<SourceId, boolean>>
+  filterRules: FilterRule[]
 }
 
 export type TestQbConnectionResult = {
@@ -76,6 +96,7 @@ export type ClassifiedBatchResult = ExtractionResult & {
 export type BatchSummary = {
   submitted: number
   duplicated: number
+  filtered: number
   failed: number
 }
 

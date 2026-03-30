@@ -15,6 +15,7 @@ function createMockRecord(id: string, items: TaskHistoryItem[]): TaskHistoryReco
       total: items.length,
       success: items.filter(i => i.status === "success").length,
       duplicated: items.filter(i => i.status === "duplicate").length,
+      filtered: items.filter(i => i.status === "filtered").length,
       failed: items.filter(i => i.status === "failed").length
     },
     items,
@@ -70,6 +71,17 @@ function createSuccessItem(id: string, title: string): TaskHistoryItem {
   }
 }
 
+function createFilteredItem(id: string, title: string): TaskHistoryItem {
+  return {
+    id,
+    title,
+    detailUrl: `https://example.com/${id}`,
+    sourceId: "kisssub",
+    status: "filtered",
+    deliveryMode: "magnet"
+  }
+}
+
 function createMockDeps(
   overrides?: Partial<RetryDependencies>
 ): RetryDependencies {
@@ -86,7 +98,8 @@ function createMockDeps(
       remoteScriptRevision: "",
       lastSavePath: "",
       sourceDeliveryModes: {},
-      enabledSources: { kisssub: true }
+      enabledSources: { kisssub: true },
+      filterRules: []
     })),
     getHistoryRecord: vi.fn(async () => null),
     updateHistoryRecord: vi.fn(async () => {}),
@@ -132,7 +145,10 @@ describe("retryFailedItems", () => {
 
   describe("success cases", () => {
     it("returns zero counts when no failed items", async () => {
-      const record = createMockRecord("batch-1", [createSuccessItem("item-1", "Test")])
+      const record = createMockRecord("batch-1", [
+        createSuccessItem("item-1", "Test"),
+        createFilteredItem("item-2", "Filtered")
+      ])
       deps.getHistoryRecord = vi.fn(async () => record)
 
       const request: RetryRequest = { recordId: "batch-1" }
@@ -141,6 +157,19 @@ describe("retryFailedItems", () => {
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(0)
       expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(result.updatedRecord.stats.filtered).toBe(1)
+    })
+
+    it("ignores filtered items even when itemIds are provided explicitly", async () => {
+      const record = createMockRecord("batch-1", [createFilteredItem("item-2", "Filtered")])
+      deps.getHistoryRecord = vi.fn(async () => record)
+
+      const result = await retryFailedItems({ recordId: "batch-1", itemIds: ["item-2"] }, deps)
+
+      expect(result.successCount).toBe(0)
+      expect(result.failedCount).toBe(0)
+      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(result.updatedRecord.items[0].status).toBe("filtered")
     })
 
     it("successfully retries failed items with magnet URLs", async () => {

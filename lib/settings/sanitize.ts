@@ -1,5 +1,5 @@
 import { normalizeSourceDeliveryModes } from "../sources/delivery"
-import type { Settings } from "../shared/types"
+import type { FilterRule, FilterRuleAction, FilterRuleConditions, Settings, SourceId } from "../shared/types"
 import { DEFAULT_SETTINGS } from "./defaults"
 import { normalizeEnabledSources } from "./source-enablement"
 
@@ -22,7 +22,8 @@ export function sanitizeSettings(raw: RawSettings): Settings {
     sourceDeliveryModes: normalizeSourceDeliveryModes(
       raw.sourceDeliveryModes ?? DEFAULT_SETTINGS.sourceDeliveryModes
     ),
-    enabledSources: normalizeEnabledSources(raw.enabledSources ?? DEFAULT_SETTINGS.enabledSources)
+    enabledSources: normalizeEnabledSources(raw.enabledSources ?? DEFAULT_SETTINGS.enabledSources),
+    filterRules: normalizeFilterRules(raw.filterRules ?? DEFAULT_SETTINGS.filterRules)
   }
 }
 
@@ -50,4 +51,114 @@ function normalizeBaseUrl(url: unknown): string {
 function normalizeRemoteScriptUrl(url: unknown): string {
   const normalized = String(url ?? "").trim()
   return normalized || DEFAULT_SETTINGS.remoteScriptUrl
+}
+
+const VALID_SOURCE_IDS: SourceId[] = ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"]
+const VALID_FILTER_RULE_ACTIONS: FilterRuleAction[] = ["include", "exclude"]
+
+export function normalizeFilterRules(raw: unknown): FilterRule[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  return raw
+    .map((entry, index) => normalizeFilterRule(entry, index))
+    .filter((entry): entry is FilterRule => entry !== null)
+    .map((entry, index) => ({
+      ...entry,
+      order: index
+    }))
+}
+
+function normalizeFilterRule(raw: unknown, fallbackOrder: number): FilterRule | null {
+  if (!raw || typeof raw !== "object") {
+    return null
+  }
+
+  const record = raw as Record<string, unknown>
+  const sourceIds = normalizeSourceIds(record.sourceIds)
+  if (!sourceIds.length) {
+    return null
+  }
+
+  const id = String(record.id ?? "").trim()
+  const name = String(record.name ?? "").trim()
+  if (!id || !name) {
+    return null
+  }
+
+  const conditions = normalizeFilterRuleConditions(record.conditions)
+  const action = VALID_FILTER_RULE_ACTIONS.includes(record.action as FilterRuleAction)
+    ? (record.action as FilterRuleAction)
+    : "exclude"
+
+  if (action === "include") {
+    conditions.titleExcludes = []
+  }
+
+  return {
+    id,
+    name,
+    enabled: Boolean(record.enabled),
+    action,
+    sourceIds,
+    order: clampInteger(record.order, 0, Number.MAX_SAFE_INTEGER, fallbackOrder),
+    conditions
+  }
+}
+
+function normalizeFilterRuleConditions(raw: unknown): FilterRuleConditions {
+  const record = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+
+  return {
+    titleIncludes: normalizeStringArray(record.titleIncludes),
+    titleExcludes: normalizeStringArray(record.titleExcludes),
+    subgroupIncludes: normalizeStringArray(record.subgroupIncludes)
+  }
+}
+
+function normalizeStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  const seen = new Set<string>()
+  const values: string[] = []
+
+  for (const entry of raw) {
+    const normalized = String(entry ?? "").trim()
+    if (!normalized || seen.has(normalized)) {
+      continue
+    }
+
+    seen.add(normalized)
+    values.push(normalized)
+  }
+
+  return values
+}
+
+function normalizeSourceIds(raw: unknown): SourceId[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  const seen = new Set<SourceId>()
+  const values: SourceId[] = []
+
+  for (const entry of raw) {
+    if (!VALID_SOURCE_IDS.includes(entry as SourceId)) {
+      continue
+    }
+
+    const sourceId = entry as SourceId
+    if (seen.has(sourceId)) {
+      continue
+    }
+
+    seen.add(sourceId)
+    values.push(sourceId)
+  }
+
+  return values
 }

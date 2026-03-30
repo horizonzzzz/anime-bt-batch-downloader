@@ -14,5 +14,6 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   remoteScriptRevision: "20181120.2",
   lastSavePath: "",
   sourceDeliveryModes: DEFAULT_SOURCE_DELIVERY_MODES,
-  enabledSources: DEFAULT_ENABLED_SOURCES
+  enabledSources: DEFAULT_ENABLED_SOURCES,
+  filterRules: []
 })

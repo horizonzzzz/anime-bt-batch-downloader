@@ -55,14 +55,15 @@ describe("background job state helpers", () => {
         prepared: 0,
         submitted: 0,
         duplicated: 0,
+        filtered: 0,
         failed: 0
       },
       results: []
     })
   })
 
-  it("records prepared, duplicate, and failed results into the running stats", () => {
-    const job = createBatchJob(18, 3, createSettings(), "")
+  it("records prepared, duplicate, filtered, and failed results into the running stats", () => {
+    const job = createBatchJob(18, 4, createSettings(), "")
 
     recordBatchResult(job, createResult())
     recordBatchResult(
@@ -80,6 +81,17 @@ describe("background job state helpers", () => {
       job,
       createResult({
         title: "Episode 03",
+        detailUrl: "https://www.kisssub.org/show-feedfeed.html",
+        status: "filtered",
+        deliveryMode: "",
+        submitUrl: "",
+        message: "Filtered by rule: 排除 RAW"
+      })
+    )
+    recordBatchResult(
+      job,
+      createResult({
+        title: "Episode 04",
         detailUrl: "https://www.kisssub.org/show-cafebabe.html",
         status: "failed",
         deliveryMode: "",
@@ -89,14 +101,15 @@ describe("background job state helpers", () => {
     )
 
     expect(job.stats).toEqual({
-      total: 3,
-      processed: 3,
+      total: 4,
+      processed: 4,
       prepared: 1,
       submitted: 0,
       duplicated: 1,
+      filtered: 1,
       failed: 1
     })
-    expect(job.results).toHaveLength(3)
+    expect(job.results).toHaveLength(4)
   })
 
   it("summarizes final batch results by terminal status", () => {
@@ -120,6 +133,13 @@ describe("background job state helpers", () => {
         }),
         createResult({
           title: "Episode 04",
+          status: "filtered",
+          deliveryMode: "",
+          submitUrl: "",
+          message: "Filtered by rule: 排除 RAW"
+        }),
+        createResult({
+          title: "Episode 05",
           status: "failed",
           deliveryMode: "",
           submitUrl: "",
@@ -129,6 +149,7 @@ describe("background job state helpers", () => {
     ).toEqual({
       submitted: 2,
       duplicated: 1,
+      filtered: 1,
       failed: 1
     })
   })

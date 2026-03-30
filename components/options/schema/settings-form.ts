@@ -1,13 +1,63 @@
 import { z } from "zod"
 
 import { DEFAULT_SETTINGS, sanitizeSettings } from "../../../lib/settings"
-import type { DeliveryMode, Settings } from "../../../lib/shared/types"
+import type { DeliveryMode, FilterRuleAction, Settings, SourceId } from "../../../lib/shared/types"
 
 const deliveryModeSchema = z.enum([
   "magnet",
   "torrent-url",
   "torrent-file"
 ] satisfies DeliveryMode[])
+
+const sourceIdSchema = z.enum([
+  "kisssub",
+  "dongmanhuayuan",
+  "acgrip",
+  "bangumimoe"
+] satisfies SourceId[])
+
+const filterRuleActionSchema = z.enum([
+  "include",
+  "exclude"
+] satisfies FilterRuleAction[])
+
+const filterRuleConditionsSchema = z.object({
+  titleIncludes: z.array(z.string().trim()),
+  titleExcludes: z.array(z.string().trim()),
+  subgroupIncludes: z.array(z.string().trim())
+})
+
+const filterRuleSchema = z
+  .object({
+    id: z.string().trim().min(1, "规则 ID 不能为空"),
+    name: z.string().trim().min(1, "请输入规则名称"),
+    enabled: z.boolean(),
+    action: filterRuleActionSchema,
+    sourceIds: z.array(sourceIdSchema).min(1, "至少选择一个站点"),
+    order: z.coerce.number().int().min(0),
+    conditions: filterRuleConditionsSchema
+  })
+  .superRefine((rule, ctx) => {
+    const hasCondition = Object.values(rule.conditions).some((values) =>
+      values.some((value) => value.trim().length > 0)
+    )
+
+    if (!hasCondition) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conditions"],
+        message: "至少填写一个过滤条件"
+      })
+    }
+
+    if (rule.action === "include" && rule.conditions.titleExcludes.some((value) => value.trim().length > 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conditions", "titleExcludes"],
+        message: "保留规则暂不支持使用标题排除条件"
+      })
+    }
+  })
 
 export const settingsFormSchema = z.object({
   qbBaseUrl: z
@@ -35,7 +85,8 @@ export const settingsFormSchema = z.object({
     dongmanhuayuan: z.boolean().optional(),
     acgrip: z.boolean().optional(),
     bangumimoe: z.boolean().optional()
-  })
+  }),
+  filterRules: z.array(filterRuleSchema)
 })
 
 export type SettingsFormInput = z.input<typeof settingsFormSchema>

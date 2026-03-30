@@ -69,7 +69,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         }
@@ -93,7 +93,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         }
@@ -117,7 +117,7 @@ describe("history storage", () => {
         sourceId: "kisssub",
         status: "completed",
         createdAt: "2026-01-02T00:00:00Z",
-        stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+        stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
         items: [],
         version: 1
       }
@@ -144,7 +144,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         })
@@ -160,7 +160,7 @@ describe("history storage", () => {
         sourceId: "kisssub",
         status: "completed",
         createdAt: "2026-02-01T00:00:00Z",
-        stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+        stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
         items: [],
         version: 1
       }
@@ -190,7 +190,7 @@ describe("history storage", () => {
             sourceId: "kisssub",
             status: "completed",
             createdAt: "2026-01-01T00:00:00Z",
-            stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+            stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
             items: [],
             version: 1
           }
@@ -223,7 +223,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         }
@@ -248,7 +248,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         }
@@ -262,7 +262,7 @@ describe("history storage", () => {
         ...existingRecords[0],
         name: "Updated Test",
         status: "partial_failure",
-        stats: { total: 1, success: 0, duplicated: 0, failed: 1 }
+        stats: { total: 1, success: 0, duplicated: 0, filtered: 0, failed: 1 }
       }
 
       await updateHistoryRecord(updatedRecord)
@@ -286,7 +286,7 @@ describe("history storage", () => {
         sourceId: "kisssub",
         status: "completed",
         createdAt: "2026-01-01T00:00:00Z",
-        stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+        stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
         items: [],
         version: 1
       }
@@ -326,7 +326,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         },
@@ -336,7 +336,7 @@ describe("history storage", () => {
           sourceId: "kisssub",
           status: "completed",
           createdAt: "2026-01-02T00:00:00Z",
-          stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+          stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
           items: [],
           version: 1
         }
@@ -364,7 +364,7 @@ describe("history storage", () => {
             sourceId: "kisssub",
             status: "completed",
             createdAt: "2026-01-01T00:00:00Z",
-            stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+            stats: { total: 1, success: 1, duplicated: 0, filtered: 0, failed: 0 },
             items: [],
             version: 1
           }
