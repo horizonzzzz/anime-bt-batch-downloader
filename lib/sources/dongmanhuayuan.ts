@@ -119,6 +119,8 @@ async function executeExtraction(tabId: number): Promise<DongmanhuayuanDetailSna
 }
 
 function dongmanhuayuanDetailExtractionScript(): DongmanhuayuanDetailSnapshot {
+  const isSiteHeading = (text: string) => text === "动漫花园" || text === "動漫花園"
+
   const textInputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
     .map((input) => input.value.trim())
     .filter(Boolean)
@@ -129,10 +131,10 @@ function dongmanhuayuanDetailExtractionScript(): DongmanhuayuanDetailSnapshot {
 
   const resourceTitle =
     document.querySelector("main h1")?.textContent?.trim() ||
-    document.querySelector("article h1, section h1, .container h1")?.textContent?.trim() ||
+    document.querySelector("article h1, section h1")?.textContent?.trim() ||
     Array.from(document.querySelectorAll("h1"))
       .map((node) => node.textContent?.trim() || "")
-      .find((text) => text && text !== "动漫花园") ||
+      .find((text) => text && !isSiteHeading(text)) ||
     ""
   const fallbackTitle = document.title.replace(/_动漫花园.*$/u, "").trim()
 

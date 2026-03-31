@@ -122,6 +122,46 @@ describe("dongmanhuayuanSourceAdapter", () => {
     })
   })
 
+  it("ignores the container site heading and keeps the resource h1 on live-like pages", async () => {
+    withDetailTab.mockImplementation(async (_detailUrl, _timeoutMs, run) => {
+      document.title = "[SweetSub][刹那之花][Momentary Lily][01-14 精校合集]_动漫花园磁力链接/电驴/迅雷下载"
+      document.body.innerHTML = `
+        <div class="container">
+          <h1>动漫花园</h1>
+          <section>
+            <h1>[SweetSub][刹那之花][Momentary Lily][01-14 精校合集]</h1>
+          </section>
+          <input value="magnet:?xt=urn:btih:abcdef1234567890abcdef1234567890abcdef12" />
+        </div>
+      `
+
+      globalThis.chrome = {
+        scripting: {
+          executeScript: vi.fn(async ({ func, args = [] }) => [{ result: await func(...args) }])
+        }
+      } as unknown as typeof chrome
+
+      return run(1)
+    })
+
+    await expect(
+      dongmanhuayuanSourceAdapter.extractSingleItem(
+        {
+          sourceId: "dongmanhuayuan",
+          detailUrl: "https://www.dongmanhuayuan.com/detail/TEST12.html",
+          title: "placeholder"
+        },
+        {
+          ...DEFAULT_SETTINGS,
+          retryCount: 0
+        }
+      )
+    ).resolves.toMatchObject({
+      title: "[SweetSub][刹那之花][Momentary Lily][01-14 精校合集]",
+      magnetUrl: "magnet:?xt=urn:btih:abcdef1234567890abcdef1234567890abcdef12"
+    })
+  })
+
   it("falls back to document title when no resource heading exists", async () => {
     withDetailTab.mockImplementation(async (_detailUrl, _timeoutMs, run) => {
       document.title = "[爱恋字幕社][新番][示例标题]_动漫花园磁力链接/电驴/迅雷下载"
