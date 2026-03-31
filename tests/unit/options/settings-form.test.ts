@@ -106,6 +106,28 @@ describe("options settings form helpers", () => {
     ])
   })
 
+  it("drops invalid empty filter rules from stored settings when creating defaults", () => {
+    expect(
+      createSettingsFormDefaults({
+        filterRules: [
+          {
+            id: "rule-empty",
+            name: "空规则",
+            enabled: true,
+            action: "exclude",
+            sourceIds: ["kisssub"],
+            order: 0,
+            conditions: {
+              titleIncludes: [],
+              titleExcludes: [],
+              subgroupIncludes: []
+            }
+          }
+        ]
+      }).filterRules
+    ).toEqual([])
+  })
+
   it("rejects filter rules without any conditions", () => {
     const result = settingsFormSchema.safeParse({
       ...createSettingsFormDefaults(),

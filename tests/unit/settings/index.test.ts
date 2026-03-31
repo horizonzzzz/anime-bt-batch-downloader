@@ -198,4 +198,26 @@ describe("sanitizeSettings", () => {
       }).filterRules[0]?.conditions.titleExcludes
     ).toEqual([])
   })
+
+  it("drops filter rules without any conditions during sanitization", () => {
+    expect(
+      sanitizeSettings({
+        filterRules: [
+          {
+            id: "rule-empty",
+            name: "空规则",
+            enabled: true,
+            action: "exclude",
+            sourceIds: ["kisssub"],
+            order: 0,
+            conditions: {
+              titleIncludes: [],
+              titleExcludes: [],
+              subgroupIncludes: []
+            }
+          }
+        ]
+      }).filterRules
+    ).toEqual([])
+  })
 })

@@ -96,6 +96,10 @@ function normalizeFilterRule(raw: unknown, fallbackOrder: number): FilterRule | 
     conditions.titleExcludes = []
   }
 
+  if (!hasFilterRuleConditions(conditions)) {
+    return null
+  }
+
   return {
     id,
     name,
@@ -115,6 +119,14 @@ function normalizeFilterRuleConditions(raw: unknown): FilterRuleConditions {
     titleExcludes: normalizeStringArray(record.titleExcludes),
     subgroupIncludes: normalizeStringArray(record.subgroupIncludes)
   }
+}
+
+function hasFilterRuleConditions(conditions: FilterRuleConditions): boolean {
+  return (
+    conditions.titleIncludes.length > 0 ||
+    conditions.titleExcludes.length > 0 ||
+    conditions.subgroupIncludes.length > 0
+  )
 }
 
 function normalizeStringArray(raw: unknown): string[] {

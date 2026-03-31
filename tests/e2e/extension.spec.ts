@@ -393,9 +393,26 @@ test("content script keeps the minimized launcher hover transform consistent acr
       await launcher.hover()
 
       await expect
-        .poll(() => readLauncherHoverState(page))
+        .poll(async () => {
+          const state = await readLauncherHoverState(page)
+          const changedVisuals =
+            state.boxShadow !== beforeHover.boxShadow ||
+            state.transform !== beforeHover.transform ||
+            state.translate !== beforeHover.translate ||
+            state.scale !== beforeHover.scale ||
+            state.rect.x !== beforeHover.rect.x ||
+            state.rect.y !== beforeHover.rect.y ||
+            state.rect.width !== beforeHover.rect.width ||
+            state.rect.height !== beforeHover.rect.height
+
+          return {
+            ...state,
+            changedVisuals
+          }
+        })
         .toMatchObject({
-          hovered: true
+          hovered: true,
+          changedVisuals: true
         })
 
       const afterHover = await readLauncherHoverState(page)

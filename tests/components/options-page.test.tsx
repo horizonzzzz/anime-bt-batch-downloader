@@ -412,8 +412,10 @@ describe("OptionsPage", () => {
       await user.click(screen.getByRole("button", { name: "测试 qB 连接" }))
 
       expect(api.testConnection).toHaveBeenCalledWith(settings)
-      expect(screen.getByRole("button", { name: "测试 qB 连接" })).toBeDisabled()
-      expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "测试 qB 连接" })).toBeDisabled()
+        expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
+      })
 
       resolveConnection?.({
         baseUrl: settings.qbBaseUrl,
