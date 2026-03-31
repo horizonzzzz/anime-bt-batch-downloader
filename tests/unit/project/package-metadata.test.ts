@@ -13,6 +13,7 @@ type PackageJson = {
     description?: string
     action?: {
       default_title?: string
+      default_popup?: string
     }
   }
 }
@@ -47,6 +48,7 @@ describe("package metadata", () => {
     expect(packageJson.license).toBe("MIT")
     expect(packageJson.manifest?.name).toBe("Anime BT Batch")
     expect(packageJson.manifest?.action?.default_title).toBe("Anime BT Batch")
+    expect(packageJson.manifest?.action?.default_popup).toBe("popup.html")
     expect(packageJson.manifest?.description).toContain("anime BT source")
   })
 
@@ -58,7 +60,8 @@ describe("package metadata", () => {
     ]
     const rootEntries = [
       resolve(process.cwd(), "background.ts"),
-      resolve(process.cwd(), "options.tsx")
+      resolve(process.cwd(), "options.tsx"),
+      resolve(process.cwd(), "popup.tsx")
     ]
     const allowedUiDir = resolve(process.cwd(), "components", "ui")
     const filesToCheck = sourceRoots

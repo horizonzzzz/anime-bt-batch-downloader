@@ -1,10 +1,17 @@
+import {
+  DEFAULT_OPTIONS_ROUTE,
+  OPTIONS_ROUTE_PATHS,
+  type OptionsRoutePath
+} from "../../../lib/shared/options-routes"
+export { DEFAULT_OPTIONS_ROUTE } from "../../../lib/shared/options-routes"
+
 export type OptionsRouteId = "general" | "sites" | "filters" | "history" | "overview"
 
 export type OptionsRouteMode = "form" | "view"
 
 export type OptionsRouteMeta = {
   id: OptionsRouteId
-  path: string
+  path: OptionsRoutePath
   label: string
   title: string
   description: string
@@ -12,12 +19,12 @@ export type OptionsRouteMeta = {
   mode: OptionsRouteMode
 }
 
-export const DEFAULT_OPTIONS_ROUTE = "/general"
+const [GENERAL_ROUTE, SITES_ROUTE, FILTERS_ROUTE, HISTORY_ROUTE, OVERVIEW_ROUTE] = OPTIONS_ROUTE_PATHS
 
 export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
   {
     id: "general",
-    path: "/general",
+    path: GENERAL_ROUTE,
     label: "连接与基础设置",
     title: "连接与基础设置",
     description: "配置 qBittorrent WebUI 的连接信息，以及全局批量提取节奏。",
@@ -26,7 +33,7 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
   },
   {
     id: "sites",
-    path: "/sites",
+    path: SITES_ROUTE,
     label: "站点配置",
     title: "站点配置",
     description: "统一管理 4 个站点的启用状态和专属配置。",
@@ -35,7 +42,7 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
   },
   {
     id: "filters",
-    path: "/filters",
+    path: FILTERS_ROUTE,
     label: "过滤规则",
     title: "过滤规则",
     description: "在批量提交到 qBittorrent 之前，按规则自动保留或排除资源。",
@@ -44,7 +51,7 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
   },
   {
     id: "history",
-    path: "/history",
+    path: HISTORY_ROUTE,
     label: "批次历史",
     title: "批次历史",
     description: "查看历史批量提交记录，追溯下载状态和失败原因。",
@@ -53,7 +60,7 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
   },
   {
     id: "overview",
-    path: "/overview",
+    path: OVERVIEW_ROUTE,
     label: "源站概览",
     title: "源站概览",
     description: "查看当前支持站点的简介与访问入口。",

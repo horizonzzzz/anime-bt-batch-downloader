@@ -34,7 +34,8 @@
       "https://*/*"
     ],
     "action": {
-      "default_title": "Anime BT Batch"
+      "default_title": "Anime BT Batch",
+      "default_popup": "popup.html"
     }
   },
   "dependencies": {

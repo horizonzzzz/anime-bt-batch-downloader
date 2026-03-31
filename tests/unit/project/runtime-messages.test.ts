@@ -7,6 +7,7 @@ import {
   sendRuntimeRequest
 } from "../../../lib/shared/messages"
 import { DEFAULT_SETTINGS } from "../../../lib/settings/defaults"
+import type { PopupStateViewModel } from "../../../lib/shared/popup"
 
 const runtimeSendMessage = vi.fn()
 
@@ -47,6 +48,30 @@ describe("runtime message helpers", () => {
     ).toEqual({
       ok: true,
       total: 2
+    })
+  })
+
+  it("supports popup runtime requests and typed popup state responses", () => {
+    const popupState: PopupStateViewModel = {
+      qbConfigured: false,
+      activeTab: {
+        url: null,
+        sourceId: null,
+        supported: false,
+        enabled: false
+      },
+      supportedSites: [],
+      version: "1.4.0",
+      helpUrl: "https://github.com/horizonzzzz/anime-bt-batch-downloader"
+    }
+
+    expect(
+      createRuntimeSuccessResponse("GET_POPUP_STATE", {
+        state: popupState
+      })
+    ).toEqual({
+      ok: true,
+      state: popupState
     })
   })
 

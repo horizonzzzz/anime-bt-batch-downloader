@@ -1,4 +1,12 @@
-import { createBatchDownloadManager, fetchTorrentForUpload, retryFailedItems, testQbConnection } from "./lib/background"
+import {
+  buildPopupState,
+  createBatchDownloadManager,
+  fetchTorrentForUpload,
+  openOptionsPageForRoute,
+  retryFailedItems,
+  testQbConnection,
+  setSourceEnabledForPopup
+} from "./lib/background"
 import { addTorrentFilesToQb, addUrlsToQb, loginQb } from "./lib/downloader/qb"
 import {
   clearHistory,
@@ -8,12 +16,15 @@ import {
   updateHistoryRecord
 } from "./lib/history/storage"
 import { ensureSettings, getSettings, saveSettings } from "./lib/settings"
+import { SOURCE_IDS } from "./lib/sources/catalog"
 import {
   BATCH_EVENT,
   createRuntimeErrorResponse,
   createRuntimeSuccessResponse,
   type RuntimeRequest
 } from "./lib/shared/messages"
+import { isOptionsRoutePath } from "./lib/shared/options-routes"
+import type { SourceId } from "./lib/shared/types"
 import type { BatchEventPayload } from "./lib/shared/types"
 import { extractSingleItem } from "./lib/sources/extraction"
 
@@ -30,14 +41,15 @@ chrome.runtime.onInstalled.addListener(() => {
   void ensureSettings()
 })
 
-chrome.runtime.onMessage.addListener((message: RuntimeRequest, sender, sendResponse) => {
-  if (!message || typeof message.type !== "string") {
+chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
+  if (!isRuntimeMessage(message)) {
     return false
   }
+  const runtimeMessage = message as RuntimeRequest
 
   void (async () => {
     try {
-      switch (message.type) {
+      switch (runtimeMessage.type) {
         case "GET_SETTINGS":
           sendResponse(
             createRuntimeSuccessResponse("GET_SETTINGS", {
@@ -48,27 +60,58 @@ chrome.runtime.onMessage.addListener((message: RuntimeRequest, sender, sendRespo
         case "SAVE_SETTINGS":
           sendResponse(
             createRuntimeSuccessResponse("SAVE_SETTINGS", {
-              settings: await saveSettings(message.settings ?? {})
+              settings: await saveSettings(runtimeMessage.settings ?? {})
             })
           )
           return
         case "TEST_QB_CONNECTION":
           sendResponse(
             createRuntimeSuccessResponse("TEST_QB_CONNECTION", {
-              result: await testQbConnection(message.settings ?? null)
+              result: await testQbConnection(runtimeMessage.settings ?? null)
+            })
+          )
+          return
+        case "GET_POPUP_STATE":
+          sendResponse(
+            createRuntimeSuccessResponse("GET_POPUP_STATE", {
+              state: await buildPopupState()
+            })
+          )
+          return
+        case "SET_SOURCE_ENABLED":
+          if (!isValidPopupSourceTogglePayload(message)) {
+            sendResponse(createRuntimeErrorResponse("Invalid SET_SOURCE_ENABLED payload"))
+            return
+          }
+          sendResponse(
+            createRuntimeSuccessResponse("SET_SOURCE_ENABLED", {
+              settings: await setSourceEnabledForPopup(message.sourceId, message.enabled)
             })
           )
           return
         case "OPEN_OPTIONS_PAGE":
-          await chrome.runtime.openOptionsPage()
+          if (typeof message.route === "undefined") {
+            await chrome.runtime.openOptionsPage()
+            sendResponse(createRuntimeSuccessResponse("OPEN_OPTIONS_PAGE", {}))
+            return
+          }
+
+          if (!isOptionsRoutePath(message.route)) {
+            sendResponse(
+              createRuntimeErrorResponse(`Invalid OPEN_OPTIONS_PAGE route: ${String(message.route)}`)
+            )
+            return
+          }
+
+          await openOptionsPageForRoute(message.route)
           sendResponse(createRuntimeSuccessResponse("OPEN_OPTIONS_PAGE", {}))
           return
         case "START_BATCH_DOWNLOAD":
           sendResponse(
             await batchDownloadManager.startBatchDownload(
               typeof sender.tab?.id === "number" ? sender.tab.id : null,
-              message.items ?? [],
-              message.savePath
+              runtimeMessage.items ?? [],
+              runtimeMessage.savePath
             )
           )
           return
@@ -83,14 +126,14 @@ chrome.runtime.onMessage.addListener((message: RuntimeRequest, sender, sendRespo
           return
         }
         case "DELETE_HISTORY_RECORD": {
-          await deleteHistoryRecord(message.recordId)
+          await deleteHistoryRecord(runtimeMessage.recordId)
           sendResponse(createRuntimeSuccessResponse("DELETE_HISTORY_RECORD", {}))
           return
         }
         case "RETRY_FAILED_ITEMS": {
           try {
             const result = await retryFailedItems(
-              { recordId: message.recordId, itemIds: message.itemIds },
+              { recordId: runtimeMessage.recordId, itemIds: runtimeMessage.itemIds },
               {
                 getSettings,
                 getHistoryRecord,
@@ -141,3 +184,25 @@ async function sendBatchEvent(tabId: number, payload: BatchEventPayload) {
 }
 
 export {}
+
+function isRuntimeMessage(
+  message: unknown
+): message is {
+  type: string
+  [key: string]: unknown
+} {
+  return typeof message === "object" && message !== null && typeof (message as { type?: unknown }).type === "string"
+}
+
+function isValidSourceId(sourceId: unknown): sourceId is SourceId {
+  return typeof sourceId === "string" && (SOURCE_IDS as readonly string[]).includes(sourceId)
+}
+
+function isValidPopupSourceTogglePayload(message: {
+  [key: string]: unknown
+}): message is {
+  sourceId: SourceId
+  enabled: boolean
+} {
+  return isValidSourceId(message.sourceId) && typeof message.enabled === "boolean"
+}

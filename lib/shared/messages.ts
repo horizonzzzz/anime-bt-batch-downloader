@@ -1,5 +1,6 @@
-import type { BatchItem, Settings, TestQbConnectionResult } from "./types"
+import type { BatchItem, Settings, SourceId, TestQbConnectionResult } from "./types"
 import type { TaskHistoryRecord } from "../history/types"
+import type { PopupOptionsRoute, PopupStateViewModel } from "./popup"
 
 export const BATCH_EVENT = "ANIME_BT_BATCH_EVENT"
 
@@ -11,7 +12,9 @@ export type RuntimeRequest =
   | { type: "GET_SETTINGS" }
   | { type: "SAVE_SETTINGS"; settings?: Partial<Settings> }
   | { type: "TEST_QB_CONNECTION"; settings?: Partial<Settings> | null }
-  | { type: "OPEN_OPTIONS_PAGE" }
+  | { type: "GET_POPUP_STATE" }
+  | { type: "SET_SOURCE_ENABLED"; sourceId: SourceId; enabled: boolean }
+  | { type: "OPEN_OPTIONS_PAGE"; route?: PopupOptionsRoute }
   | { type: "START_BATCH_DOWNLOAD"; items?: BatchItem[]; savePath?: string }
 
 export type RuntimeRequestType = RuntimeRequest["type"]
@@ -38,6 +41,16 @@ export type TestQbConnectionSuccessResponse = {
 
 export type OpenOptionsPageSuccessResponse = {
   ok: true
+}
+
+export type GetPopupStateSuccessResponse = {
+  ok: true
+  state: PopupStateViewModel
+}
+
+export type SetSourceEnabledSuccessResponse = {
+  ok: true
+  settings: Settings
 }
 
 export type StartBatchDownloadSuccessResponse = {
@@ -72,6 +85,8 @@ export type RuntimeSuccessResponseMap = {
   GET_SETTINGS: GetSettingsSuccessResponse
   SAVE_SETTINGS: SaveSettingsSuccessResponse
   TEST_QB_CONNECTION: TestQbConnectionSuccessResponse
+  GET_POPUP_STATE: GetPopupStateSuccessResponse
+  SET_SOURCE_ENABLED: SetSourceEnabledSuccessResponse
   OPEN_OPTIONS_PAGE: OpenOptionsPageSuccessResponse
   START_BATCH_DOWNLOAD: StartBatchDownloadSuccessResponse
 }
@@ -90,6 +105,8 @@ export type RetryFailedItemsResponse = RuntimeResponseFor<"RETRY_FAILED_ITEMS">
 export type GetSettingsResponse = RuntimeResponseFor<"GET_SETTINGS">
 export type SaveSettingsResponse = RuntimeResponseFor<"SAVE_SETTINGS">
 export type TestQbConnectionResponse = RuntimeResponseFor<"TEST_QB_CONNECTION">
+export type GetPopupStateResponse = RuntimeResponseFor<"GET_POPUP_STATE">
+export type SetSourceEnabledResponse = RuntimeResponseFor<"SET_SOURCE_ENABLED">
 export type OpenOptionsPageResponse = RuntimeResponseFor<"OPEN_OPTIONS_PAGE">
 export type StartBatchDownloadResponse = RuntimeResponseFor<"START_BATCH_DOWNLOAD">
 export type RuntimeResponse = RuntimeResponseFor<RuntimeRequestType>

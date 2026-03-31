@@ -15,10 +15,15 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `Filter Rules`
   - `Batch History`
   - `Source Overview`
+- Supported popup surface responsibilities:
+  - loading extension runtime status for quick checks before opening options
+  - surfacing qBittorrent configuration readiness and active-tab source support/enabled state
+  - offering quick links into options routes and one-click enable/disable for the active supported source
 - the options workspace uses hash-routed navigation with:
   - `options.html#/general`
   - `options.html#/sites`
   - `options.html#/filters`
+  - `options.html#/history`
   - `options.html#/overview`
 - Supported downloader target: `qBittorrent WebUI` only
 - Optional per-batch save path override is supported
@@ -50,6 +55,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - Browser-extension runtime with:
   - a background service worker in `background.ts`
   - a content script entry in `contents/source-batch.tsx`
+  - a popup entry in `popup.tsx`
   - an options page entry in `options.tsx`
 
 ## Source Of Truth Files
@@ -58,10 +64,14 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Handles runtime message registration and delegates batch orchestration plus qBittorrent connection tests to `lib/background/`.
 - `options.tsx`
   Boots the hash-routed options page, loads `styles/options.css`, and wires the React options UI to background message APIs.
+- `popup.tsx`
+  Boots the popup page, loads `styles/popup.css`, and mounts the popup container that drives popup actions via runtime message APIs.
 - `components/`
-  UI components for the floating batch panel and selection checkbox. The root `components/batch-panel.tsx` now acts as the injected panel entry shell and delegates focused panel sections to `components/batch-panel/`; the options workspace lives under `components/options/`, contents-specific primitives under `components/content-ui/`, and shared option-page primitives under `components/ui/`.
+  UI components for the floating batch panel, popup surface, and selection checkbox. The root `components/batch-panel.tsx` now acts as the injected panel entry shell and delegates focused panel sections to `components/batch-panel/`; popup UI lives under `components/popup/`; the options workspace lives under `components/options/`, contents-specific primitives under `components/content-ui/`, and shared option-page primitives under `components/ui/`.
 - `components/batch-panel/`
   Focused injected batch-panel sections and pure view-state helpers for launcher/header/summary/advanced/actions composition. Keep batch-panel-specific UI derivation here instead of growing `components/batch-panel.tsx` again.
+- `components/popup/`
+  Source of truth for popup container/state rendering and popup-only sections such as status, quick actions, supported-site list, and footer actions.
 - `components/content-ui/`
   Contents-only Tailwind/shadcn-style primitives for the injected batch panel and selection checkbox visuals. Keep these isolated from `components/ui/` so third-party page injection stays on its own sizing, reset contract, and `data-*` test-anchor surface.
 - `components/options/`
@@ -72,7 +82,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `contents/`
   Content script entry for supported source pages, Shadow Root host orchestration, and injected React UI mounting.
 - `styles/`
-  `styles/options.css` is the Tailwind entry for the options page, while `styles/content.css` is the root-scoped Tailwind components/utilities entry for injected content UI tokens, reset rules, and shadow-root CSS-text injection. Contents styling should continue to be injected from bundled CSS text into each shadow root, not re-read from page stylesheets.
+  `styles/options.css` is the Tailwind entry for the options page, `styles/popup.css` is the popup entry stylesheet, and `styles/content.css` is the root-scoped Tailwind components/utilities entry for injected content UI tokens, reset rules, and shadow-root CSS-text injection. Contents styling should continue to be injected from bundled CSS text into each shadow root, not re-read from page stylesheets.
 - `assets/`
   Static icon assets used by the extension UI. `anime-bt-icon-speedline.svg` is the extension brand icon, packaged site icons for the options-page site-management cards are normalized to local `site-icon-*.(png|svg)` assets, and `icon.png` is the generated packaging icon consumed by Plasmo for extension icon sizes.
 - `CHANGELOG.md`
@@ -96,6 +106,10 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Task history persistence module, including type definitions, storage read/write, and automatic cleanup logic. Automatically saved by the background when a batch completes.
 - `lib/background/retry.ts`
   Orchestration logic for retrying failed entries, extracting failed entries from history records and resubmitting to qBittorrent.
+- `lib/background/popup.ts`
+  Popup-specific background helpers for building popup view state, normalizing options routes, opening options tabs, and persisting source enable/disable toggles from the popup.
+- `lib/shared/popup.ts`
+  Shared popup view-model types and popup metadata constants reused across popup UI and background runtime handlers.
 - `components/options/pages/history/`
   Batch history page components, including list view, detail view, retry button, and delete button.
 - `components/options/ui/alert-dialog.tsx`
@@ -124,10 +138,25 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 7. `lib/background/job-state.ts`
    Tracks per-job stats, accumulates results, and produces the completion summary payload sent back to the content script.
 
+### Popup Runtime Flow
+
+1. `popup.tsx`
+   Mounts the popup surface and loads popup styling.
+2. `components/popup/PopupContainer.tsx`
+   Requests popup state, drives popup actions, and sends popup-triggered runtime messages.
+3. `background.ts`
+   Routes popup runtime messages for state loading, source toggles, and options-page opening.
+4. `lib/background/popup.ts`
+   Builds popup view state from settings and active-tab context, applies source toggle writes, and resolves options-route navigation targets.
+5. `lib/shared/popup.ts`
+   Provides popup view-model contracts and supported-site metadata shared between background and popup UI.
+
 ### Runtime Ownership
 
 - `lib/background/`
   Background-only orchestration, job state, and service helpers.
+- `lib/background/popup.ts`
+  Popup-only background services for popup state assembly, source enablement writes, and options-page route navigation.
 - `lib/content/`
   Content-script page matching, anchor extraction, and Shadow Root host/style utilities. Keep `shadow-root.ts` focused on host creation plus direct style injection into shadow roots; do not reintroduce document stylesheet readback as a runtime dependency.
 - `lib/sources/`
@@ -138,6 +167,8 @@ Use this section as the shortest runtime-oriented guide to the current code layo
   qBittorrent WebUI client and submission APIs.
 - `lib/shared/`
   Cross-runtime message contracts, shared types, and utility helpers used by multiple domains.
+- `lib/shared/popup.ts`
+  Popup-specific shared types and constants for popup state/view-model contracts.
 - `lib/filter-rules/`
   Filter rule matching and subgroup extraction logic, responsible for include/exclude decisions before submission.
 - `lib/history/`
