@@ -39,7 +39,6 @@ export function PopupStatusCard({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="mb-6"
       >
         {!qbConfigured ? (
           <div className="overflow-hidden rounded-2xl border border-orange-200 bg-orange-50 shadow-sm">
