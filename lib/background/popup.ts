@@ -147,9 +147,5 @@ function resolveActiveSourceId(url: string | null): SourceId | null {
 }
 
 function isQbConfigured(settings: Settings): boolean {
-  return Boolean(
-    settings.qbBaseUrl.trim() &&
-      settings.qbUsername.trim() &&
-      settings.qbPassword
-  )
+  return Boolean(settings.qbBaseUrl.trim())
 }

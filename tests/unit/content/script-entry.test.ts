@@ -110,6 +110,19 @@ describe("content script entry", () => {
     expect(module.default).toBeTypeOf("function")
   })
 
+  it("registers supported bare and www domain variants in content-script matches", async () => {
+    const module = (await import("../../../contents/source-batch")) as {
+      config?: { matches?: string[] }
+    }
+
+    expect(module.config?.matches).toContain("https://kisssub.org/*")
+    expect(module.config?.matches).toContain("https://www.kisssub.org/*")
+    expect(module.config?.matches).toContain("https://dongmanhuayuan.com/*")
+    expect(module.config?.matches).toContain("https://www.dongmanhuayuan.com/*")
+    expect(module.config?.matches).toContain("https://bangumi.moe/*")
+    expect(module.config?.matches).toContain("https://www.bangumi.moe/*")
+  })
+
   it("does not inject UI when the matched source is disabled", async () => {
     getSourceAdapterForLocation.mockReturnValueOnce({
       id: "acgrip",

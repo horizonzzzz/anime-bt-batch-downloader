@@ -57,10 +57,26 @@ describe("popup background helpers", () => {
     expect(state.helpUrl).toBe("https://github.com/horizonzzzz/anime-bt-batch-downloader")
   })
 
+  it("treats a saved qB base url as configured even when username and password are blank", async () => {
+    const state = await buildPopupState({
+      getSettings: async () =>
+        createSettings({
+          qbBaseUrl: "http://127.0.0.1:17474",
+          qbUsername: "",
+          qbPassword: ""
+        }),
+      getActiveTabUrl: async () => "https://example.com/list",
+      getExtensionVersion: () => "1.4.0"
+    })
+
+    expect(state.qbConfigured).toBe(true)
+  })
+
   it("reports unsupported active tabs and non-configured qB credentials", async () => {
     const state = await buildPopupState({
       getSettings: async () =>
         createSettings({
+          qbBaseUrl: "",
           qbUsername: "",
           qbPassword: ""
         }),

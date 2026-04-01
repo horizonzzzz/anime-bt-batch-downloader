@@ -23,10 +23,16 @@ export default function SourceBatchContentScript() {
 
 export const config: PlasmoCSConfig = {
   matches: [
+    "http://kisssub.org/*",
+    "https://kisssub.org/*",
     "http://www.kisssub.org/*",
     "https://www.kisssub.org/*",
+    "http://dongmanhuayuan.com/*",
+    "https://dongmanhuayuan.com/*",
     "http://www.dongmanhuayuan.com/*",
     "https://www.dongmanhuayuan.com/*",
+    "http://www.bangumi.moe/*",
+    "https://www.bangumi.moe/*",
     "http://acg.rip/*",
     "https://acg.rip/*",
     "http://bangumi.moe/*",

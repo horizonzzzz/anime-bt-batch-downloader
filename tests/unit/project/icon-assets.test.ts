@@ -13,6 +13,7 @@ describe("icon assets", () => {
       "site-icon-bangumimoe.svg"
     ])
     expect(assetNames.filter((name) => name.endsWith(".png"))).toEqual([
+      "icon-grayscale.png",
       "icon.png",
       "site-icon-acgrip.png",
       "site-icon-dongmanhuayuan.png",

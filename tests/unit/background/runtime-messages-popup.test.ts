@@ -12,6 +12,8 @@ const {
 
 const onInstalledAddListener = vi.fn()
 const onMessageAddListener = vi.fn()
+const onUpdatedAddListener = vi.fn()
+const onActivatedAddListener = vi.fn()
 const runtimeOpenOptionsPage = vi.fn()
 
 vi.mock("../../../lib/background", async () => {
@@ -43,7 +45,18 @@ function installChromeMock() {
         },
         openOptionsPage: runtimeOpenOptionsPage
       },
+      action: {
+        setIcon: vi.fn(() => Promise.resolve())
+      },
       tabs: {
+        query: vi.fn(async () => []),
+        get: vi.fn(async () => ({ id: 1, url: "https://example.com/" })),
+        onUpdated: {
+          addListener: onUpdatedAddListener
+        },
+        onActivated: {
+          addListener: onActivatedAddListener
+        },
         sendMessage: vi.fn()
       }
     }
