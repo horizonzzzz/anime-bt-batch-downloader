@@ -134,6 +134,7 @@ describe("OptionsPage", () => {
 
     expect(await screen.findByRole("heading", { name: "过滤规则" })).toBeInTheDocument()
     expect(screen.getByText("策略工作台")).toBeInTheDocument()
+    expect(screen.queryByText("已接入")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "新建策略组" })).toBeInTheDocument()
     expect(screen.getByText("规则测试台")).toBeInTheDocument()
 

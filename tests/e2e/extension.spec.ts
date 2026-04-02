@@ -445,6 +445,45 @@ test("filters workbench select controls stay interactable inside the rule builde
   }
 })
 
+test("rule builder prioritizes width for the condition value input", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const page = await openOptionsPage(extension, {
+      route: "/filters",
+      heading: "过滤规则"
+    })
+
+    await page.setViewportSize({
+      width: 1400,
+      height: 1200
+    })
+
+    await page.getByRole("button", { name: "新建策略组" }).click()
+    await page.getByLabel("策略组名称").fill("布局验证")
+    await page.getByRole("button", { name: "保存策略组" }).click()
+
+    await page.getByRole("button", { name: "添加规则" }).click()
+
+    const fieldWidth = await page.getByLabel("条件字段 1").evaluate((element) =>
+      Math.round(element.getBoundingClientRect().width)
+    )
+    const operatorWidth = await page.getByLabel("条件操作 1").evaluate((element) =>
+      Math.round(element.getBoundingClientRect().width)
+    )
+    const valueWidth = await page.getByLabel("条件值 1").evaluate((element) =>
+      Math.round(element.getBoundingClientRect().width)
+    )
+
+    expect(valueWidth).toBeGreaterThan(fieldWidth)
+    expect(valueWidth).toBeGreaterThan(operatorWidth)
+
+    await page.close()
+  } finally {
+    await extension.close()
+  }
+})
+
 test("content script injects the batch panel on a Kisssub list page", async () => {
   const extension = await launchExtensionContext()
 

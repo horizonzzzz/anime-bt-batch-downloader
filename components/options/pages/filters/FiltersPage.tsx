@@ -27,7 +27,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Badge,
   Button,
   Card
 } from "../../../ui"
@@ -276,7 +275,6 @@ export function FiltersPage() {
                 <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
                   策略工作台
                 </h2>
-                <Badge variant="brand">已接入</Badge>
               </div>
               <p className="max-w-2xl text-sm leading-6 text-zinc-500">
                 使用“策略组 + 规则构建器”管理预提交过滤逻辑。策略组和规则会在保存设置后写入扩展配置，并参与后台过滤流程。

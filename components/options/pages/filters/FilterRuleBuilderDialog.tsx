@@ -296,48 +296,53 @@ export function FilterRuleBuilderDialog({
                     {index + 1}
                   </div>
 
-                  <div className="flex flex-1 items-center gap-2">
-                    <span className="text-sm text-zinc-500">当</span>
-                    <Select
-                      value={condition.field}
-                      onValueChange={(value: string) =>
-                        updateConditionField(
-                          condition.id,
-                          value as FilterWorkbenchConditionField
-                        )
-                      }>
-                      <SelectTrigger
-                        aria-label={`条件字段 ${index + 1}`}
-                        className="h-9 min-w-24 rounded-lg border-zinc-300 text-sm focus:ring-indigo-500">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="title">标题</SelectItem>
-                        <SelectItem value="subgroup">字幕组</SelectItem>
-                        <SelectItem value="source">站点</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
+                    <span className="shrink-0 text-sm text-zinc-500">当</span>
 
-                    <Select
-                      value={condition.operator}
-                      onValueChange={(value: string) =>
-                        updateCondition(condition.id, {
-                          operator: value as FilterWorkbenchConditionOperator
-                        })
-                      }>
-                      <SelectTrigger
-                        aria-label={`条件操作 ${index + 1}`}
-                        className="h-9 min-w-28 rounded-lg border-zinc-300 text-sm focus:ring-indigo-500">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getConditionOperatorOptions(condition.field).map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="w-28 shrink-0">
+                      <Select
+                        value={condition.field}
+                        onValueChange={(value: string) =>
+                          updateConditionField(
+                            condition.id,
+                            value as FilterWorkbenchConditionField
+                          )
+                        }>
+                        <SelectTrigger
+                          aria-label={`条件字段 ${index + 1}`}
+                          className="h-9 rounded-lg border-zinc-300 text-sm focus:ring-indigo-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="title">标题</SelectItem>
+                          <SelectItem value="subgroup">字幕组</SelectItem>
+                          <SelectItem value="source">站点</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="w-36 shrink-0">
+                      <Select
+                        value={condition.operator}
+                        onValueChange={(value: string) =>
+                          updateCondition(condition.id, {
+                            operator: value as FilterWorkbenchConditionOperator
+                          })
+                        }>
+                        <SelectTrigger
+                          aria-label={`条件操作 ${index + 1}`}
+                          className="h-9 rounded-lg border-zinc-300 text-sm focus:ring-indigo-500">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getConditionOperatorOptions(condition.field).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     <Input
                       aria-label={`条件值 ${index + 1}`}
@@ -348,9 +353,9 @@ export function FilterRuleBuilderDialog({
                         })
                       }
                       placeholder="输入条件值..."
-                      className="h-9 flex-1 rounded-lg border border-zinc-300 px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="h-9 min-w-[12rem] flex-1 rounded-lg border border-zinc-300 px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
-                    <span className="text-sm text-zinc-500">时</span>
+                    <span className="shrink-0 text-sm text-zinc-500">时</span>
                   </div>
 
                   <button
