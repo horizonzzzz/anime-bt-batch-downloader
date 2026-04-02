@@ -28,7 +28,6 @@ export type FilterWorkbenchGroupDraft = {
 export type FilterWorkbenchTestInput = {
   title: string
   source: FilterWorkbenchSourceId
-  subgroup: string
 }
 
 export type FilterWorkbenchTestResult =
@@ -256,7 +255,6 @@ export function runWorkbenchTest(
   const decision = decideFilterGroupAction({
     sourceId: input.source,
     title: input.title,
-    subgroup: input.subgroup,
     groups
   })
   const sourceLabel =

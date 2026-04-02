@@ -49,64 +49,64 @@ export function FilterWorkbenchTestBench({
         </div>
 
         <div className="space-y-5 px-6 py-5">
-          <div className="space-y-2">
-            <Label htmlFor="filters-test-title">资源标题</Label>
-            <Input
-              id="filters-test-title"
-              value={value.title}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  title: event.target.value
-                })
-              }
-              placeholder="例如：[SubsPlease] Frieren - 01 (720p) [RAW].mkv"
-            />
-          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white p-4">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="filters-test-title"
+                  className="text-sm font-medium text-zinc-900">
+                  资源标题
+                </Label>
+                <Input
+                  id="filters-test-title"
+                  value={value.title}
+                  onChange={(event) =>
+                    onChange({
+                      ...value,
+                      title: event.target.value
+                    })
+                  }
+                  placeholder="例如：[SubsPlease] Frieren - 01 (720p) [RAW].mkv"
+                />
+              </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="filters-test-source">来源站点</Label>
-              <Select
-                value={value.source}
-                onValueChange={(source: string) =>
-                  onChange({
-                    ...value,
-                    source: source as FilterWorkbenchTestInput["source"]
-                  })
-                }>
-                <SelectTrigger id="filters-test-source">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOURCE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="filters-test-source"
+                  className="text-sm font-medium text-zinc-900">
+                  来源站点
+                </Label>
+                <Select
+                  value={value.source}
+                  onValueChange={(source: string) =>
+                    onChange({
+                      ...value,
+                      source: source as FilterWorkbenchTestInput["source"]
+                    })
+                  }>
+                  <SelectTrigger id="filters-test-source">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SOURCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="filters-test-subgroup">提取字幕组（可选）</Label>
-              <Input
-                id="filters-test-subgroup"
-                value={value.subgroup}
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    subgroup: event.target.value
-                  })
-                }
-                placeholder="例如：LoliHouse"
-              />
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm leading-6 text-zinc-600">
+                字幕组会根据资源标题自动提取，测试结果会和后台实际过滤保持一致。
+              </p>
+              <Button type="button" className="sm:min-w-[8rem]" onClick={onRun}>
+                开始测试
+              </Button>
             </div>
           </div>
-
-          <Button type="button" className="w-full" onClick={onRun}>
-            开始测试
-          </Button>
 
           {result ? (
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
@@ -166,8 +166,7 @@ export function FilterWorkbenchTestBench({
             onClick={() =>
               onChange({
                 title: "[LoliHouse] 葬送的芙莉莲 - 01 [WebRip 1080p HEVC-10bit AAC].mkv",
-                source: "kisssub",
-                subgroup: "LoliHouse"
+                source: "kisssub"
               })
             }>
             优质压制样例
@@ -179,8 +178,7 @@ export function FilterWorkbenchTestBench({
             onClick={() =>
               onChange({
                 title: "[SubsPlease] Frieren - 01 (720p) [RAW].mkv",
-                source: "acgrip",
-                subgroup: "SubsPlease"
+                source: "acgrip"
               })
             }>
             劣质生肉样例

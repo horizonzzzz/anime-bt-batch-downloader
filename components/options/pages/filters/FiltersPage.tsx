@@ -75,8 +75,7 @@ export function FiltersPage() {
     useState<PendingDeleteRule | null>(null)
   const [testInput, setTestInput] = useState<FilterWorkbenchTestInput>({
     title: "",
-    source: "kisssub",
-    subgroup: ""
+    source: "kisssub"
   })
   const [testResult, setTestResult] = useState<FilterWorkbenchTestResult | null>(
     null

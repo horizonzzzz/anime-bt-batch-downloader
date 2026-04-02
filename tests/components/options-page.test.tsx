@@ -256,6 +256,12 @@ describe("OptionsPage", () => {
       ).toBeInTheDocument()
       expect(screen.getByText("最终结果")).toBeInTheDocument()
       expect(screen.getByText(/最近测试/)).toBeInTheDocument()
+      expect(
+        screen.getByText("字幕组会根据资源标题自动提取，测试结果会和后台实际过滤保持一致。")
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByLabelText("提取字幕组（可选）")
+      ).not.toBeInTheDocument()
     },
     10000
   )
