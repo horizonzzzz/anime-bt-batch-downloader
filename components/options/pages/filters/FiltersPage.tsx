@@ -249,8 +249,8 @@ export function FiltersPage() {
     <div className="space-y-8" data-testid="filters-workbench">
       <Card>
         <div className="flex flex-col gap-5 px-6 py-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
                   策略工作台
@@ -262,7 +262,7 @@ export function FiltersPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <Button type="button" variant="outline" onClick={handleImportPreset}>
                 从模板库导入
               </Button>
@@ -309,7 +309,7 @@ export function FiltersPage() {
         </div>
       </Card>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.75fr)_minmax(320px,1fr)]">
+      <div className="space-y-8">
         <section className="space-y-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>

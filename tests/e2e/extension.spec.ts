@@ -339,6 +339,78 @@ test("options page keeps filter workbench edits local after saving settings", as
   }
 })
 
+test("filters workbench keeps the top actions horizontal and the test bench stacked below", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const page = await openOptionsPage(extension, {
+      route: "/filters",
+      heading: "过滤规则"
+    })
+
+    await page.setViewportSize({
+      width: 1000,
+      height: 1200
+    })
+
+    const importButton = page.getByRole("button", { name: "从模板库导入" }).first()
+    const createButton = page.getByRole("button", { name: "新建策略组" })
+    const importButtonBox = await importButton.boundingBox()
+    const createButtonBox = await createButton.boundingBox()
+
+    expect(importButtonBox).not.toBeNull()
+    expect(createButtonBox).not.toBeNull()
+    expect(
+      Math.abs((importButtonBox?.y ?? 0) - (createButtonBox?.y ?? 0))
+    ).toBeLessThan(8)
+
+    await page.setViewportSize({
+      width: 1400,
+      height: 1200
+    })
+
+    const orchestrationHeading = page.getByRole("heading", { name: "执行策略编排" })
+    const testBench = page.getByTestId("filters-testbench")
+    const orchestrationBox = await orchestrationHeading.boundingBox()
+    const testBenchBox = await testBench.boundingBox()
+
+    expect(orchestrationBox).not.toBeNull()
+    expect(testBenchBox).not.toBeNull()
+    expect((testBenchBox?.y ?? 0) - (orchestrationBox?.y ?? 0)).toBeGreaterThan(180)
+
+    await page.close()
+  } finally {
+    await extension.close()
+  }
+})
+
+test("filters workbench select controls stay interactable inside the rule builder sheet", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const page = await openOptionsPage(extension, {
+      route: "/filters",
+      heading: "过滤规则"
+    })
+
+    await page.getByRole("button", { name: "新建策略组" }).click()
+    await page.getByLabel("策略组名称").fill("交互验证")
+    await page.getByRole("button", { name: "保存策略组" }).click()
+
+    await page.getByRole("button", { name: "添加规则" }).click()
+
+    await page.getByLabel("条件操作 1").click()
+    await page.getByRole("option", { name: "正则匹配" }).click()
+
+    await expect(page.getByLabel("条件操作 1")).toContainText("正则匹配")
+    await expect(page.getByText(/标题 正则匹配 "\.\.\."/)).toBeVisible()
+
+    await page.close()
+  } finally {
+    await extension.close()
+  }
+})
+
 test("content script injects the batch panel on a Kisssub list page", async () => {
   const extension = await launchExtensionContext()
 

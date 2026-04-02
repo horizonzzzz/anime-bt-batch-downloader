@@ -1,6 +1,18 @@
-import { useEffect, useId, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
-import { Button, Input, Label, Switch } from "../../../ui"
+import {
+  Button,
+  Input,
+  Label,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  Switch,
+  Textarea
+} from "../../../ui"
 import { HiOutlineExclamationCircle, HiOutlineXMark } from "react-icons/hi2"
 
 import {
@@ -9,7 +21,6 @@ import {
   type FilterWorkbenchGroup,
   type FilterWorkbenchGroupDraft
 } from "./filter-workbench"
-import { useSheetAccessibility } from "./useSheetAccessibility"
 
 type FilterGroupDialogProps = {
   open: boolean
@@ -23,9 +34,6 @@ export function FilterGroupDialog({ open, initialGroup, onClose, onSave }: Filte
     createGroupDraft()
   )
   const [error, setError] = useState("")
-  const titleId = useId()
-  const descriptionId = useId()
-  const panelRef = useSheetAccessibility(open, onClose)
 
   useEffect(() => {
     if (!open) {
@@ -50,31 +58,30 @@ export function FilterGroupDialog({ open, initialGroup, onClose, onSave }: Filte
     onClose()
   }
 
-  if (!open) {
-    return null
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen: boolean) => {
+        if (!nextOpen) {
+          onClose()
+        }
+      }}>
+      <SheetContent side="right" className="flex h-full w-full max-w-md flex-col p-0 sm:max-w-md">
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
-          <h2 id={titleId} className="text-lg font-semibold text-zinc-900">
-            {headerTitle}
-          </h2>
-          <button
-            type="button"
-            aria-label="关闭策略组面板"
-            onClick={onClose}
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600">
-            <HiOutlineXMark className="h-5 w-5" />
-          </button>
+          <SheetHeader className="space-y-0">
+            <SheetTitle>{headerTitle}</SheetTitle>
+            <SheetDescription className="sr-only">
+              编辑策略组的基本信息和启用状态
+            </SheetDescription>
+          </SheetHeader>
+          <SheetClose asChild>
+            <button
+              type="button"
+              aria-label="关闭策略组面板"
+              className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600">
+              <HiOutlineXMark className="h-5 w-5" />
+            </button>
+          </SheetClose>
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
@@ -83,6 +90,7 @@ export function FilterGroupDialog({ open, initialGroup, onClose, onSave }: Filte
             <Input
               id="filter-group-name"
               data-autofocus="true"
+              autoFocus
               aria-label="策略组名称"
               value={group.name}
               onChange={(event) =>
@@ -93,9 +101,9 @@ export function FilterGroupDialog({ open, initialGroup, onClose, onSave }: Filte
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={descriptionId}>描述（可选）</Label>
-            <textarea
-              id={descriptionId}
+            <Label htmlFor="filter-group-description">描述（可选）</Label>
+            <Textarea
+              id="filter-group-description"
               value={group.description}
               onChange={(event) =>
                 setGroup((current) => ({
@@ -104,7 +112,7 @@ export function FilterGroupDialog({ open, initialGroup, onClose, onSave }: Filte
                 }))
               }
               placeholder="例如：拦截低画质资源，保留常用字幕组"
-              className="h-24 w-full resize-none rounded-xl border border-zinc-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="h-24 resize-none rounded-xl px-4 py-2.5"
             />
           </div>
 
@@ -140,7 +148,7 @@ export function FilterGroupDialog({ open, initialGroup, onClose, onSave }: Filte
             保存策略组
           </Button>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   )
 }

@@ -1,6 +1,22 @@
 import { useEffect, useId, useMemo, useState } from "react"
 
-import { Button, Input, Label, Switch } from "../../../ui"
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  Switch
+} from "../../../ui"
 import {
   HiOutlineExclamationCircle,
   HiOutlinePlus,
@@ -19,7 +35,6 @@ import {
   type FilterWorkbenchConditionRelation,
   type FilterWorkbenchRule
 } from "./filter-workbench"
-import { useSheetAccessibility } from "./useSheetAccessibility"
 
 type FilterRuleBuilderDialogProps = {
   open: boolean
@@ -36,9 +51,7 @@ export function FilterRuleBuilderDialog({
 }: FilterRuleBuilderDialogProps) {
   const [rule, setRule] = useState<FilterWorkbenchRule>(() => createRuleDraft())
   const [error, setError] = useState("")
-  const titleId = useId()
   const nameId = useId()
-  const panelRef = useSheetAccessibility(open, onClose)
 
   useEffect(() => {
     if (!open) {
@@ -124,31 +137,30 @@ export function FilterRuleBuilderDialog({
     onClose()
   }
 
-  if (!open) {
-    return null
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className="relative ml-auto flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen: boolean) => {
+        if (!nextOpen) {
+          onClose()
+        }
+      }}>
+      <SheetContent side="right" className="flex h-full w-full max-w-2xl flex-col p-0 sm:max-w-2xl">
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
-          <h2 id={titleId} className="text-lg font-semibold text-zinc-900">
-            {heading}
-          </h2>
-          <button
-            type="button"
-            aria-label="关闭规则面板"
-            onClick={onClose}
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600">
-            <HiOutlineXMark className="h-5 w-5" />
-          </button>
+          <SheetHeader className="space-y-0">
+            <SheetTitle>{heading}</SheetTitle>
+            <SheetDescription className="sr-only">
+              编辑规则动作、条件关系和匹配条件
+            </SheetDescription>
+          </SheetHeader>
+          <SheetClose asChild>
+            <button
+              type="button"
+              aria-label="关闭规则面板"
+              className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600">
+              <HiOutlineXMark className="h-5 w-5" />
+            </button>
+          </SheetClose>
         </div>
 
         <div className="flex-1 space-y-8 overflow-y-auto p-6">
@@ -158,6 +170,7 @@ export function FilterRuleBuilderDialog({
               <Input
                 id={nameId}
                 data-autofocus="true"
+                autoFocus
                 aria-label="规则名称"
                 value={rule.name}
                 onChange={(event) =>
@@ -169,39 +182,42 @@ export function FilterRuleBuilderDialog({
 
             <div className="space-y-2">
               <Label htmlFor="filter-rule-action">执行动作</Label>
-              <select
-                id="filter-rule-action"
+              <Select
                 value={rule.action}
-                aria-label="执行动作"
-                onChange={(event) =>
+                onValueChange={(value: string) =>
                   setRule((current) => ({
                     ...current,
-                    action: event.target.value as FilterWorkbenchRule["action"]
+                    action: value as FilterWorkbenchRule["action"]
                   }))
-                }
-                className="w-full rounded-xl border border-zinc-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                <option value="exclude">直接拦截（仅界面原型）</option>
-                <option value="include">优先放行（仅界面原型）</option>
-              </select>
+                }>
+                <SelectTrigger id="filter-rule-action" aria-label="执行动作">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="exclude">直接拦截（仅界面原型）</SelectItem>
+                  <SelectItem value="include">优先放行（仅界面原型）</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="filter-rule-relation">条件关系</Label>
-              <select
-                id="filter-rule-relation"
+              <Select
                 value={rule.relation}
-                aria-label="条件关系"
-                onChange={(event) =>
+                onValueChange={(value: string) =>
                   setRule((current) => ({
                     ...current,
-                    relation:
-                      event.target.value as FilterWorkbenchConditionRelation
+                    relation: value as FilterWorkbenchConditionRelation
                   }))
-                }
-                className="w-full rounded-xl border border-zinc-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                <option value="and">全部满足（AND）</option>
-                <option value="or">满足任一（OR）</option>
-              </select>
+                }>
+                <SelectTrigger id="filter-rule-relation" aria-label="条件关系">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="and">全部满足（AND）</SelectItem>
+                  <SelectItem value="or">满足任一（OR）</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -228,37 +244,45 @@ export function FilterRuleBuilderDialog({
 
                   <div className="flex flex-1 items-center gap-2">
                     <span className="text-sm text-zinc-500">当</span>
-                    <select
-                      aria-label={`条件字段 ${index + 1}`}
+                    <Select
                       value={condition.field}
-                      onChange={(event) =>
+                      onValueChange={(value: string) =>
                         updateCondition(condition.id, {
-                          field:
-                            event.target.value as FilterWorkbenchConditionField
+                          field: value as FilterWorkbenchConditionField
                         })
-                      }
-                      className="h-9 rounded-lg border border-zinc-300 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                      <option value="title">标题</option>
-                      <option value="subgroup">字幕组</option>
-                      <option value="source">站点</option>
-                    </select>
+                      }>
+                      <SelectTrigger
+                        aria-label={`条件字段 ${index + 1}`}
+                        className="h-9 min-w-24 rounded-lg border-zinc-300 text-sm focus:ring-indigo-500">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="title">标题</SelectItem>
+                        <SelectItem value="subgroup">字幕组</SelectItem>
+                        <SelectItem value="source">站点</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                    <select
-                      aria-label={`条件操作 ${index + 1}`}
+                    <Select
                       value={condition.operator}
-                      onChange={(event) =>
+                      onValueChange={(value: string) =>
                         updateCondition(condition.id, {
-                          operator:
-                            event.target.value as FilterWorkbenchConditionOperator
+                          operator: value as FilterWorkbenchConditionOperator
                         })
-                      }
-                      className="h-9 rounded-lg border border-zinc-300 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                      <option value="contains">包含</option>
-                      <option value="not_contains">不包含</option>
-                      <option value="is">等于</option>
-                      <option value="is_not">不等于</option>
-                      <option value="regex">正则匹配</option>
-                    </select>
+                      }>
+                      <SelectTrigger
+                        aria-label={`条件操作 ${index + 1}`}
+                        className="h-9 min-w-28 rounded-lg border-zinc-300 text-sm focus:ring-indigo-500">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="contains">包含</SelectItem>
+                        <SelectItem value="not_contains">不包含</SelectItem>
+                        <SelectItem value="is">等于</SelectItem>
+                        <SelectItem value="is_not">不等于</SelectItem>
+                        <SelectItem value="regex">正则匹配</SelectItem>
+                      </SelectContent>
+                    </Select>
 
                     <Input
                       aria-label={`条件值 ${index + 1}`}
@@ -328,7 +352,7 @@ export function FilterRuleBuilderDialog({
             保存规则
           </Button>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   )
 }

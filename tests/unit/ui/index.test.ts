@@ -13,4 +13,20 @@ describe("components/ui exports", () => {
     expect(ui.AlertDialogAction).toBeDefined()
     expect(ui.AlertDialogCancel).toBeDefined()
   })
+
+  it("exports sheet primitives and shared form controls", () => {
+    const namespace = ui as Record<string, unknown>
+
+    expect(namespace.Sheet).toBeDefined()
+    expect(namespace.SheetContent).toBeDefined()
+    expect(namespace.SheetHeader).toBeDefined()
+    expect(namespace.SheetFooter).toBeDefined()
+    expect(namespace.SheetTitle).toBeDefined()
+    expect(namespace.SheetDescription).toBeDefined()
+    expect(namespace.Select).toBeDefined()
+    expect(namespace.SelectTrigger).toBeDefined()
+    expect(namespace.SelectContent).toBeDefined()
+    expect(namespace.SelectItem).toBeDefined()
+    expect(namespace.Textarea).toBeDefined()
+  })
 })

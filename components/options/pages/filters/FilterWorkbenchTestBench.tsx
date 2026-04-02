@@ -4,7 +4,18 @@ import {
   HiOutlineXCircle
 } from "react-icons/hi2"
 
-import { Badge, Button, Card, Input, Label } from "../../../ui"
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "../../../ui"
 import {
   SOURCE_OPTIONS,
   type FilterWorkbenchTestInput,
@@ -56,22 +67,25 @@ export function FilterWorkbenchTestBench({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="filters-test-source">来源站点</Label>
-              <select
-                id="filters-test-source"
+              <Select
                 value={value.source}
-                onChange={(event) =>
+                onValueChange={(source: string) =>
                   onChange({
                     ...value,
-                    source: event.target.value as FilterWorkbenchTestInput["source"]
+                    source: source as FilterWorkbenchTestInput["source"]
                   })
-                }
-                className="h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500">
-                {SOURCE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                }>
+                <SelectTrigger id="filters-test-source">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOURCE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
