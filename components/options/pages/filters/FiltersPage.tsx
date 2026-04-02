@@ -283,7 +283,9 @@ export function FiltersPage() {
               </p>
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <div
+              className="flex shrink-0 flex-wrap items-center gap-3"
+              data-testid="filters-top-actions">
               <Button type="button" variant="outline" onClick={handleImportPreset}>
                 从模板库导入
               </Button>
@@ -329,8 +331,8 @@ export function FiltersPage() {
         </div>
       </Card>
 
-      <div className="space-y-8">
-        <section className="space-y-5">
+      <div className="space-y-8" data-testid="filters-layout-sections">
+        <section className="space-y-5" data-testid="filters-orchestration">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-zinc-900">

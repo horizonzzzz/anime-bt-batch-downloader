@@ -28,6 +28,7 @@ import {
   createEmptyCondition,
   createRuleDraft,
   getConditionFieldLabel,
+  getConditionOperatorOptions,
   getConditionOperatorLabel,
   SOURCE_OPTIONS,
   type FilterWorkbenchCondition,
@@ -91,6 +92,31 @@ export function FilterRuleBuilderDialog({
       conditions: current.conditions.map((condition) =>
         condition.id === id ? { ...condition, ...updates } : condition
       )
+    }))
+  }
+
+  const updateConditionField = (
+    id: string,
+    field: FilterWorkbenchConditionField
+  ) => {
+    setRule((current) => ({
+      ...current,
+      conditions: current.conditions.map((condition) => {
+        if (condition.id !== id) {
+          return condition
+        }
+
+        const nextOperatorOptions = getConditionOperatorOptions(field)
+        const operatorIsSupported = nextOperatorOptions.some(
+          (option) => option.value === condition.operator
+        )
+
+        return {
+          ...condition,
+          field,
+          operator: operatorIsSupported ? condition.operator : nextOperatorOptions[0]!.value
+        }
+      })
     }))
   }
 
@@ -275,9 +301,10 @@ export function FilterRuleBuilderDialog({
                     <Select
                       value={condition.field}
                       onValueChange={(value: string) =>
-                        updateCondition(condition.id, {
-                          field: value as FilterWorkbenchConditionField
-                        })
+                        updateConditionField(
+                          condition.id,
+                          value as FilterWorkbenchConditionField
+                        )
                       }>
                       <SelectTrigger
                         aria-label={`条件字段 ${index + 1}`}
@@ -304,11 +331,11 @@ export function FilterRuleBuilderDialog({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="contains">包含</SelectItem>
-                        <SelectItem value="not_contains">不包含</SelectItem>
-                        <SelectItem value="is">等于</SelectItem>
-                        <SelectItem value="is_not">不等于</SelectItem>
-                        <SelectItem value="regex">正则匹配</SelectItem>
+                        {getConditionOperatorOptions(condition.field).map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 

@@ -77,6 +77,18 @@ export const CONDITION_OPERATOR_OPTIONS: Array<{
   { value: "regex", label: "正则匹配" }
 ]
 
+export function getConditionOperatorOptions(
+  field: FilterWorkbenchConditionField
+) {
+  if (field === "source") {
+    return CONDITION_OPERATOR_OPTIONS.filter(
+      (option) => option.value === "is" || option.value === "is_not"
+    )
+  }
+
+  return CONDITION_OPERATOR_OPTIONS
+}
+
 export function getConditionFieldLabel(
   field: FilterWorkbenchConditionField
 ) {

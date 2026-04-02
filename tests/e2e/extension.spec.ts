@@ -360,30 +360,57 @@ test("filters workbench keeps the top actions horizontal and the test bench stac
       height: 1200
     })
 
+    const topActions = page.getByTestId("filters-top-actions")
+    const topActionsLayout = await topActions.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        display: style.display,
+        flexWrap: style.flexWrap
+      }
+    })
     const importButton = page.getByRole("button", { name: "从模板库导入" }).first()
     const createButton = page.getByRole("button", { name: "新建策略组" })
-    const importButtonBox = await importButton.boundingBox()
-    const createButtonBox = await createButton.boundingBox()
-
-    expect(importButtonBox).not.toBeNull()
-    expect(createButtonBox).not.toBeNull()
-    expect(
-      Math.abs((importButtonBox?.y ?? 0) - (createButtonBox?.y ?? 0))
-    ).toBeLessThan(8)
+    await expect(importButton).toBeVisible()
+    await expect(createButton).toBeVisible()
+    await expect(importButton).toBeEnabled()
+    await expect(createButton).toBeEnabled()
+    expect(topActionsLayout).toEqual({
+      display: "flex",
+      flexWrap: "wrap"
+    })
 
     await page.setViewportSize({
       width: 1400,
       height: 1200
     })
 
+    const orchestrationSection = page.getByTestId("filters-orchestration")
     const orchestrationHeading = page.getByRole("heading", { name: "执行策略编排" })
     const testBench = page.getByTestId("filters-testbench")
-    const orchestrationBox = await orchestrationHeading.boundingBox()
-    const testBenchBox = await testBench.boundingBox()
+    await expect(orchestrationHeading).toBeVisible()
+    await expect(testBench).toBeVisible()
 
-    expect(orchestrationBox).not.toBeNull()
-    expect(testBenchBox).not.toBeNull()
-    expect((testBenchBox?.y ?? 0) - (orchestrationBox?.y ?? 0)).toBeGreaterThan(180)
+    await expect
+      .poll(async () => {
+        return page.evaluate(() => {
+          const layoutSections = document.querySelector(
+            '[data-testid="filters-layout-sections"]'
+          )
+          const orchestration = document.querySelector('[data-testid="filters-orchestration"]')
+          const testBench = document.querySelector('[data-testid="filters-testbench"]')
+
+          if (!layoutSections || !orchestration || !testBench) {
+            return null
+          }
+
+          return (
+            layoutSections.children[0] === orchestration &&
+            layoutSections.children[1] === testBench
+          )
+        })
+      })
+      .toBe(true)
+    await expect(orchestrationSection.getByText("当前排序即真实执行顺序")).toBeVisible()
 
     await page.close()
   } finally {

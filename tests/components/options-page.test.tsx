@@ -280,6 +280,54 @@ describe("OptionsPage", () => {
     ).toBeInTheDocument()
   })
 
+  it("limits source conditions to equality operators and resets unsupported operators", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+    Object.defineProperty(HTMLElement.prototype, "hasPointerCapture", {
+      configurable: true,
+      value: () => false
+    })
+    Object.defineProperty(HTMLElement.prototype, "setPointerCapture", {
+      configurable: true,
+      value: vi.fn()
+    })
+    Object.defineProperty(HTMLElement.prototype, "releasePointerCapture", {
+      configurable: true,
+      value: vi.fn()
+    })
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn()
+    })
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "过滤规则" }))
+    await user.click(screen.getByRole("button", { name: "新建策略组" }))
+    await user.type(screen.getByLabelText("策略组名称"), "站点验证")
+    await user.click(screen.getByRole("button", { name: "保存策略组" }))
+
+    await user.click(screen.getByRole("button", { name: "添加规则" }))
+
+    await user.click(screen.getByLabelText("条件操作 1"))
+    await user.click(screen.getByRole("option", { name: "正则匹配" }))
+    expect(screen.getByLabelText("条件操作 1")).toHaveTextContent("正则匹配")
+
+    await user.click(screen.getByLabelText("条件字段 1"))
+    await user.click(screen.getByRole("option", { name: "站点" }))
+
+    expect(screen.getByLabelText("条件操作 1")).toHaveTextContent("等于")
+
+    await user.click(screen.getByLabelText("条件操作 1"))
+    expect(screen.getByRole("option", { name: "等于" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "不等于" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "包含" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "不包含" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "正则匹配" })).not.toBeInTheDocument()
+  })
+
   it("renders a real site icon for each site in the site management cards", async () => {
     const user = userEvent.setup()
     const api = createOptionsApi()
