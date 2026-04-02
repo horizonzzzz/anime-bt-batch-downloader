@@ -15,7 +15,8 @@ function createState(overrides: Partial<PopupStateViewModel> = {}): PopupStateVi
       url: null,
       sourceId: null,
       supported: false,
-      enabled: false
+      enabled: false,
+      batchRunning: false
     },
     supportedSites: [
       {
@@ -91,7 +92,8 @@ describe("PopupPage", () => {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
           supported: true,
-          enabled: true
+          enabled: true,
+          batchRunning: false
         }
       })
     })
@@ -110,7 +112,8 @@ describe("PopupPage", () => {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
           supported: true,
-          enabled: false
+          enabled: false,
+          batchRunning: false
         }
       })
     })
@@ -129,7 +132,8 @@ describe("PopupPage", () => {
           url: "https://example.org/",
           sourceId: null,
           supported: false,
-          enabled: false
+          enabled: false,
+          batchRunning: false
         }
       })
     })
@@ -149,7 +153,8 @@ describe("PopupPage", () => {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
           supported: true,
-          enabled: true
+          enabled: true,
+          batchRunning: false
         }
       })
     })
@@ -170,7 +175,8 @@ describe("PopupPage", () => {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
           supported: true,
-          enabled: true
+          enabled: true,
+          batchRunning: false
         }
       })
     })
@@ -188,12 +194,14 @@ describe("PopupPage", () => {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
           supported: true,
-          enabled: true
+          enabled: true,
+          batchRunning: false
         }
       })
     })
 
     expect(screen.getByText("正在检测 qBittorrent 连接")).toBeInTheDocument()
+    expect(screen.getByRole("switch", { name: "当前站点启用开关" })).toBeInTheDocument()
     expect(screen.queryByText("插件已就绪")).not.toBeInTheDocument()
   })
 
@@ -205,14 +213,34 @@ describe("PopupPage", () => {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
           supported: true,
-          enabled: true
+          enabled: true,
+          batchRunning: false
         }
       })
     })
 
     expect(screen.getByText("qBittorrent 连接失败")).toBeInTheDocument()
+    expect(screen.getByRole("switch", { name: "当前站点启用开关" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "前往配置" })).toBeInTheDocument()
     expect(screen.queryByText("插件已就绪")).not.toBeInTheDocument()
+  })
+
+  it("disables current-site switch and shows hint when batch is running", () => {
+    renderPopup({
+      state: createState({
+        qbConnectionStatus: "ready",
+        activeTab: {
+          url: "https://kisssub.org/",
+          sourceId: "kisssub",
+          supported: true,
+          enabled: true,
+          batchRunning: true
+        }
+      })
+    })
+
+    expect(screen.getByRole("switch", { name: "当前站点启用开关" })).toBeDisabled()
+    expect(screen.getByText("当前批次任务进行中，需等待完成后才能关闭站点。")).toBeInTheDocument()
   })
 
   it("renders supported sites list from source metadata and state", () => {

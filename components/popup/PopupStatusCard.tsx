@@ -25,7 +25,41 @@ export function PopupStatusCard({
   onToggleCurrentSiteEnabled,
   actionsDisabled = false
 }: PopupStatusCardProps) {
+  const sourceId = activeTab.sourceId
+  const isSupportedSourceTab = activeTab.supported && Boolean(sourceId)
+  const isBatchRunning = activeTab.enabled && activeTab.batchRunning
+  const switchDisabled = actionsDisabled || isBatchRunning
+
+  const renderCurrentSiteSwitch = (labelClassName: string) => {
+    if (!isSupportedSourceTab || !sourceId) {
+      return null
+    }
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className={`text-sm font-medium ${labelClassName}`}>在当前站点启用</span>
+          <Switch
+            aria-label="当前站点启用开关"
+            checked={activeTab.enabled}
+            disabled={switchDisabled}
+            onCheckedChange={(checked) => {
+              onToggleCurrentSiteEnabled(sourceId, checked)
+            }}
+          />
+        </div>
+        {isBatchRunning ? (
+          <p className="text-xs leading-relaxed text-amber-900/85">
+            当前批次任务进行中，需等待完成后才能关闭站点。
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
   if (qbConnectionStatus === "checking") {
+    const currentSiteSwitch = renderCurrentSiteSwitch("text-sky-900")
+
     return (
       <div className="overflow-hidden rounded-2xl border border-sky-200 bg-sky-50 shadow-sm">
         <div className="p-4">
@@ -37,11 +71,16 @@ export function PopupStatusCard({
             正在验证当前 qBittorrent WebUI 是否可用。检测完成后，会显示可直接批量发送，或提示您前往配置页检查连接信息。
           </p>
         </div>
+        {currentSiteSwitch ? (
+          <div className="border-t border-sky-200/60 bg-sky-100/40 px-4 py-3">{currentSiteSwitch}</div>
+        ) : null}
       </div>
     )
   }
 
   if (qbConnectionStatus === "failed") {
+    const currentSiteSwitch = renderCurrentSiteSwitch("text-rose-900")
+
     return (
       <div className="overflow-hidden rounded-2xl border border-rose-200 bg-rose-50 shadow-sm">
         <div className="p-4">
@@ -60,6 +99,9 @@ export function PopupStatusCard({
             前往配置
           </button>
         </div>
+        {currentSiteSwitch ? (
+          <div className="border-t border-rose-200/60 bg-rose-100/40 px-4 py-3">{currentSiteSwitch}</div>
+        ) : null}
       </div>
     )
   }
@@ -94,16 +136,8 @@ export function PopupStatusCard({
             {siteMeta.displayName} 已在扩展中关闭。重新开启后，页面右下角的批量下载面板和勾选框才会出现。
           </p>
         </div>
-        <div className="border-t border-amber-200/60 bg-amber-100/40 px-4 py-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-amber-900">在当前站点启用</span>
-          <Switch
-            aria-label="当前站点启用开关"
-            checked={activeTab.enabled}
-            disabled={actionsDisabled}
-            onCheckedChange={(checked) => {
-              onToggleCurrentSiteEnabled(activeTab.sourceId as SourceId, checked)
-            }}
-          />
+        <div className="border-t border-amber-200/60 bg-amber-100/40 px-4 py-3">
+          {renderCurrentSiteSwitch("text-amber-900")}
         </div>
       </div>
     )
@@ -120,16 +154,8 @@ export function PopupStatusCard({
           当前页面受支持！您可以在页面右下角找到批量下载面板，快速勾选并发送种子。
         </p>
       </div>
-      <div className="border-t border-emerald-200/50 bg-emerald-100/40 px-4 py-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-emerald-900">在当前站点启用</span>
-        <Switch
-          aria-label="当前站点启用开关"
-          checked={activeTab.enabled}
-          disabled={actionsDisabled}
-          onCheckedChange={(checked) => {
-            onToggleCurrentSiteEnabled(activeTab.sourceId as SourceId, checked)
-          }}
-        />
+      <div className="border-t border-emerald-200/50 bg-emerald-100/40 px-4 py-3">
+        {renderCurrentSiteSwitch("text-emerald-900")}
       </div>
     </div>
   )

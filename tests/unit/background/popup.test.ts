@@ -37,8 +37,12 @@ describe("popup background helpers", () => {
 
     const state = await buildPopupState({
       getSettings: async () => settings,
-      getActiveTabUrl: async () => "https://acg.rip/",
-      getExtensionVersion: () => "1.4.0"
+      getActiveTabContext: async () => ({
+        id: 17,
+        url: "https://acg.rip/"
+      }),
+      getExtensionVersion: () => "1.4.0",
+      isBatchRunningInTab: () => false
     })
 
     expect(state.qbConnectionStatus).toBe("idle")
@@ -46,7 +50,8 @@ describe("popup background helpers", () => {
       url: "https://acg.rip/",
       sourceId: "acgrip",
       supported: true,
-      enabled: false
+      enabled: false,
+      batchRunning: false
     })
     expect(state.supportedSites.map((site) => site.id)).toEqual(SOURCE_IDS)
     expect(state.supportedSites.find((site) => site.id === "acgrip")).toMatchObject({
@@ -61,15 +66,20 @@ describe("popup background helpers", () => {
   it("treats www.acg.rip list pages as supported active tabs", async () => {
     const state = await buildPopupState({
       getSettings: async () => createSettings(),
-      getActiveTabUrl: async () => "https://www.acg.rip/",
-      getExtensionVersion: () => "1.4.0"
+      getActiveTabContext: async () => ({
+        id: 23,
+        url: "https://www.acg.rip/"
+      }),
+      getExtensionVersion: () => "1.4.0",
+      isBatchRunningInTab: () => false
     })
 
     expect(state.activeTab).toEqual({
       url: "https://www.acg.rip/",
       sourceId: "acgrip",
       supported: true,
-      enabled: true
+      enabled: true,
+      batchRunning: false
     })
     expect(state.qbConnectionStatus).toBe("checking")
   })
@@ -82,8 +92,12 @@ describe("popup background helpers", () => {
           qbUsername: "",
           qbPassword: ""
         }),
-      getActiveTabUrl: async () => "https://example.com/list",
-      getExtensionVersion: () => "1.4.0"
+      getActiveTabContext: async () => ({
+        id: 31,
+        url: "https://example.com/list"
+      }),
+      getExtensionVersion: () => "1.4.0",
+      isBatchRunningInTab: () => false
     })
 
     expect(state.qbConnectionStatus).toBe("idle")
@@ -92,8 +106,12 @@ describe("popup background helpers", () => {
   it("marks supported and enabled active tabs as requiring a qB connection check even with the default qB placeholder config", async () => {
     const state = await buildPopupState({
       getSettings: async () => createSettings(),
-      getActiveTabUrl: async () => "https://kisssub.org/",
-      getExtensionVersion: () => "1.4.0"
+      getActiveTabContext: async () => ({
+        id: 19,
+        url: "https://kisssub.org/"
+      }),
+      getExtensionVersion: () => "1.4.0",
+      isBatchRunningInTab: (tabId) => tabId === 19
     })
 
     expect(state.qbConnectionStatus).toBe("checking")
@@ -101,33 +119,44 @@ describe("popup background helpers", () => {
       url: "https://kisssub.org/",
       sourceId: "kisssub",
       supported: true,
-      enabled: true
+      enabled: true,
+      batchRunning: true
     })
   })
 
   it("treats null or malformed active-tab URLs as unsupported without throwing", async () => {
     const nullUrlState = await buildPopupState({
       getSettings: async () => createSettings(),
-      getActiveTabUrl: async () => null,
-      getExtensionVersion: () => "1.4.0"
+      getActiveTabContext: async () => ({
+        id: null,
+        url: null
+      }),
+      getExtensionVersion: () => "1.4.0",
+      isBatchRunningInTab: () => true
     })
     const malformedUrlState = await buildPopupState({
       getSettings: async () => createSettings(),
-      getActiveTabUrl: async () => "not-a-valid-url",
-      getExtensionVersion: () => "1.4.0"
+      getActiveTabContext: async () => ({
+        id: 88,
+        url: "not-a-valid-url"
+      }),
+      getExtensionVersion: () => "1.4.0",
+      isBatchRunningInTab: () => false
     })
 
     expect(nullUrlState.activeTab).toEqual({
       url: null,
       sourceId: null,
       supported: false,
-      enabled: false
+      enabled: false,
+      batchRunning: false
     })
     expect(malformedUrlState.activeTab).toEqual({
       url: "not-a-valid-url",
       sourceId: null,
       supported: false,
-      enabled: false
+      enabled: false,
+      batchRunning: false
     })
   })
 

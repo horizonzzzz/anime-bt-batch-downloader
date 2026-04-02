@@ -14,8 +14,9 @@ import type { Settings, SourceId } from "../shared/types"
 
 type BuildPopupStateDependencies = {
   getSettings: () => Promise<Settings>
-  getActiveTabUrl: () => Promise<string | null>
+  getActiveTabContext: () => Promise<{ id: number | null; url: string | null }>
   getExtensionVersion: () => string
+  isBatchRunningInTab: (tabId: number) => boolean
 }
 
 type SetSourceEnabledDependencies = {
@@ -43,8 +44,9 @@ type NotifyActiveTabOfSourceEnabledChangeDependencies = {
 
 const DEFAULT_BUILD_POPUP_STATE_DEPENDENCIES: BuildPopupStateDependencies = {
   getSettings,
-  getActiveTabUrl: queryActiveTabUrl,
-  getExtensionVersion: () => packageJson.version
+  getActiveTabContext: queryActiveTabContext,
+  getExtensionVersion: () => packageJson.version,
+  isBatchRunningInTab: () => false
 }
 
 const DEFAULT_SET_SOURCE_ENABLED_DEPENDENCIES: SetSourceEnabledDependencies = {
@@ -100,17 +102,20 @@ export async function buildPopupState(
   dependencies: BuildPopupStateDependencies = DEFAULT_BUILD_POPUP_STATE_DEPENDENCIES
 ): Promise<PopupStateViewModel> {
   const settings = await dependencies.getSettings()
-  const activeTabUrl = await dependencies.getActiveTabUrl()
-  const activeSourceId = resolveActiveSourceId(activeTabUrl)
+  const activeTab = await dependencies.getActiveTabContext()
+  const activeSourceId = resolveActiveSourceId(activeTab.url)
   const activeTabEnabled = activeSourceId ? resolveSourceEnabled(activeSourceId, settings) : false
+  const activeTabBatchRunning =
+    typeof activeTab.id === "number" ? dependencies.isBatchRunningInTab(activeTab.id) : false
 
   return {
     qbConnectionStatus: resolvePopupQbConnectionStatus(activeSourceId !== null, activeTabEnabled),
     activeTab: {
-      url: activeTabUrl,
+      url: activeTab.url,
       sourceId: activeSourceId,
       supported: activeSourceId !== null,
-      enabled: activeTabEnabled
+      enabled: activeTabEnabled,
+      batchRunning: activeTabBatchRunning
     },
     supportedSites: POPUP_SUPPORTED_SITE_IDS.map((sourceId) => {
       const siteMeta = POPUP_SUPPORTED_SITE_META[sourceId]
@@ -185,21 +190,25 @@ export async function openOptionsPageForRoute(
 }
 
 export async function queryActiveTabUrl(): Promise<string | null> {
-  const [activeTab] = await chrome.tabs.query({
-    active: true,
-    lastFocusedWindow: true
-  })
-
-  return typeof activeTab?.url === "string" ? activeTab.url : null
+  const activeTab = await queryActiveTabContext()
+  return activeTab.url
 }
 
 export async function queryActiveTabId(): Promise<number | null> {
+  const activeTab = await queryActiveTabContext()
+  return activeTab.id
+}
+
+export async function queryActiveTabContext(): Promise<{ id: number | null; url: string | null }> {
   const [activeTab] = await chrome.tabs.query({
     active: true,
     lastFocusedWindow: true
   })
 
-  return typeof activeTab?.id === "number" ? activeTab.id : null
+  return {
+    id: typeof activeTab?.id === "number" ? activeTab.id : null,
+    url: typeof activeTab?.url === "string" ? activeTab.url : null
+  }
 }
 
 function resolveActiveSourceId(url: string | null): SourceId | null {

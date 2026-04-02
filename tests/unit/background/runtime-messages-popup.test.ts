@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const {
+  activeJobsMock,
   buildPopupStateMock,
   notifyActiveTabOfSourceEnabledChangeMock,
   openOptionsPageForRouteMock,
   setSourceEnabledForPopupMock
 } = vi.hoisted(() => ({
+  activeJobsMock: new Map<number, unknown>(),
   buildPopupStateMock: vi.fn(),
   notifyActiveTabOfSourceEnabledChangeMock: vi.fn(),
   openOptionsPageForRouteMock: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock("../../../lib/background", async () => {
   return {
     ...actual,
     createBatchDownloadManager: () => ({
+      activeJobs: activeJobsMock,
       startBatchDownload: vi.fn()
     }),
     buildPopupState: buildPopupStateMock,
@@ -70,6 +73,7 @@ describe("background popup runtime boundary", () => {
   beforeEach(async () => {
     vi.resetModules()
     vi.clearAllMocks()
+    activeJobsMock.clear()
     installChromeMock()
     await import("../../../background")
   })
@@ -173,6 +177,47 @@ describe("background popup runtime boundary", () => {
           kisssub: false
         }
       }
+    })
+  })
+
+  it("rejects disabling a source when any running tab is already downloading from that source", async () => {
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    activeJobsMock.set(99, {})
+    ;(globalThis.chrome.tabs.get as any).mockImplementation(async (tabId: number) => {
+      if (tabId === 99) {
+        return {
+          id: 99,
+          url: "https://kisssub.org/list"
+        }
+      }
+
+      return {
+        id: tabId,
+        url: "https://example.com/"
+      }
+    })
+
+    listener?.(
+      {
+        type: "SET_SOURCE_ENABLED",
+        sourceId: "kisssub",
+        enabled: false
+      },
+      {},
+      sendResponse
+    )
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+
+    expect(setSourceEnabledForPopupMock).not.toHaveBeenCalled()
+    expect(notifyActiveTabOfSourceEnabledChangeMock).not.toHaveBeenCalled()
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      error: "当前页面正在执行批量下载，暂时不能禁用该站点。"
     })
   })
 })

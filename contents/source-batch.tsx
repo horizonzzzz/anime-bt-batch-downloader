@@ -148,12 +148,18 @@ function activateSource(source: SourceAdapter) {
   renderAll()
 }
 
-function deactivateSource() {
+function deactivateSource(options?: { preserveRunningState?: boolean }) {
+  const shouldPreserveInFlight = options?.preserveRunningState && snapshot.running
+
   activeSource = null
   disconnectObserver()
-  snapshot.running = false
-  snapshot.selected.clear()
-  snapshot.statusText = buildSelectionStatus(0)
+
+  if (!shouldPreserveInFlight) {
+    snapshot.running = false
+    snapshot.selected.clear()
+    snapshot.statusText = buildSelectionStatus(0)
+  }
+
   unmountCheckboxes()
   resetDecoratedAnchors()
   unmountPanel()
@@ -252,7 +258,7 @@ function handleSourceEnabledChange(message: SourceEnabledChangeMessage) {
     return
   }
 
-  deactivateSource()
+  deactivateSource({ preserveRunningState: true })
 }
 
 function scanAndDecorate(source: SourceAdapter) {

@@ -132,7 +132,12 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
         case "GET_POPUP_STATE":
           sendResponse(
             createRuntimeSuccessResponse("GET_POPUP_STATE", {
-              state: await buildPopupState()
+              state: await buildPopupState({
+                getSettings,
+                getActiveTabContext: queryCurrentActiveTabContext,
+                getExtensionVersion: () => chrome.runtime.getManifest().version,
+                isBatchRunningInTab: (tabId) => batchDownloadManager.activeJobs.has(tabId)
+              })
             })
           )
           return
@@ -141,6 +146,12 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
             sendResponse(createRuntimeErrorResponse("Invalid SET_SOURCE_ENABLED payload"))
             return
           }
+
+          if (!message.enabled && (await hasRunningBatchForSource(message.sourceId))) {
+            sendResponse(createRuntimeErrorResponse("当前页面正在执行批量下载，暂时不能禁用该站点。"))
+            return
+          }
+
           const settings = await setSourceEnabledForPopup(message.sourceId, message.enabled)
           await notifyActiveTabOfSourceEnabledChange(message.sourceId, message.enabled)
           sendResponse(
@@ -265,4 +276,43 @@ function isValidPopupSourceTogglePayload(message: {
   enabled: boolean
 } {
   return isValidSourceId(message.sourceId) && typeof message.enabled === "boolean"
+}
+
+async function queryCurrentActiveTabContext(): Promise<{ id: number | null; url: string | null }> {
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    lastFocusedWindow: true
+  })
+
+  return {
+    id: typeof activeTab?.id === "number" ? activeTab.id : null,
+    url: typeof activeTab?.url === "string" ? activeTab.url : null
+  }
+}
+
+async function hasRunningBatchForSource(sourceId: SourceId): Promise<boolean> {
+  for (const tabId of batchDownloadManager.activeJobs.keys()) {
+    try {
+      const tab = await chrome.tabs.get(tabId)
+      if (resolveSourceIdFromUrl(typeof tab.url === "string" ? tab.url : null) === sourceId) {
+        return true
+      }
+    } catch {
+      // Ignore tabs that no longer exist while evaluating the guard.
+    }
+  }
+
+  return false
+}
+
+function resolveSourceIdFromUrl(url: string | null): SourceId | null {
+  if (!url) {
+    return null
+  }
+
+  try {
+    return getSourceAdapterForPage(new URL(url))?.id ?? null
+  } catch {
+    return null
+  }
 }

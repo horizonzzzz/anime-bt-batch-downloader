@@ -59,7 +59,8 @@ describe("runtime message helpers", () => {
         url: null,
         sourceId: null,
         supported: false,
-        enabled: false
+        enabled: false,
+        batchRunning: false
       },
       supportedSites: [],
       version: "1.4.0",

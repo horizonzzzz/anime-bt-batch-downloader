@@ -30,7 +30,8 @@ function createState(overrides: Partial<PopupStateViewModel> = {}): PopupStateVi
       url: "https://kisssub.org/",
       sourceId: "kisssub",
       supported: true,
-      enabled: true
+      enabled: true,
+      batchRunning: false
     },
     supportedSites: [
       {
@@ -213,7 +214,8 @@ describe("PopupContainer", () => {
             url: "https://kisssub.org/",
             sourceId: "kisssub",
             supported: true,
-            enabled: false
+            enabled: false,
+            batchRunning: false
           }
         })
       })
@@ -235,6 +237,40 @@ describe("PopupContainer", () => {
       expect(screen.getByText("当前站点已关闭")).toBeInTheDocument()
       expect(screen.getByRole("switch", { name: "当前站点启用开关" })).not.toBeChecked()
     })
+  })
+
+  it("keeps the current-site switch disabled while the active tab batch is running", async () => {
+    const user = userEvent.setup()
+
+    sendRuntimeRequestMock.mockImplementation((request: RuntimeRequest) => {
+      if (request.type === "GET_POPUP_STATE") {
+        return okResponse({
+          ok: true,
+          state: createState({
+            activeTab: {
+              url: "https://kisssub.org/",
+              sourceId: "kisssub",
+              supported: true,
+              enabled: true,
+              batchRunning: true
+            }
+          })
+        })
+      }
+
+      return okResponse({ ok: true })
+    })
+
+    render(<PopupContainer />)
+    await screen.findByText("插件已就绪")
+
+    const switchControl = screen.getByRole("switch", { name: "当前站点启用开关" })
+    expect(switchControl).toBeDisabled()
+    expect(screen.getByText("当前批次任务进行中，需等待完成后才能关闭站点。")).toBeInTheDocument()
+
+    await user.click(switchControl)
+
+    expect(sendRuntimeRequestMock).toHaveBeenCalledTimes(1)
   })
 
   it("surfaces runtime action failures in the popup", async () => {
@@ -277,7 +313,8 @@ describe("PopupContainer", () => {
             url: "https://kisssub.org/",
             sourceId: "kisssub",
             supported: true,
-            enabled: true
+            enabled: true,
+            batchRunning: false
           }
         })
       })

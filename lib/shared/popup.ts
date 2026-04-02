@@ -20,6 +20,7 @@ export type PopupActiveTabViewModel = {
   sourceId: SourceId | null
   supported: boolean
   enabled: boolean
+  batchRunning: boolean
 }
 
 export type PopupQbConnectionStatus = "idle" | "checking" | "ready" | "failed"

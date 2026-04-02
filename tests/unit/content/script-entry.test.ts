@@ -96,6 +96,27 @@ function installChromeMock() {
 }
 
 describe("content script entry", () => {
+  const getLatestPanelProps = () => {
+    for (let rootIndex = createdRoots.length - 1; rootIndex >= 0; rootIndex -= 1) {
+      const calls = createdRoots[rootIndex]?.render.mock.calls ?? []
+      for (let callIndex = calls.length - 1; callIndex >= 0; callIndex -= 1) {
+        const element = calls[callIndex]?.[0] as
+          | { props?: Record<string, unknown> }
+          | undefined
+        if (element?.props?.onDownload) {
+          return element.props as {
+            running: boolean
+            statusText: string
+            onSelectAll: () => void
+            onDownload: () => void
+          }
+        }
+      }
+    }
+
+    throw new Error("Panel props were not rendered.")
+  }
+
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
@@ -339,6 +360,8 @@ describe("content script entry", () => {
     expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).not.toBeNull()
     expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).not.toBeNull()
     expect(anchor.dataset.animeBtBatchDecorated).toBe("1")
+    expect(getLatestPanelProps().running).toBe(false)
+    expect(getLatestPanelProps().statusText).toBe("就绪。先在当前列表页勾选资源。")
   })
 
   it("can inject UI when the page started disabled and the popup re-enables the same source", async () => {
@@ -391,5 +414,91 @@ describe("content script entry", () => {
 
     expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).not.toBeNull()
     expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).not.toBeNull()
+  })
+
+  it("preserves in-flight running state when disabling and re-enabling the current source", async () => {
+    const anchorCell = document.createElement("td")
+    const anchor = document.createElement("a")
+    anchor.href = "https://acg.rip/t/3"
+    anchor.textContent = "Episode 03"
+    anchorCell.appendChild(anchor)
+    document.body.appendChild(anchorCell)
+
+    const source = {
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    }
+    const item = {
+      title: "Episode 03",
+      detailUrl: "https://acg.rip/t/3"
+    }
+
+    getSourceAdapterForLocation.mockReturnValueOnce(source)
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce(source)
+    getDetailAnchors.mockReturnValueOnce([anchor])
+    getBatchItemFromAnchor.mockReturnValueOnce(item)
+    getAnchorMountTarget.mockReturnValueOnce(anchorCell)
+    runtimeSendMessage.mockImplementation(({ type }) => {
+      if (type === "GET_SETTINGS") {
+        return Promise.resolve({
+          ok: true,
+          settings: {
+            enabledSources: {
+              acgrip: true
+            }
+          }
+        })
+      }
+
+      if (type === "START_BATCH_DOWNLOAD") {
+        return new Promise(() => {})
+      }
+
+      return Promise.resolve({ ok: true })
+    })
+
+    await import("../../../contents/source-batch")
+
+    await vi.waitFor(() => {
+      expect(createRoot).toHaveBeenCalledTimes(2)
+    })
+
+    const listener = runtimeAddListener.mock.calls[0]?.[0]
+    const initialPanel = getLatestPanelProps()
+    initialPanel.onSelectAll()
+    getLatestPanelProps().onDownload()
+
+    await vi.waitFor(() => {
+      expect(getLatestPanelProps().running).toBe(true)
+    })
+
+    const statusBeforeDisable = getLatestPanelProps().statusText
+    expect(statusBeforeDisable).not.toBe("就绪。先在当前列表页勾选资源。")
+
+    listener?.({
+      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
+      sourceId: "acgrip",
+      enabled: false
+    })
+
+    expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).toBeNull()
+    expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).toBeNull()
+
+    getDetailAnchors.mockReturnValueOnce([anchor])
+    getBatchItemFromAnchor.mockReturnValueOnce(item)
+    getAnchorMountTarget.mockReturnValueOnce(anchorCell)
+
+    listener?.({
+      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
+      sourceId: "acgrip",
+      enabled: true
+    })
+
+    await vi.waitFor(() => {
+      expect(createRoot).toHaveBeenCalledTimes(4)
+      expect(getLatestPanelProps().running).toBe(true)
+    })
+
+    expect(getLatestPanelProps().statusText).toBe(statusBeforeDisable)
   })
 })
