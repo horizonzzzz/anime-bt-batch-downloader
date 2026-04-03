@@ -13,6 +13,7 @@ export function BatchPanel({
   sourceName = "当前站点",
   isExpanded,
   selectedCount,
+  selectableCount = Number.POSITIVE_INFINITY,
   running,
   statusText,
   savePath,
@@ -119,6 +120,7 @@ export function BatchPanel({
         </div>
         <BatchPanelActions
           running={running}
+          disableSelectAll={running || selectableCount === 0}
           disableClear={viewState.disableClear}
           disableDownload={viewState.disableDownload}
           downloadLabel={viewState.downloadLabel}

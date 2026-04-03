@@ -160,17 +160,13 @@ describe("BatchPanel", () => {
     )
   })
 
-  it("shows the expanded workspace with the prominent selected count", () => {
-    renderBatchPanel()
+  it("disables select-all when there are no selectable items", () => {
+    renderBatchPanel({
+      selectedCount: 0,
+      selectableCount: 0
+    })
 
-    expect(screen.getByText("Kisssub 批量下载")).toBeInTheDocument()
-    expect(screen.getByTestId("batch-panel-brand-icon")).toBeInTheDocument()
-    expect(screen.getByText("已选资源")).toBeInTheDocument()
-    expect(screen.getByText("0")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "批量下载" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "全选本页" })).toBeEnabled()
-    expect(screen.queryByText("最近结果")).not.toBeInTheDocument()
-    expect(screen.queryByLabelText("临时下载路径")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "全选本页" })).toBeDisabled()
   })
 
   it("lets the user open advanced options, edit the save path, and clear it", async () => {

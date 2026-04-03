@@ -11,7 +11,6 @@ import {
   HiOutlineClock,
   HiOutlineDocumentDuplicate,
   HiOutlineExclamationTriangle,
-  HiOutlineFunnel,
   HiOutlineGlobeAlt,
   HiOutlineXCircle
 } from "react-icons/hi2"
@@ -49,9 +48,6 @@ function ItemStatusIcon({ status }: { status: TaskHistoryItem["status"] }) {
   }
   if (status === "duplicate") {
     return <HiOutlineDocumentDuplicate className="w-4 h-4 text-blue-500" />
-  }
-  if (status === "filtered") {
-    return <HiOutlineFunnel className="w-4 h-4 text-amber-500" />
   }
   return <HiOutlineXCircle className="w-4 h-4 text-red-500" />
 }
@@ -121,7 +117,7 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-zinc-900">{record.stats.total}</div>
@@ -138,12 +134,6 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{record.stats.duplicated}</div>
             <div className="text-xs text-zinc-500 mt-1">重复</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-amber-600">{record.stats.filtered}</div>
-            <div className="text-xs text-zinc-500 mt-1">过滤</div>
           </CardContent>
         </Card>
         <Card>
@@ -210,8 +200,6 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
                   ? "bg-red-50/50 border-red-100"
                   : item.status === "duplicate"
                   ? "bg-blue-50/50 border-blue-100"
-                  : item.status === "filtered"
-                  ? "bg-amber-50/50 border-amber-100"
                   : "bg-white border-zinc-100"
               )}
             >
@@ -257,11 +245,6 @@ export function HistoryDetailView({ record, onBack, onRecordChanged }: HistoryDe
               {item.status === "duplicate" && (
                 <div className="col-span-12 mt-1 px-2 py-1.5 rounded bg-blue-100 text-xs text-blue-700">
                   {item.message || "该条目已在 qBittorrent 中存在，跳过提交"}
-                </div>
-              )}
-              {item.status === "filtered" && (
-                <div className="col-span-12 mt-1 px-2 py-1.5 rounded bg-amber-100 text-xs text-amber-700">
-                  {item.message || "该条目命中过滤规则，未提交到 qBittorrent"}
                 </div>
               )}
             </div>

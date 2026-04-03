@@ -19,10 +19,9 @@ function classifyFailureReason(message: string): string {
 
 function mapItemStatus(
   status: string
-): "success" | "duplicate" | "filtered" | "failed" {
+): "success" | "duplicate" | "failed" {
   if (status === "submitted") return "success"
   if (status === "duplicate") return "duplicate"
-  if (status === "filtered") return "filtered"
   return "failed"
 }
 
@@ -70,7 +69,6 @@ export function buildHistoryRecord(
       total: job.stats.total,
       success: job.stats.submitted,
       duplicated: job.stats.duplicated,
-      filtered: job.stats.filtered,
       failed: job.stats.failed
     },
     items,

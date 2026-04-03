@@ -14,7 +14,7 @@ function createMockRecord(id: string, overrides?: Partial<TaskHistoryRecord>): T
     sourceId: "kisssub",
     status: "completed",
     createdAt: "2026-01-01T10:00:00Z",
-    stats: { total: 3, success: 2, duplicated: 1, filtered: 0, failed: 0 },
+    stats: { total: 3, success: 2, duplicated: 1, failed: 0 },
     items: [],
     version: 1,
     ...overrides
@@ -74,11 +74,11 @@ describe("HistoryListView", () => {
     const records = [
       createMockRecord("batch-1", {
         status: "completed",
-        stats: { total: 5, success: 5, duplicated: 0, filtered: 0, failed: 0 }
+        stats: { total: 5, success: 5, duplicated: 0, failed: 0 }
       }),
       createMockRecord("batch-2", {
         status: "partial_failure",
-        stats: { total: 3, success: 2, duplicated: 0, filtered: 0, failed: 1 }
+        stats: { total: 3, success: 2, duplicated: 0, failed: 1 }
       })
     ]
     
@@ -140,7 +140,7 @@ describe("HistoryDetailView", () => {
 
   it("renders stats cards correctly", () => {
     const record = createMockRecord("batch-1", {
-      stats: { total: 10, success: 7, duplicated: 2, filtered: 1, failed: 1 }
+      stats: { total: 10, success: 7, duplicated: 2, failed: 1 }
     })
     
     render(<HistoryDetailView record={record} onBack={vi.fn()} onRecordChanged={vi.fn()} />)
@@ -148,11 +148,10 @@ describe("HistoryDetailView", () => {
     expect(screen.getByText("10")).toBeInTheDocument()
     expect(screen.getByText("7")).toBeInTheDocument()
     expect(screen.getByText("2")).toBeInTheDocument()
-    expect(screen.getAllByText("1")).toHaveLength(2)
+    expect(screen.getByText("1")).toBeInTheDocument()
     expect(screen.getByText("总条目")).toBeInTheDocument()
     expect(screen.getByText("成功")).toBeInTheDocument()
     expect(screen.getByText("重复")).toBeInTheDocument()
-    expect(screen.getByText("过滤")).toBeInTheDocument()
     expect(screen.getByText("失败")).toBeInTheDocument()
   })
 
@@ -161,7 +160,6 @@ describe("HistoryDetailView", () => {
       items: [
         createMockItem("item-1", { status: "success", title: "Success Item" }),
         createMockItem("item-2", { status: "duplicate", title: "Duplicate Item" }),
-        createMockItem("item-3", { status: "filtered", title: "Filtered Item" }),
         createMockItem("item-4", { status: "failed", title: "Failed Item", failure: { reason: "qb_error", message: "qB rejected", retryable: true, retryCount: 0 } })
       ]
     })
@@ -170,7 +168,6 @@ describe("HistoryDetailView", () => {
     
     expect(screen.getByText("Success Item")).toBeInTheDocument()
     expect(screen.getByText("Duplicate Item")).toBeInTheDocument()
-    expect(screen.getByText("Filtered Item")).toBeInTheDocument()
     expect(screen.getByText("Failed Item")).toBeInTheDocument()
     expect(screen.getByText("qB rejected")).toBeInTheDocument()
     expect(screen.getByText("该条目已在 qBittorrent 中存在，跳过提交")).toBeInTheDocument()
@@ -179,7 +176,7 @@ describe("HistoryDetailView", () => {
   it("shows failure summary section when there are failures", () => {
     const record = createMockRecord("batch-1", {
       status: "partial_failure",
-      stats: { total: 3, success: 1, duplicated: 0, filtered: 0, failed: 2 },
+      stats: { total: 3, success: 1, duplicated: 0, failed: 2 },
       items: [
         createMockItem("item-1", { status: "success" }),
         createMockItem("item-2", { status: "failed", failure: { reason: "qb_error", message: "error 1", retryable: true, retryCount: 0 } }),
@@ -197,7 +194,7 @@ describe("HistoryDetailView", () => {
   it("hides failure summary when no failures", () => {
     const record = createMockRecord("batch-1", {
       status: "completed",
-      stats: { total: 2, success: 2, duplicated: 0, filtered: 0, failed: 0 }
+      stats: { total: 2, success: 2, duplicated: 0, failed: 0 }
     })
     
     render(<HistoryDetailView record={record} onBack={vi.fn()} onRecordChanged={vi.fn()} />)

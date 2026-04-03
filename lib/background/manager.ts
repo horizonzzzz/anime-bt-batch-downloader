@@ -1,4 +1,3 @@
-import { decideFilterAction } from "../filter-rules"
 import { getDisabledSources, normalizeSavePath } from "../settings"
 import type { StartBatchDownloadSuccessResponse } from "../shared/messages"
 import type { BatchItem, ClassifiedBatchResult } from "../shared/types"
@@ -201,25 +200,10 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
   ): Promise<ClassifiedBatchResult> {
     const preparedResult = createPreparedExtractionResult(item)
     if (preparedResult) {
-      const filteredPreparedResult = classifyFilteredBatchResult(item.sourceId, preparedResult, job.settings)
-      if (filteredPreparedResult) {
-        return filteredPreparedResult
-      }
-
       return classifyExtractionResult(item.sourceId, preparedResult, job.settings, seenHashes, seenUrls)
     }
 
     const extractedResult = await dependencies.extractSingleItem(item, job.settings)
-    if (extractedResult.ok) {
-      const filteredExtractedResult = classifyFilteredBatchResult(
-        item.sourceId,
-        extractedResult,
-        job.settings
-      )
-      if (filteredExtractedResult) {
-        return filteredExtractedResult
-      }
-    }
 
     return classifyExtractionResult(
       item.sourceId,
@@ -234,47 +218,6 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
     activeJobs,
     startBatchDownload
   }
-}
-
-function classifyFilteredBatchResult(
-  sourceId: BatchItem["sourceId"],
-  item: Pick<ClassifiedBatchResult, "title" | "detailUrl" | "hash" | "magnetUrl" | "torrentUrl">,
-  settings: BatchJob["settings"]
-): ClassifiedBatchResult | null {
-  const filterDecision = decideFilterAction({
-    sourceId,
-    title: item.title,
-    filters: settings.filters
-  })
-  if (filterDecision.accepted) {
-    return null
-  }
-
-  const preferredDeliveryMode = getDeliveryModePriority(sourceId, settings)[0] ?? "magnet"
-
-  return {
-    ok: false,
-    title: item.title,
-    detailUrl: item.detailUrl,
-    hash: item.hash || "",
-    magnetUrl: item.magnetUrl || "",
-    torrentUrl: item.torrentUrl || "",
-    failureReason: "",
-    status: "filtered",
-    deliveryMode: preferredDeliveryMode,
-    submitUrl: "",
-    message: getFilterDecisionMessage(filterDecision)
-  }
-}
-
-function getFilterDecisionMessage(
-  filterDecision: ReturnType<typeof decideFilterAction>
-): string {
-  if (filterDecision.matchedFilter) {
-    return `Matched filter: ${filterDecision.matchedFilter.name}`
-  }
-
-  return filterDecision.message || "Blocked by filters: no filter matched"
 }
 
 function splitPreparedSubmissions(preparedSubmissions: ClassifiedBatchResult[]): {

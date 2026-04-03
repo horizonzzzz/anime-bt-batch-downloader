@@ -42,7 +42,7 @@ export type BatchItem = {
   torrentUrl?: string
 }
 
-export type BatchLogStatus = "ready" | "submitted" | "duplicate" | "filtered" | "failed"
+export type BatchLogStatus = "ready" | "submitted" | "duplicate" | "failed"
 
 export type BatchLogItem = {
   title: string
@@ -57,7 +57,6 @@ export type BatchStats = {
   prepared: number
   submitted: number
   duplicated: number
-  filtered: number
   failed: number
 }
 
@@ -102,7 +101,6 @@ export type ClassifiedBatchResult = ExtractionResult & {
 export type BatchSummary = {
   submitted: number
   duplicated: number
-  filtered: number
   failed: number
 }
 

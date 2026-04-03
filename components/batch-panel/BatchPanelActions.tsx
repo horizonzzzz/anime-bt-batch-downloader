@@ -3,6 +3,7 @@ import { ContentButton } from "../content-ui/button"
 
 type BatchPanelActionsProps = {
   running: boolean
+  disableSelectAll: boolean
   disableClear: boolean
   disableDownload: boolean
   downloadLabel: string
@@ -13,6 +14,7 @@ type BatchPanelActionsProps = {
 
 export function BatchPanelActions({
   running,
+  disableSelectAll,
   disableClear,
   disableDownload,
   downloadLabel,
@@ -29,7 +31,7 @@ export function BatchPanelActions({
           data-anime-bt-role="select-all"
           className="max-[680px]:flex-1"
           onClick={onSelectAll}
-          disabled={running}>
+          disabled={disableSelectAll}>
           全选本页
         </ContentButton>
         <ContentButton

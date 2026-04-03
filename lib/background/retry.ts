@@ -1,4 +1,3 @@
-import { decideFilterAction } from "../filter-rules"
 import type { QbTorrentFile } from "../downloader/qb"
 import type { TaskHistoryItem, TaskHistoryRecord } from "../history/types"
 import type { Settings } from "../shared/types"
@@ -57,22 +56,12 @@ function updateItemAfterFailure(item: TaskHistoryItem, message: string): TaskHis
   }
 }
 
-function updateItemAfterFiltered(item: TaskHistoryItem, message: string): TaskHistoryItem {
-  return {
-    ...item,
-    status: "filtered",
-    message,
-    failure: undefined
-  }
-}
-
 function recalculateStats(items: TaskHistoryItem[]): TaskHistoryRecord["stats"] {
   const total = items.length
   const success = items.filter(i => i.status === "success").length
   const duplicated = items.filter(i => i.status === "duplicate").length
-  const filtered = items.filter(i => i.status === "filtered").length
   const failed = items.filter(i => i.status === "failed").length
-  return { total, success, duplicated, filtered, failed }
+  return { total, success, duplicated, failed }
 }
 
 export async function retryFailedItems(
@@ -99,25 +88,9 @@ export async function retryFailedItems(
   const settings = await deps.getSettings()
   const urlItems: { item: TaskHistoryItem; url: string }[] = []
   const torrentFileItems: { item: TaskHistoryItem; url: string }[] = []
-  const filteredItems: TaskHistoryItem[] = []
   const itemsWithoutUrls: TaskHistoryItem[] = []
 
   for (const item of targetItems) {
-    const filterDecision = decideFilterAction({
-      sourceId: item.sourceId,
-      title: item.title,
-      filters: settings.filters
-    })
-    if (!filterDecision.accepted) {
-      filteredItems.push(
-        updateItemAfterFiltered(
-          item,
-          getFilterDecisionMessage(filterDecision)
-        )
-      )
-      continue
-    }
-
     const url = getSubmitUrl(item)
     if (!url) {
       itemsWithoutUrls.push(updateItemAfterFailure(item, "无可用的 magnet 或 torrent 链接"))
@@ -136,9 +109,6 @@ export async function retryFailedItems(
   const updatedItems: TaskHistoryItem[] = record.items.map(item => {
     const wasTarget = targetItems.some(t => t.id === item.id)
     if (!wasTarget) return item
-
-    const filtered = filteredItems.find(w => w.id === item.id)
-    if (filtered) return filtered
 
     const withoutUrl = itemsWithoutUrls.find(w => w.id === item.id)
     if (withoutUrl) return withoutUrl
@@ -213,14 +183,4 @@ export async function retryFailedItems(
     failedCount,
     updatedRecord
   }
-}
-
-function getFilterDecisionMessage(
-  filterDecision: ReturnType<typeof decideFilterAction>
-): string {
-  if (filterDecision.matchedFilter) {
-    return `Matched filter: ${filterDecision.matchedFilter.name}`
-  }
-
-  return filterDecision.message || "Blocked by filters: no filter matched"
 }

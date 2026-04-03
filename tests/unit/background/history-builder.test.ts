@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS } from "../../../lib/settings"
 import type { BatchJob } from "../../../lib/background/types"
 
 describe("buildHistoryRecord", () => {
-  it("maps filtered batch results into filtered history items and stats", () => {
+  it("maps batch results into success, duplicate, and failed history items only", () => {
     const job: BatchJob = {
       sourceTabId: 1,
       savePath: "",
@@ -16,8 +16,7 @@ describe("buildHistoryRecord", () => {
         prepared: 0,
         submitted: 0,
         duplicated: 0,
-        filtered: 1,
-        failed: 0
+        failed: 1
       },
       results: [
         {
@@ -28,7 +27,7 @@ describe("buildHistoryRecord", () => {
           magnetUrl: "",
           torrentUrl: "",
           failureReason: "",
-          status: "filtered",
+          status: "failed",
           deliveryMode: "",
           submitUrl: "",
           message: "Blocked by filters: no filter matched"
@@ -38,17 +37,16 @@ describe("buildHistoryRecord", () => {
 
     const record = buildHistoryRecord(job, "kisssub")
 
-    expect(record.status).toBe("completed")
+    expect(record.status).toBe("partial_failure")
     expect(record.stats).toMatchObject({
       total: 1,
       success: 0,
       duplicated: 0,
-      filtered: 1,
-      failed: 0
+      failed: 1
     })
     expect(record.items[0]).toMatchObject({
-      status: "filtered"
+      status: "failed"
     })
-    expect(record.items[0].failure).toBeUndefined()
+    expect(record.items[0].failure).toBeDefined()
   })
 })

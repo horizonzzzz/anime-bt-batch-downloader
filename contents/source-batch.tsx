@@ -20,8 +20,9 @@ import {
   getEnabledSourceAdapterForLocation
 } from "../lib/content/page"
 import { createShadowMountHost, ensureShadowStyle } from "../lib/content/shadow-root"
+import { buildSelectableBatchItem, type SelectableBatchItem } from "../lib/content/filter-selection"
 import type { SourceAdapter } from "../lib/sources/types"
-import type { BatchEventPayload, BatchItem, Settings } from "../lib/shared/types"
+import type { BatchEventPayload, BatchItem, FilterEntry, Settings } from "../lib/shared/types"
 import { FILTERS_ROUTE } from "../lib/shared/options-routes"
 import contentStyleText from "../styles/content-style-text"
 
@@ -45,7 +46,7 @@ export const config: PlasmoCSConfig = {
 type CheckboxRoot = {
   host: HTMLSpanElement
   root: Root
-  item: BatchItem
+  item: SelectableBatchItem
 }
 
 type PanelSnapshot = {
@@ -55,6 +56,7 @@ type PanelSnapshot = {
   statusText: string
   savePath: string
   savePathHint: string
+  filters: FilterEntry[]
   filterStatus: ReturnType<typeof createBatchPanelFilterStatus>
 }
 
@@ -72,6 +74,7 @@ const snapshot: PanelSnapshot = {
   statusText: "就绪。先在当前列表页勾选资源。",
   savePath: "",
   savePathHint: DEFAULT_SAVE_PATH_HINT,
+  filters: [],
   filterStatus: createBatchPanelFilterStatus({
     sourceId: "kisssub",
     filters: []
@@ -107,6 +110,7 @@ async function bootstrap() {
       sourceId: source.id,
       filters: settings.filters ?? []
     })
+    snapshot.filters = settings.filters ?? []
 
     activateSource(source)
   } catch (error) {
@@ -302,10 +306,11 @@ function scanAndDecorate(source: SourceAdapter) {
     })
 
     const root = createRoot(mount.container)
+    const selectableItem = buildSelectableBatchItem(item, snapshot.filters)
     checkboxRoots.set(item.detailUrl, {
       host: mount.host,
       root,
-      item
+      item: selectableItem
     })
     ensureMountedUiStyles()
 
@@ -341,6 +346,7 @@ function renderPanel() {
       sourceName={activeSource?.displayName}
       isExpanded={snapshot.isExpanded}
       selectedCount={snapshot.selected.size}
+      selectableCount={Array.from(checkboxRoots.values()).filter(({ item }) => item.selectable).length}
       running={snapshot.running}
       statusText={snapshot.statusText}
       savePath={snapshot.savePath}
@@ -365,7 +371,9 @@ function renderCheckboxes() {
   for (const { item, root } of checkboxRoots.values()) {
     root.render(
       <SelectionCheckbox
-        checked={snapshot.selected.has(item.detailUrl)}
+        checked={item.selectable && snapshot.selected.has(item.item.detailUrl)}
+        disabled={!item.selectable}
+        disabledReason={item.blockedReason || "该条目未命中当前筛选规则，无法选择"}
         onChange={(checked) => {
           toggleSelection(item, checked)
         }}
@@ -374,11 +382,15 @@ function renderCheckboxes() {
   }
 }
 
-function toggleSelection(item: BatchItem, checked: boolean) {
+function toggleSelection(item: SelectableBatchItem, checked: boolean) {
+  if (!item.selectable) {
+    return
+  }
+
   if (checked) {
-    snapshot.selected.set(item.detailUrl, item)
+    snapshot.selected.set(item.item.detailUrl, item.item)
   } else {
-    snapshot.selected.delete(item.detailUrl)
+    snapshot.selected.delete(item.item.detailUrl)
   }
 
   if (!snapshot.running) {
@@ -390,7 +402,12 @@ function toggleSelection(item: BatchItem, checked: boolean) {
 
 function selectAllVisible() {
   for (const { item } of checkboxRoots.values()) {
-    snapshot.selected.set(item.detailUrl, item)
+    if (!item.selectable) {
+      snapshot.selected.delete(item.item.detailUrl)
+      continue
+    }
+
+    snapshot.selected.set(item.item.detailUrl, item.item)
   }
 
   snapshot.statusText = buildSelectionStatus(snapshot.selected.size)
@@ -491,8 +508,8 @@ function handleBatchEvent(event: BatchEventPayload) {
 
   if (event.stage === "completed") {
     snapshot.running = false
-    const summary = event.summary ?? { submitted: 0, duplicated: 0, filtered: 0, failed: 0 }
-    snapshot.statusText = `完成。成功提交 ${summary.submitted || 0} 项，重复 ${summary.duplicated || 0} 项，过滤 ${summary.filtered || 0} 项，失败 ${summary.failed || 0} 项。`
+    const summary = event.summary ?? { submitted: 0, duplicated: 0, failed: 0 }
+    snapshot.statusText = `完成。成功提交 ${summary.submitted || 0} 项，重复 ${summary.duplicated || 0} 项，失败 ${summary.failed || 0} 项。`
     renderAll()
     return
   }
@@ -528,10 +545,6 @@ function buildProgressStatus(event: BatchEventPayload) {
 
   if (itemStatus === "duplicate") {
     return `已处理 ${processed}/${total} 项，检测到重复资源。`
-  }
-
-  if (itemStatus === "filtered") {
-    return `已处理 ${processed}/${total} 项，部分资源已被过滤规则排除。`
   }
 
   return `正在提取真实链接（${processed}/${total}）。`

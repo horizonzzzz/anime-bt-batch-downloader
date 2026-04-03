@@ -14,6 +14,7 @@ export type BatchPanelProps = {
   sourceName?: string
   isExpanded: boolean
   selectedCount: number
+  selectableCount?: number
   running: boolean
   statusText: string
   savePath: string

@@ -2,7 +2,7 @@ import type { DeliveryMode, SourceId } from "../shared/types"
 
 export type TaskHistoryStatus = "completed" | "partial_failure"
 
-export type TaskItemStatus = "success" | "duplicate" | "filtered" | "failed"
+export type TaskItemStatus = "success" | "duplicate" | "failed"
 
 export type FailureReason = "parse_error" | "timeout" | "qb_error" | "network_error" | "unknown"
 
@@ -40,7 +40,6 @@ export type TaskHistoryRecord = {
     total: number
     success: number
     duplicated: number
-    filtered: number
     failed: number
   }
   items: TaskHistoryItem[]

@@ -32,9 +32,11 @@ const ContentCheckbox = React.forwardRef<HTMLInputElement, ContentCheckboxProps>
       <label
         data-anime-bt-role="selection-pill"
         data-state={checked ? "checked" : "unchecked"}
+        data-disabled={props.disabled ? "true" : "false"}
         title={title}
         className={cn(
           "inline-flex min-h-[var(--anime-bt-checkbox-pill-height)] items-center whitespace-nowrap align-middle gap-[5px] rounded-[var(--anime-bt-radius-pill)] border border-[rgba(72,94,117,0.22)] bg-[rgba(255,255,255,0.94)] px-[8px] text-[12px] leading-none text-[#294457] shadow-[0_6px_16px_rgba(15,23,42,0.08)] backdrop-blur-[8px]",
+          props.disabled && "cursor-not-allowed opacity-50",
           containerClassName
         )}
         {...containerProps}>

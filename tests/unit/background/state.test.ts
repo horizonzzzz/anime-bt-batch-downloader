@@ -55,14 +55,13 @@ describe("background job state helpers", () => {
         prepared: 0,
         submitted: 0,
         duplicated: 0,
-        filtered: 0,
         failed: 0
       },
       results: []
     })
   })
 
-  it("records prepared, duplicate, filtered, and failed results into the running stats", () => {
+  it("records prepared, duplicate, and failed results into the running stats", () => {
     const job = createBatchJob(18, 4, createSettings(), "")
 
     recordBatchResult(job, createResult())
@@ -82,7 +81,7 @@ describe("background job state helpers", () => {
       createResult({
         title: "Episode 03",
         detailUrl: "https://www.kisssub.org/show-feedfeed.html",
-        status: "filtered",
+        status: "failed",
         deliveryMode: "",
         submitUrl: "",
         message: "Blocked by filters: no filter matched"
@@ -106,8 +105,7 @@ describe("background job state helpers", () => {
       prepared: 1,
       submitted: 0,
       duplicated: 1,
-      filtered: 1,
-      failed: 1
+      failed: 2
     })
     expect(job.results).toHaveLength(4)
   })
@@ -133,7 +131,7 @@ describe("background job state helpers", () => {
         }),
         createResult({
           title: "Episode 04",
-          status: "filtered",
+          status: "failed",
           deliveryMode: "",
           submitUrl: "",
           message: "Blocked by filters: no filter matched"
@@ -149,8 +147,7 @@ describe("background job state helpers", () => {
     ).toEqual({
       submitted: 2,
       duplicated: 1,
-      filtered: 1,
-      failed: 1
+      failed: 2
     })
   })
 })

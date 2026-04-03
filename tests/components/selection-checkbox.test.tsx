@@ -48,4 +48,27 @@ describe("SelectionCheckbox", () => {
     expect(onClick).not.toHaveBeenCalled()
     expect(onMouseDown).not.toHaveBeenCalled()
   })
+
+  it("renders disabled state and does not fire changes for blocked items", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+
+    render(
+      <SelectionCheckbox
+        checked={false}
+        disabled
+        disabledReason="该条目未命中当前筛选规则，无法选择"
+        onChange={onChange}
+      />
+    )
+
+    const checkbox = screen.getByRole("checkbox", { name: "该条帖子不可选择" })
+    expect(checkbox).toBeDisabled()
+    expect(screen.getByTitle("该条目未命中当前筛选规则，无法选择")).toBeInTheDocument()
+
+    await user.click(checkbox)
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })
+

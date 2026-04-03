@@ -104,9 +104,6 @@ export function HistoryListView({ records, onViewDetail, onRefresh }: HistoryLis
             <div className="col-span-2 flex items-center gap-2 text-sm">
               <span className="font-medium text-zinc-900">{formatStats(record.stats)}</span>
               <span className="text-zinc-500">成功</span>
-              {record.stats.filtered > 0 && (
-                <span className="text-amber-600">{record.stats.filtered} 过滤</span>
-              )}
               {record.stats.failed > 0 && (
                 <span className="text-red-600">{record.stats.failed} 失败</span>
               )}

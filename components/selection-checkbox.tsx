@@ -4,10 +4,12 @@ import { ContentCheckbox } from "./content-ui/checkbox"
 
 type SelectionCheckboxProps = {
   checked: boolean
+  disabled?: boolean
+  disabledReason?: string
   onChange: (checked: boolean) => void
 }
 
-export function SelectionCheckbox({ checked, onChange }: SelectionCheckboxProps) {
+export function SelectionCheckbox({ checked, disabled = false, disabledReason, onChange }: SelectionCheckboxProps) {
   const stopPropagation = (event: SyntheticEvent) => {
     event.stopPropagation()
   }
@@ -16,9 +18,10 @@ export function SelectionCheckbox({ checked, onChange }: SelectionCheckboxProps)
     <div className="anime-bt-content-root">
       <ContentCheckbox
         checked={checked}
+        disabled={disabled}
         label="批量"
-        title="选择这条帖子进行批量下载"
-        aria-label="选择这条帖子进行批量下载"
+        title={disabled ? disabledReason : "选择这条帖子进行批量下载"}
+        aria-label={disabled ? "该条帖子不可选择" : "选择这条帖子进行批量下载"}
         data-anime-bt-batch-checkbox="1"
         onCheckedChange={onChange}
         containerClassName="mr-[8px]"

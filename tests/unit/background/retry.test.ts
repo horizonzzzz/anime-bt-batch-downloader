@@ -16,7 +16,6 @@ function createMockRecord(id: string, items: TaskHistoryItem[]): TaskHistoryReco
       total: items.length,
       success: items.filter(i => i.status === "success").length,
       duplicated: items.filter(i => i.status === "duplicate").length,
-      filtered: items.filter(i => i.status === "filtered").length,
       failed: items.filter(i => i.status === "failed").length
     },
     items,
@@ -68,17 +67,6 @@ function createSuccessItem(id: string, title: string): TaskHistoryItem {
     sourceId: "kisssub",
     magnetUrl: `magnet:?xt=urn:btih:${id}`,
     status: "success",
-    deliveryMode: "magnet"
-  }
-}
-
-function createFilteredItem(id: string, title: string): TaskHistoryItem {
-  return {
-    id,
-    title,
-    detailUrl: `https://example.com/${id}`,
-    sourceId: "kisssub",
-    status: "filtered",
     deliveryMode: "magnet"
   }
 }
@@ -139,8 +127,7 @@ describe("retryFailedItems", () => {
   describe("success cases", () => {
     it("returns zero counts when no failed items", async () => {
       const record = createMockRecord("batch-1", [
-        createSuccessItem("item-1", "Test"),
-        createFilteredItem("item-2", "Filtered")
+        createSuccessItem("item-1", "Test")
       ])
       deps.getHistoryRecord = vi.fn(async () => record)
 
@@ -150,19 +137,19 @@ describe("retryFailedItems", () => {
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(0)
       expect(deps.addUrlsToQb).not.toHaveBeenCalled()
-      expect(result.updatedRecord.stats.filtered).toBe(1)
+      expect(result.updatedRecord.stats.failed).toBe(0)
     })
 
-    it("ignores filtered items even when itemIds are provided explicitly", async () => {
-      const record = createMockRecord("batch-1", [createFilteredItem("item-2", "Filtered")])
+    it("retries explicitly selected failed items only", async () => {
+      const record = createMockRecord("batch-1", [createFailedItem("item-2", "Retry me", "magnet:?xt=test")])
       deps.getHistoryRecord = vi.fn(async () => record)
 
       const result = await retryFailedItems({ recordId: "batch-1", itemIds: ["item-2"] }, deps)
 
-      expect(result.successCount).toBe(0)
+      expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
-      expect(result.updatedRecord.items[0].status).toBe("filtered")
+      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(result.updatedRecord.items[0].status).toBe("success")
     })
 
     it("successfully retries failed items with magnet URLs", async () => {
@@ -186,7 +173,7 @@ describe("retryFailedItems", () => {
       expect(updatedRecord.status).toBe("completed")
     })
 
-    it("re-applies current filters before retry submission", async () => {
+    it("retries failed items without re-applying current filters", async () => {
       const failedItem = createFailedItem(
         "item-1",
         "[喵萌奶茶屋] Episode 01 [1080p][RAW]",
@@ -220,25 +207,21 @@ describe("retryFailedItems", () => {
 
       const result = await retryFailedItems({ recordId: "batch-1" }, deps)
 
-      expect(result.successCount).toBe(0)
+      expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.loginQb).not.toHaveBeenCalled()
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
-      expect(result.updatedRecord.items[0].status).toBe("filtered")
-      expect(result.updatedRecord.items[0].message).toBe(
-        "Blocked by filters: no filter matched"
-      )
+      expect(deps.loginQb).toHaveBeenCalledTimes(1)
+      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(result.updatedRecord.items[0].status).toBe("success")
       expect(result.updatedRecord.stats).toEqual({
         total: 1,
-        success: 0,
+        success: 1,
         duplicated: 0,
-        filtered: 1,
         failed: 0
       })
       expect(result.updatedRecord.status).toBe("completed")
     })
 
-    it("blocks retries when enabled filters exist but the item matches none of them", async () => {
+    it("retries failed items even when enabled filters exist but the item matches none of them", async () => {
       const failedItem = createFailedItem(
         "item-1",
         "[LoliHouse] Episode 01 [1080p]",
@@ -272,14 +255,11 @@ describe("retryFailedItems", () => {
 
       const result = await retryFailedItems({ recordId: "batch-1" }, deps)
 
-      expect(result.successCount).toBe(0)
+      expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.loginQb).not.toHaveBeenCalled()
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
-      expect(result.updatedRecord.items[0].status).toBe("filtered")
-      expect(result.updatedRecord.items[0].message).toBe(
-        "Blocked by filters: no filter matched"
-      )
+      expect(deps.loginQb).toHaveBeenCalledTimes(1)
+      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(result.updatedRecord.items[0].status).toBe("success")
       expect(result.updatedRecord.status).toBe("completed")
     })
 
