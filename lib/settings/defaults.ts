@@ -6,10 +6,10 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   qbBaseUrl: "http://127.0.0.1:7474",
   qbUsername: "",
   qbPassword: "",
-  concurrency: 1,
+  concurrency: 3,
   injectTimeoutMs: 15000,
   domSettleMs: 1200,
-  retryCount: 1,
+  retryCount: 3,
   remoteScriptUrl: "//1.acgscript.com/script/miobt/4.js?3",
   remoteScriptRevision: "20181120.2",
   lastSavePath: "",
@@ -17,3 +17,4 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   enabledSources: DEFAULT_ENABLED_SOURCES,
   filters: []
 })
+

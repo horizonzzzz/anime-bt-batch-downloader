@@ -217,6 +217,29 @@ describe("OptionsPage", () => {
     10000
   )
 
+  it("adds the 爱恋 1080 简中 preset rule directly and allows duplicates", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "过滤规则" }))
+    await user.click(screen.getAllByRole("button", { name: "添加实例规则" })[0])
+
+    const filtersList = screen.getByTestId("filters-list")
+
+    expect(within(filtersList).getAllByRole("heading", { name: "爱恋 1080 简中" })).toHaveLength(1)
+    expect(screen.getByText(/字幕组包含“爱恋字幕社”/)).toBeInTheDocument()
+    expect(screen.getByText(/标题包含“1080”/)).toBeInTheDocument()
+    expect(screen.getByText(/标题包含“简中”/)).toBeInTheDocument()
+
+    await user.click(screen.getAllByRole("button", { name: "添加实例规则" })[0])
+
+    expect(within(filtersList).getAllByRole("heading", { name: "爱恋 1080 简中" })).toHaveLength(2)
+  })
+
   it("focuses and closes the filter sheet with keyboard controls", async () => {
     const user = userEvent.setup()
     const api = createOptionsApi()
@@ -293,6 +316,7 @@ describe("OptionsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "过滤规则" }))
     expect(screen.getByText(/只配置你想保留的资源特征/)).toBeInTheDocument()
+    expect(screen.getByText(/如果没有启用筛选器，则默认全部保留/)).toBeInTheDocument()
     expect(screen.queryByText("策略工作台")).not.toBeInTheDocument()
     expect(screen.queryByText("默认策略：")).not.toBeInTheDocument()
   })
@@ -349,7 +373,7 @@ describe("OptionsPage", () => {
     expect(screen.getByTestId("site-icon-bangumimoe")).toBeVisible()
   })
 
-  it("falls back to the 7474 default qB address when saved settings are incomplete", async () => {
+  it("shows the new default concurrency and retry values when saved settings are incomplete", async () => {
     const api = createOptionsApi({
       loadSettings: vi.fn().mockResolvedValue({})
     })
@@ -357,7 +381,10 @@ describe("OptionsPage", () => {
     render(<OptionsPage api={api} />)
 
     expect(await screen.findByDisplayValue("http://127.0.0.1:7474")).toBeInTheDocument()
+    expect(screen.getByLabelText("并发数")).toHaveValue(3)
+    expect(screen.getByLabelText("重试次数")).toHaveValue(3)
   })
+
 
   it(
     "saves edited values across the general and site management views",

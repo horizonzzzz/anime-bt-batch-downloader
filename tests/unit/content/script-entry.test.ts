@@ -40,8 +40,10 @@ vi.mock("../../../components/batch-panel", () => ({
   BatchPanel: () => null
 }))
 
+const SelectionCheckbox = vi.fn(() => null)
+
 vi.mock("../../../components/selection-checkbox", () => ({
-  SelectionCheckbox: () => null
+  SelectionCheckbox
 }))
 
 vi.mock("../../../lib/content/page", () => ({
@@ -118,6 +120,26 @@ describe("content script entry", () => {
     }
 
     throw new Error("Panel props were not rendered.")
+  }
+
+  const getLatestCheckboxProps = () => {
+    for (let rootIndex = createdRoots.length - 1; rootIndex >= 0; rootIndex -= 1) {
+      const calls = createdRoots[rootIndex]?.render.mock.calls ?? []
+      for (let callIndex = calls.length - 1; callIndex >= 0; callIndex -= 1) {
+        const element = calls[callIndex]?.[0] as
+          | { props?: Record<string, unknown> }
+          | undefined
+        if (element?.props?.onChange && "disabledReason" in (element.props ?? {})) {
+          return element.props as {
+            checked: boolean
+            disabled: boolean
+            disabledReason: string
+          }
+        }
+      }
+    }
+
+    throw new Error("Checkbox props were not rendered.")
   }
 
   beforeEach(() => {
@@ -226,6 +248,65 @@ describe("content script entry", () => {
         type: "OPEN_OPTIONS_PAGE",
         route: FILTERS_ROUTE
       })
+    })
+  })
+
+  it("renders a Chinese tooltip for unmatched disabled checkboxes", async () => {
+    const anchorCell = document.createElement("td")
+    const anchor = document.createElement("a")
+    anchor.href = "https://acg.rip/t/2"
+    anchor.textContent = "Episode 02"
+    anchorCell.appendChild(anchor)
+    document.body.appendChild(anchorCell)
+
+    const source = {
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    }
+
+    getSourceAdapterForLocation.mockReturnValueOnce(source)
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce(source)
+    getDetailAnchors.mockReturnValueOnce([anchor])
+    getBatchItemFromAnchor.mockReturnValueOnce({
+      sourceId: "acgrip",
+      title: "[LoliHouse] Episode 02 [720p]",
+      detailUrl: "https://acg.rip/t/2"
+    })
+    getAnchorMountTarget.mockReturnValueOnce(anchorCell)
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      settings: {
+        enabledSources: {
+          acgrip: true
+        },
+        filters: [
+          {
+            id: "filter-1",
+            name: "仅保留爱恋",
+            enabled: true,
+            must: [
+              {
+                id: "condition-1",
+                field: "subgroup",
+                operator: "contains",
+                value: "爱恋字幕社"
+              }
+            ],
+            any: []
+          }
+        ]
+      }
+    })
+
+    await import("../../../contents/source-batch")
+
+    await vi.waitFor(() => {
+      expect(createRoot).toHaveBeenCalledTimes(2)
+    })
+
+    expect(getLatestCheckboxProps()).toMatchObject({
+      disabled: true,
+      disabledReason: "该条目未命中当前筛选规则，无法选择"
     })
   })
 

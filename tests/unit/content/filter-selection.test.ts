@@ -47,11 +47,12 @@ describe("buildSelectableBatchItem", () => {
       )
     ).toMatchObject({
       selectable: true,
-      blockedReason: ""
+      blockedReason: "",
+      blockedReasonCode: null
     })
   })
 
-  it("marks items as blocked when enabled filters exist but nothing matches", () => {
+  it("marks unmatched items with an unmatched-rule reason code", () => {
     expect(
       buildSelectableBatchItem(
         {
@@ -72,7 +73,8 @@ describe("buildSelectableBatchItem", () => {
       )
     ).toMatchObject({
       selectable: false,
-      blockedReason: "Blocked by filters: no filter matched"
+      blockedReason: "Blocked by filters: no filter matched",
+      blockedReasonCode: "unmatched-rule"
     })
   })
 
@@ -97,7 +99,9 @@ describe("buildSelectableBatchItem", () => {
     ).toMatchObject({
       item,
       selectable: true,
-      blockedReason: ""
+      blockedReason: "",
+      blockedReasonCode: null
     })
   })
 })
+

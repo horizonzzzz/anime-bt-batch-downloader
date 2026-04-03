@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  createAilian1080SimplifiedChineseFilter,
   runWorkbenchTest,
   type FilterWorkbenchSourceId
 } from "../../../components/options/pages/filters/filter-workbench"
@@ -31,6 +32,33 @@ function createFilter(overrides: Partial<FilterEntry> = {}): FilterEntry {
     ...overrides
   }
 }
+
+describe("filter workbench helpers", () => {
+  it("creates the 爱恋 1080 简中 preset filter", () => {
+    expect(createAilian1080SimplifiedChineseFilter()).toMatchObject({
+      name: "爱恋 1080 简中",
+      enabled: true,
+      must: [
+        {
+          field: "subgroup",
+          operator: "contains",
+          value: "爱恋字幕社"
+        },
+        {
+          field: "title",
+          operator: "contains",
+          value: "1080"
+        },
+        {
+          field: "title",
+          operator: "contains",
+          value: "简中"
+        }
+      ],
+      any: []
+    })
+  })
+})
 
 describe("runWorkbenchTest", () => {
   it("ignores manual subgroup overrides and relies on title extraction", () => {

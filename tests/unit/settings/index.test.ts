@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest"
 import { DEFAULT_SETTINGS, sanitizeSettings } from "../../../lib/settings"
 
 describe("sanitizeSettings", () => {
-  it("uses 7474 as the default qB WebUI address", () => {
+  it("uses 3 as the default concurrency and retry count", () => {
     expect(sanitizeSettings({})).toMatchObject({
-      qbBaseUrl: "http://127.0.0.1:7474"
+      concurrency: 3,
+      retryCount: 3
     })
   })
 

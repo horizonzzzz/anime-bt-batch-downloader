@@ -92,6 +92,35 @@ export function createFilterDraft(
   }
 }
 
+export function createAilian1080SimplifiedChineseFilter(): FilterWorkbenchFilter {
+  return {
+    id: createWorkbenchId("filter"),
+    name: "爱恋 1080 简中",
+    enabled: true,
+    must: [
+      {
+        id: createWorkbenchId("condition"),
+        field: "subgroup",
+        operator: "contains",
+        value: "爱恋字幕社"
+      },
+      {
+        id: createWorkbenchId("condition"),
+        field: "title",
+        operator: "contains",
+        value: "1080"
+      },
+      {
+        id: createWorkbenchId("condition"),
+        field: "title",
+        operator: "contains",
+        value: "简中"
+      }
+    ],
+    any: []
+  }
+}
+
 export function summarizeCondition(condition: FilterWorkbenchCondition) {
   if (condition.field === "source") {
     return `站点是 ${getSourceLabel(condition.value)}`

@@ -23,6 +23,7 @@ import { FilterRuleBuilderDialog } from "./FilterRuleBuilderDialog"
 import { FilterWorkbenchCard } from "./FilterWorkbenchCards"
 import { FilterWorkbenchTestBench } from "./FilterWorkbenchTestBench"
 import {
+  createAilian1080SimplifiedChineseFilter,
   createFilterDraft,
   runWorkbenchTest,
   type FilterWorkbenchFilter,
@@ -51,6 +52,11 @@ export function FiltersPage() {
       shouldDirty: true,
       shouldTouch: true
     })
+  }
+
+  const handleAddPresetFilter = () => {
+    const currentFilters = form.getValues("filters") ?? []
+    setFilters([...currentFilters, createAilian1080SimplifiedChineseFilter()])
   }
 
   const handleSaveFilter = (nextFilter: FilterWorkbenchFilter) => {
@@ -104,15 +110,21 @@ export function FiltersPage() {
               </p>
             </div>
 
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingIndex(null)
-                setCreatingFilter(true)
-              }}>
-              <HiOutlinePlus className="h-4 w-4" />
-              新增筛选器
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={handleAddPresetFilter}>
+                <HiOutlinePlus className="h-4 w-4" />
+                添加实例规则
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setEditingIndex(null)
+                  setCreatingFilter(true)
+                }}>
+                <HiOutlinePlus className="h-4 w-4" />
+                新增筛选器
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3 text-sm text-zinc-600">
@@ -138,7 +150,7 @@ export function FiltersPage() {
           <div className="grid gap-4">
             {filters.map((filter, index) => (
               <FilterWorkbenchCard
-                key={filter.id}
+                key={`${filter.id}-${index}`}
                 filter={filter}
                 onEdit={() => {
                   setCreatingFilter(false)
@@ -156,7 +168,11 @@ export function FiltersPage() {
               <p className="text-sm leading-6 text-zinc-500">
                 新增一条筛选器，告诉扩展什么样的资源应该被保留。
               </p>
-              <div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button type="button" variant="outline" onClick={handleAddPresetFilter}>
+                  <HiOutlinePlus className="h-4 w-4" />
+                  添加实例规则
+                </Button>
                 <Button
                   type="button"
                   onClick={() => {

@@ -5,6 +5,7 @@ export type SelectableBatchItem = {
   item: BatchItem
   selectable: boolean
   blockedReason: string
+  blockedReasonCode: "unmatched-rule" | null
 }
 
 export function buildSelectableBatchItem(
@@ -20,6 +21,10 @@ export function buildSelectableBatchItem(
   return {
     item,
     selectable: decision.accepted,
-    blockedReason: decision.accepted ? "" : decision.message
+    blockedReason: decision.accepted ? "" : decision.message,
+    blockedReasonCode:
+      decision.accepted || decision.message !== "Blocked by filters: no filter matched"
+        ? null
+        : "unmatched-rule"
   }
 }

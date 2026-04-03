@@ -369,11 +369,16 @@ function renderPanel() {
 
 function renderCheckboxes() {
   for (const { item, root } of checkboxRoots.values()) {
+    const disabledReason =
+      item.blockedReasonCode === "unmatched-rule"
+        ? "该条目未命中当前筛选规则，无法选择"
+        : item.blockedReason || "该条目未命中当前筛选规则，无法选择"
+
     root.render(
       <SelectionCheckbox
         checked={item.selectable && snapshot.selected.has(item.item.detailUrl)}
         disabled={!item.selectable}
-        disabledReason={item.blockedReason || "该条目未命中当前筛选规则，无法选择"}
+        disabledReason={disabledReason}
         onChange={(checked) => {
           toggleSelection(item, checked)
         }}
