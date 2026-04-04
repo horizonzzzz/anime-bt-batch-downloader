@@ -54,12 +54,14 @@ const filterConditionSchema = z.union([
   sourceConditionSchema
 ])
 
+const filterAnyConditionSchema = textConditionSchema
+
 const filterSchema = z.object({
   id: z.string().trim().min(1, "筛选器 ID 不能为空"),
   name: z.string().trim().min(1, "请输入筛选器名称"),
   enabled: z.boolean(),
   must: z.array(filterConditionSchema).min(1, "至少填写一个必须满足条件"),
-  any: z.array(filterConditionSchema)
+  any: z.array(filterAnyConditionSchema)
 })
 
 export const settingsFormSchema = z.object({

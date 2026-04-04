@@ -178,4 +178,35 @@ describe("options settings form helpers", () => {
 
     expect(result.success).toBe(false)
   })
+
+  it("rejects source conditions inside any clauses", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      filters: [
+        {
+          id: "filter-1",
+          name: "Bangumi 任一",
+          enabled: true,
+          must: [
+            {
+              id: "condition-1",
+              field: "title",
+              operator: "contains",
+              value: "1080"
+            }
+          ],
+          any: [
+            {
+              id: "condition-2",
+              field: "source",
+              operator: "is",
+              value: "bangumimoe"
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(result.success).toBe(false)
+  })
 })

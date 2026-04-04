@@ -25,7 +25,8 @@ import {
 } from "react-icons/hi2"
 
 import {
-  CONDITION_FIELD_OPTIONS,
+  ANY_CONDITION_FIELD_OPTIONS,
+  MUST_CONDITION_FIELD_OPTIONS,
   SOURCE_OPTIONS,
   createCondition,
   createFilterDraft,
@@ -33,6 +34,7 @@ import {
   normalizeConditionField,
   summarizeConditionList,
   type FilterWorkbenchCondition,
+  type FilterWorkbenchTextCondition,
   type FilterWorkbenchFilter
 } from "./filter-workbench"
 
@@ -125,7 +127,7 @@ export function FilterRuleBuilderDialog({
       ...filter,
       name: filter.name.trim(),
       must: filter.must.map(normalizeConditionValue),
-      any: filter.any.map(normalizeConditionValue)
+      any: filter.any.map(normalizeTextConditionValue)
     })
     onClose()
   }
@@ -177,6 +179,7 @@ export function FilterRuleBuilderDialog({
             labelPrefix="必须"
             description="这些条件需要全部命中。"
             emptyText="还没有必须满足条件。"
+            fieldOptions={MUST_CONDITION_FIELD_OPTIONS}
             conditions={filter.must}
             addLabel="添加必须条件"
             onAdd={() => addCondition("must")}
@@ -188,8 +191,9 @@ export function FilterRuleBuilderDialog({
           <ConditionSection
             title="满足任一"
             labelPrefix="任一"
-            description="可选；只要其中一条命中即可。"
+            description="可选；只要其中一条命中即可，不用于限定站点范围。"
             emptyText="未设置额外的“任一”条件。"
+            fieldOptions={ANY_CONDITION_FIELD_OPTIONS}
             conditions={filter.any}
             addLabel="添加任一条件"
             onAdd={() => addCondition("any")}
@@ -251,6 +255,10 @@ type ConditionSectionProps = {
   description: string
   emptyText: string
   addLabel: string
+  fieldOptions: ReadonlyArray<{
+    value: FilterWorkbenchCondition["field"]
+    label: string
+  }>
   conditions: FilterWorkbenchCondition[]
   onAdd: () => void
   onFieldChange: (id: string, field: FilterWorkbenchCondition["field"]) => void
@@ -264,6 +272,7 @@ function ConditionSection({
   description,
   emptyText,
   addLabel,
+  fieldOptions,
   conditions,
   onAdd,
   onFieldChange,
@@ -303,7 +312,7 @@ function ConditionSection({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {CONDITION_FIELD_OPTIONS.map((option) => (
+                        {fieldOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -371,6 +380,15 @@ function normalizeConditionValue(condition: FilterWorkbenchCondition): FilterWor
     }
   }
 
+  return {
+    ...condition,
+    value: condition.value.trim()
+  }
+}
+
+function normalizeTextConditionValue(
+  condition: FilterWorkbenchTextCondition
+): FilterWorkbenchTextCondition {
   return {
     ...condition,
     value: condition.value.trim()

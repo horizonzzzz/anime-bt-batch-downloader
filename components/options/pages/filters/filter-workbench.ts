@@ -1,13 +1,22 @@
 import { decideFilterAction } from "../../../../lib/filter-rules"
 import type {
   FilterCondition,
-  FilterEntry,
   SourceId
 } from "../../../../lib/shared/types"
 
 export type FilterWorkbenchSourceId = SourceId
+export type FilterWorkbenchTextCondition = Extract<
+  FilterCondition,
+  { field: "title" | "subgroup" }
+>
 export type FilterWorkbenchCondition = FilterCondition
-export type FilterWorkbenchFilter = FilterEntry
+export type FilterWorkbenchFilter = {
+  id: string
+  name: string
+  enabled: boolean
+  must: FilterWorkbenchCondition[]
+  any: FilterWorkbenchTextCondition[]
+}
 
 export type FilterWorkbenchTestInput = {
   title: string
@@ -39,13 +48,21 @@ export const SOURCE_OPTIONS: Array<{
   { value: "bangumimoe", label: "Bangumi.moe" }
 ]
 
-export const CONDITION_FIELD_OPTIONS: Array<{
+export const MUST_CONDITION_FIELD_OPTIONS: Array<{
   value: FilterWorkbenchCondition["field"]
   label: string
 }> = [
   { value: "title", label: "标题" },
   { value: "subgroup", label: "字幕组" },
   { value: "source", label: "站点" }
+]
+
+export const ANY_CONDITION_FIELD_OPTIONS: Array<{
+  value: Extract<FilterWorkbenchCondition["field"], "title" | "subgroup">
+  label: string
+}> = [
+  { value: "title", label: "标题" },
+  { value: "subgroup", label: "字幕组" }
 ]
 
 export function createWorkbenchId(prefix: string) {
@@ -140,7 +157,7 @@ export function summarizeConditionList(conditions: FilterWorkbenchCondition[]) {
 export function getConditionFieldLabel(
   field: FilterWorkbenchCondition["field"]
 ) {
-  return CONDITION_FIELD_OPTIONS.find((item) => item.value === field)?.label ?? field
+  return MUST_CONDITION_FIELD_OPTIONS.find((item) => item.value === field)?.label ?? field
 }
 
 export function getSourceLabel(source: FilterWorkbenchSourceId) {

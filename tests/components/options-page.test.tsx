@@ -357,6 +357,25 @@ describe("OptionsPage", () => {
     expect(screen.queryByDisplayValue("kisssub")).not.toBeInTheDocument()
   })
 
+  it("does not offer source as an any-clause field", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "过滤规则" }))
+    await user.click(screen.getByRole("button", { name: "新增筛选器" }))
+    await user.click(screen.getByRole("button", { name: "添加任一条件" }))
+
+    await user.click(screen.getByLabelText("任一条件字段 1"))
+
+    expect(await screen.findByRole("option", { name: "标题" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "字幕组" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "站点" })).not.toBeInTheDocument()
+  })
+
   it("renders a real site icon for each site in the site management cards", async () => {
     const user = userEvent.setup()
     const api = createOptionsApi()

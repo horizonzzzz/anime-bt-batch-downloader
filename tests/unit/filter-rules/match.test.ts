@@ -227,7 +227,7 @@ describe("deriveEffectiveFilterSummary", () => {
     })
   })
 
-  it("treats source conditions in any clauses as site scoping when deriving effective filters", () => {
+  it("does not treat source conditions in any clauses as site scoping when deriving effective filters", () => {
     expect(
       deriveEffectiveFilterSummary({
         sourceId: "kisssub",
@@ -254,9 +254,9 @@ describe("deriveEffectiveFilterSummary", () => {
         ]
       })
     ).toMatchObject({
-      effectiveCount: 0,
+      effectiveCount: 1,
       hasEnabledFilters: true,
-      emptyStateReason: "no-filters-for-source"
+      emptyStateReason: null
     })
   })
 })
@@ -310,7 +310,7 @@ describe("decideFilterAction", () => {
     expect(result.trace[result.trace.length - 1]).toContain("默认放行")
   })
 
-  it("allows items by default when site scoping is expressed through any clauses", () => {
+  it("does not use any-clause source conditions to scope filters to a site", () => {
     const result = decideFilterAction({
       sourceId: "acgrip",
       title: "[LoliHouse] Summer Pockets 01 [1080p]",
@@ -338,11 +338,11 @@ describe("decideFilterAction", () => {
     })
 
     expect(result).toMatchObject({
-      accepted: true,
+      accepted: false,
       matchedFilter: null
     })
-    expect(result.message).toBe("No effective filters for source. Accepted by default.")
-    expect(result.trace[result.trace.length - 1]).toContain("默认放行")
+    expect(result.message).toBe("Blocked by filters: no filter matched")
+    expect(result.trace[result.trace.length - 1]).toContain("未命中任何筛选器")
   })
 
   it("blocks items when filters are enabled but no filter matches", () => {

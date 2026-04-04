@@ -92,9 +92,13 @@ function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | nul
     return null
   }
 
-  const must = normalizeFilterConditions(record.must)
-  const any = normalizeFilterConditions(record.any)
-  if (!must.length && !any.length) {
+  const must = normalizeFilterConditions(record.must, {
+    allowSource: true
+  })
+  const any = normalizeFilterConditions(record.any, {
+    allowSource: false
+  })
+  if (!must.length) {
     return null
   }
 
@@ -107,17 +111,28 @@ function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | nul
   }
 }
 
-function normalizeFilterConditions(raw: unknown): FilterCondition[] {
+function normalizeFilterConditions(
+  raw: unknown,
+  options: {
+    allowSource: boolean
+  }
+): FilterCondition[] {
   if (!Array.isArray(raw)) {
     return []
   }
 
   return raw
-    .map((entry, index) => normalizeFilterCondition(entry, index))
+    .map((entry, index) => normalizeFilterCondition(entry, index, options))
     .filter((entry): entry is FilterCondition => entry !== null)
 }
 
-function normalizeFilterCondition(raw: unknown, fallbackIndex: number): FilterCondition | null {
+function normalizeFilterCondition(
+  raw: unknown,
+  fallbackIndex: number,
+  options: {
+    allowSource: boolean
+  }
+): FilterCondition | null {
   if (!raw || typeof raw !== "object") {
     return null
   }
@@ -138,6 +153,10 @@ function normalizeFilterCondition(raw: unknown, fallbackIndex: number): FilterCo
   const id = String(record.id ?? "").trim() || `condition-${fallbackIndex}`
 
   if (field === "source") {
+    if (!options.allowSource) {
+      return null
+    }
+
     if (record.operator !== "is") {
       return null
     }

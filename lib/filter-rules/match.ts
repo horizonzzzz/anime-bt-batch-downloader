@@ -193,13 +193,7 @@ function isFilterEffectiveForSource(filter: FilterEntry, sourceId: SourceId) {
     return false
   }
 
-  if (!filter.any.length) {
-    return true
-  }
-
-  return filter.any.some(
-    (condition) => condition.field !== "source" || condition.value === sourceId
-  )
+  return true
 }
 
 function getConditionTargetValue(

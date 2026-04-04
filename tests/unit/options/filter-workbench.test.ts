@@ -3,12 +3,10 @@ import { describe, expect, it } from "vitest"
 import {
   createAilian1080SimplifiedChineseFilter,
   runWorkbenchTest,
+  type FilterWorkbenchFilter,
   type FilterWorkbenchSourceId
 } from "../../../components/options/pages/filters/filter-workbench"
-import type {
-  FilterCondition,
-  FilterEntry
-} from "../../../lib/shared/types"
+import type { FilterCondition } from "../../../lib/shared/types"
 
 function createTextCondition(
   overrides: Partial<Extract<FilterCondition, { field: "title" | "subgroup" }>> = {}
@@ -22,7 +20,7 @@ function createTextCondition(
   }
 }
 
-function createFilter(overrides: Partial<FilterEntry> = {}): FilterEntry {
+function createFilter(overrides: Partial<FilterWorkbenchFilter> = {}): FilterWorkbenchFilter {
   return {
     id: "filter-1",
     name: "保留 LoliHouse",

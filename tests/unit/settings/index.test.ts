@@ -257,6 +257,64 @@ describe("sanitizeSettings", () => {
     ])
   })
 
+  it("drops source conditions from any clauses during sanitization", () => {
+    expect(
+      sanitizeSettings({
+        filters: [
+          {
+            id: "filter-valid",
+            name: "保留 Bangumi 1080",
+            enabled: true,
+            must: [
+              {
+                id: "condition-must",
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              }
+            ],
+            any: [
+              {
+                id: "condition-any-source",
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              },
+              {
+                id: "condition-any-title",
+                field: "title",
+                operator: "contains",
+                value: "1080"
+              }
+            ]
+          }
+        ]
+      }).filters
+    ).toEqual([
+      {
+        id: "filter-valid",
+        name: "保留 Bangumi 1080",
+        enabled: true,
+        must: [
+          {
+            id: "condition-must",
+            field: "source",
+            operator: "is",
+            value: "bangumimoe"
+          }
+        ],
+        any: [
+          {
+            id: "condition-any-title",
+            field: "title",
+            operator: "contains",
+            value: "1080"
+          }
+        ]
+      }
+    ])
+  })
+
   it("drops legacy filterGroups data instead of migrating it", () => {
     expect(
       sanitizeSettings({
