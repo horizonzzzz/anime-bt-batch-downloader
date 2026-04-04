@@ -45,7 +45,33 @@ describe("createBatchPanelFilterStatus", () => {
       })
     ).toEqual({
       summaryText: "筛选规则：未启用",
-      emptyStateText: "当前站点未加载可生效的筛选规则，默认全部保留。",
+      emptyStateText: "当前站点未启用筛选规则，默认全部保留。",
+      filters: []
+    })
+  })
+
+  it("treats other-site-only rules as inactive for the current site", () => {
+    expect(
+      createBatchPanelFilterStatus({
+        sourceId: "kisssub",
+        filters: [
+          createFilter({
+            id: "other-site-filter",
+            name: "Bangumi 专用",
+            must: [
+              createCondition({
+                id: "condition-source-2",
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              })
+            ]
+          })
+        ]
+      })
+    ).toEqual({
+      summaryText: "筛选规则：未启用",
+      emptyStateText: "当前站点未启用筛选规则，默认全部保留。",
       filters: []
     })
   })

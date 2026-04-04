@@ -33,6 +33,10 @@ function isTorrentFileItem(item: TaskHistoryItem): boolean {
   return item.deliveryMode === "torrent-file" && !!item.torrentUrl
 }
 
+function isRetryableFailedItem(item: TaskHistoryItem): boolean {
+  return item.status === "failed" && (item.failure ? item.failure.retryable : true)
+}
+
 function updateItemAfterSuccess(item: TaskHistoryItem): TaskHistoryItem {
   return {
     ...item,
@@ -74,8 +78,8 @@ export async function retryFailedItems(
   }
 
   const targetItems = request.itemIds
-    ? record.items.filter(i => request.itemIds!.includes(i.id) && i.status === "failed")
-    : record.items.filter(i => i.status === "failed")
+    ? record.items.filter(i => request.itemIds!.includes(i.id) && isRetryableFailedItem(i))
+    : record.items.filter(isRetryableFailedItem)
 
   if (targetItems.length === 0) {
     return {

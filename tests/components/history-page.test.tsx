@@ -191,6 +191,68 @@ describe("HistoryDetailView", () => {
     expect(screen.getByText("详情页超时")).toBeInTheDocument()
   })
 
+  it("shows filtered-out failures but hides retry actions for them", () => {
+    const record = createMockRecord("batch-1", {
+      status: "partial_failure",
+      stats: { total: 1, success: 0, duplicated: 0, failed: 1 },
+      items: [
+        createMockItem("item-1", {
+          status: "failed",
+          title: "[LoliHouse] Episode 01 [1080p]",
+          failure: {
+            reason: "filtered_out",
+            message: "Blocked by filters: no filter matched",
+            retryable: false,
+            retryCount: 0
+          }
+        })
+      ]
+    })
+
+    render(<HistoryDetailView record={record} onBack={vi.fn()} onRecordChanged={vi.fn()} />)
+
+    expect(screen.getByText("筛选规则拦截")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "重试全部失败项" })).not.toBeInTheDocument()
+    expect(screen.queryByTitle("重试此条目")).not.toBeInTheDocument()
+  })
+
+  it("counts only retryable failures in the retry-all confirmation", async () => {
+    const user = userEvent.setup()
+    const record = createMockRecord("batch-1", {
+      status: "partial_failure",
+      stats: { total: 2, success: 0, duplicated: 0, failed: 2 },
+      items: [
+        createMockItem("item-1", {
+          status: "failed",
+          title: "[LoliHouse] Episode 01 [1080p]",
+          failure: {
+            reason: "filtered_out",
+            message: "Blocked by filters: no filter matched",
+            retryable: false,
+            retryCount: 0
+          }
+        }),
+        createMockItem("item-2", {
+          status: "failed",
+          title: "Failed qB item",
+          failure: {
+            reason: "qb_error",
+            message: "qB rejected",
+            retryable: true,
+            retryCount: 0
+          }
+        })
+      ]
+    })
+
+    render(<HistoryDetailView record={record} onBack={vi.fn()} onRecordChanged={vi.fn()} />)
+
+    await user.click(screen.getByRole("button", { name: "重试全部失败项" }))
+
+    expect(screen.getByText("确定重试 1 个失败条目吗？")).toBeInTheDocument()
+    expect(screen.getAllByTitle("重试此条目")).toHaveLength(1)
+  })
+
   it("hides failure summary when no failures", () => {
     const record = createMockRecord("batch-1", {
       status: "completed",

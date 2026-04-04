@@ -244,6 +244,39 @@ describe("decideFilterAction", () => {
     expect(result.trace[result.trace.length - 1]).toContain("默认放行")
   })
 
+  it("allows items by default when enabled filters only target other sites", () => {
+    const result = decideFilterAction({
+      sourceId: "kisssub",
+      title: "[LoliHouse] Summer Pockets 01 [1080p]",
+      filters: [
+        createFilter({
+          id: "bangumi-only",
+          name: "Bangumi 专用",
+          must: [
+            createCondition({
+              id: "condition-source",
+              field: "source",
+              operator: "is",
+              value: "bangumimoe"
+            }),
+            createCondition({
+              id: "condition-title",
+              field: "title",
+              value: "1080p"
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(result).toMatchObject({
+      accepted: true,
+      matchedFilter: null
+    })
+    expect(result.message).toBe("No effective filters for source. Accepted by default.")
+    expect(result.trace[result.trace.length - 1]).toContain("默认放行")
+  })
+
   it("blocks items when filters are enabled but no filter matches", () => {
     const result = decideFilterAction({
       sourceId: "kisssub",

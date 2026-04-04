@@ -27,6 +27,11 @@ export const FAILURE_EXPLANATIONS: Record<FailureReason, FailureExplanation> = {
     desc: "网络连接失败。",
     suggestion: "检查网络连接后重试。"
   },
+  filtered_out: {
+    label: "筛选规则拦截",
+    desc: "该条目被后台筛选兜底拦截，没有进入 qBittorrent 提交流程。",
+    suggestion: "如需保留该条目，请调整筛选规则后回到源页面重新发起批量。"
+  },
   unknown: {
     label: "未知错误",
     desc: "发生了未知的错误。",

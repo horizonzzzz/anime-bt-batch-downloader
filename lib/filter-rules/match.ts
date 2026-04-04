@@ -44,23 +44,22 @@ export function deriveEffectiveFilterSummary(input: {
   filters: FilterEntry[]
 }): EffectiveFilterSummary {
   const enabledFilters = input.filters.filter((filter) => filter.enabled)
-  const filters = enabledFilters
-    .filter((filter) => isFilterEffectiveForSource(filter, input.sourceId))
+  const effectiveFilters = getEffectiveFiltersForSource(input.filters, input.sourceId)
     .map((filter) => ({
       id: filter.id,
       name: filter.name
     }))
 
   return {
-    effectiveCount: filters.length,
+    effectiveCount: effectiveFilters.length,
     hasEnabledFilters: enabledFilters.length > 0,
     emptyStateReason:
-      filters.length > 0
+      effectiveFilters.length > 0
         ? null
         : enabledFilters.length > 0
           ? "no-filters-for-source"
           : "no-enabled-filters",
-    filters
+    filters: effectiveFilters
   }
 }
 
@@ -78,6 +77,7 @@ export function decideFilterAction(input: {
   }
   const trace: string[] = []
   const enabledFilters = input.filters.filter((filter) => filter.enabled)
+  const effectiveFilters = getEffectiveFiltersForSource(input.filters, input.sourceId)
 
   if (!enabledFilters.length) {
     trace.push("未检测到启用的筛选器。")
@@ -92,9 +92,23 @@ export function decideFilterAction(input: {
     }
   }
 
-  trace.push(`共检测到 ${enabledFilters.length} 条已启用筛选器。`)
+  if (!effectiveFilters.length) {
+    trace.push(`共检测到 ${enabledFilters.length} 条已启用筛选器。`)
+    trace.push(`当前站点 ${input.sourceId} 没有可生效的筛选器。`)
+    trace.push("当前站点未启用筛选规则，默认放行。")
 
-  for (const filter of enabledFilters) {
+    return {
+      accepted: true,
+      matchedFilter: null,
+      message: "No effective filters for source. Accepted by default.",
+      subgroup,
+      trace
+    }
+  }
+
+  trace.push(`当前站点共检测到 ${effectiveFilters.length} 条可生效筛选器。`)
+
+  for (const filter of effectiveFilters) {
     trace.push(`检查筛选器「${filter.name}」。`)
 
     const result = matchesFilter(filter, context)
@@ -123,6 +137,10 @@ export function decideFilterAction(input: {
     subgroup,
     trace
   }
+}
+
+function getEffectiveFiltersForSource(filters: FilterEntry[], sourceId: SourceId): FilterEntry[] {
+  return filters.filter((filter) => filter.enabled && isFilterEffectiveForSource(filter, sourceId))
 }
 
 export function matchesFilter(

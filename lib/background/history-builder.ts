@@ -3,18 +3,44 @@ import {
   createHistoryRecordId,
   saveTaskHistory
 } from "../history/storage"
-import { HISTORY_RECORD_VERSION, type TaskHistoryRecord } from "../history/types"
+import {
+  HISTORY_RECORD_VERSION,
+  type FailureInfo,
+  type FailureReason,
+  type TaskHistoryRecord
+} from "../history/types"
 import type { SourceId } from "../shared/types"
 import { SITE_CONFIG_META } from "../sources/site-meta"
 import type { BatchJob } from "./types"
 
-function classifyFailureReason(message: string): string {
-  const lower = message.toLowerCase()
+function classifyFailureReason(
+  result: BatchJob["results"][number]
+): FailureReason {
+  if (result.failureReason === "filtered_out") {
+    return "filtered_out"
+  }
+
+  const lower = `${result.failureReason} ${result.message}`.toLowerCase()
   if (lower.includes("timeout") || lower.includes("超时")) return "timeout"
   if (lower.includes("parse") || lower.includes("解析")) return "parse_error"
   if (lower.includes("qb") || lower.includes("qbittorrent") || lower.includes("403")) return "qb_error"
   if (lower.includes("network") || lower.includes("网络") || lower.includes("fetch")) return "network_error"
   return "unknown"
+}
+
+function buildFailureInfo(result: BatchJob["results"][number]): FailureInfo | undefined {
+  if (result.status !== "failed") {
+    return undefined
+  }
+
+  const reason = classifyFailureReason(result)
+
+  return {
+    reason,
+    message: result.message,
+    retryable: reason !== "filtered_out",
+    retryCount: 0
+  }
 }
 
 function mapItemStatus(
@@ -39,13 +65,8 @@ function buildHistoryItems(
     magnetUrl: result.magnetUrl,
     torrentUrl: result.torrentUrl,
     hash: result.hash,
-      status: mapItemStatus(result.status),
-      failure: result.status === "failed" ? {
-        reason: classifyFailureReason(result.message) as "parse_error" | "timeout" | "qb_error" | "network_error" | "unknown",
-      message: result.message,
-      retryable: true,
-      retryCount: 0
-    } : undefined,
+    status: mapItemStatus(result.status),
+    failure: buildFailureInfo(result),
     deliveryMode: result.deliveryMode || "magnet"
   }))
 }

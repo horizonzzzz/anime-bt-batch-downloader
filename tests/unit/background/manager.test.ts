@@ -403,7 +403,7 @@ describe("createBatchDownloadManager", () => {
     ])
   })
 
-  it("keeps extracted items when they match the filter using extracted subgroup", async () => {
+  it("keeps using the original list title for filtering even when extraction reveals a matching subgroup", async () => {
     const settings = createSettings({
       filters: [
         {
@@ -453,20 +453,87 @@ describe("createBatchDownloadManager", () => {
     })
 
     await vi.waitFor(() => {
-      expect(dependencies.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1]).toMatchObject({
+        stage: "completed",
+        summary: {
+          submitted: 0,
+          duplicated: 0,
+          failed: 1
+        }
+      })
     })
 
     expect(dependencies.extractSingleItem).toHaveBeenCalledTimes(1)
+    expect(dependencies.loginQb).not.toHaveBeenCalled()
+    expect(dependencies.addUrlsToQb).not.toHaveBeenCalled()
+    expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].results).toEqual([
+      {
+        title: "Episode 01",
+        detailUrl: "https://www.kisssub.org/show-deadbeef.html",
+        status: "failed",
+        message: "Blocked by filters: no filter matched"
+      }
+    ])
+  })
+
+  it("ignores enabled rules that only target other sites when deciding whether to submit", async () => {
+    const settings = createSettings({
+      filters: [
+        {
+          id: "bangumi-only",
+          name: "Bangumi 专用",
+          enabled: true,
+          must: [
+            {
+              id: "condition-source",
+              field: "source",
+              operator: "is",
+              value: "bangumimoe"
+            }
+          ],
+          any: []
+        }
+      ]
+    })
+    const { manager, dependencies } = createManager({
+      saveSettings: vi.fn().mockResolvedValue(settings)
+    })
+
+    await expect(
+      manager.startBatchDownload(
+        20,
+        [
+          {
+            sourceId: "kisssub",
+            detailUrl: "https://www.kisssub.org/show-cafebabe.html",
+            title: "[LoliHouse] Episode 01 [1080p]",
+            magnetUrl: "magnet:?xt=urn:btih:cafebabe"
+          }
+        ],
+        ""
+      )
+    ).resolves.toEqual({
+      ok: true,
+      total: 1
+    })
+
+    await vi.waitFor(() => {
+      expect(dependencies.addUrlsToQb).toHaveBeenCalledTimes(1)
+    })
+
+    expect(dependencies.extractSingleItem).not.toHaveBeenCalled()
     expect(dependencies.loginQb).toHaveBeenCalledTimes(1)
     expect(dependencies.addUrlsToQb).toHaveBeenCalledWith(
       expect.any(Object),
-      ["magnet:?xt=urn:btih:deadbeef"],
+      ["magnet:?xt=urn:btih:cafebabe"],
       undefined
     )
-    expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].summary).toEqual({
-      submitted: 1,
-      duplicated: 0,
-      failed: 0
+    await vi.waitFor(() => {
+      expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].summary).toEqual({
+        submitted: 1,
+        duplicated: 0,
+        failed: 0
+      })
     })
   })
 

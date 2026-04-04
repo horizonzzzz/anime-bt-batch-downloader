@@ -78,6 +78,33 @@ describe("buildSelectableBatchItem", () => {
     })
   })
 
+  it("keeps items selectable when enabled rules only target other sites", () => {
+    expect(
+      buildSelectableBatchItem(
+        {
+          sourceId: "kisssub",
+          detailUrl: "https://www.kisssub.org/show-4.html",
+          title: "[LoliHouse] Example 720p"
+        },
+        [
+          createFilter({
+            must: [
+              createCondition({
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              })
+            ]
+          })
+        ]
+      )
+    ).toMatchObject({
+      selectable: true,
+      blockedReason: "",
+      blockedReasonCode: null
+    })
+  })
+
   it("keeps the original item payload for selectable items", () => {
     const item = {
       sourceId: "kisssub" as const,

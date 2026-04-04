@@ -200,7 +200,7 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
   ): Promise<ClassifiedBatchResult> {
     const preparedResult = createPreparedExtractionResult(item)
     if (preparedResult) {
-      const blockedPreparedResult = classifyBlockedBatchResult(item.sourceId, preparedResult, job)
+      const blockedPreparedResult = classifyBlockedBatchResult(item, preparedResult, job)
       if (blockedPreparedResult) {
         return blockedPreparedResult
       }
@@ -210,7 +210,7 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
 
     const extractedResult = await dependencies.extractSingleItem(item, job.settings)
     if (extractedResult.ok) {
-      const blockedExtractedResult = classifyBlockedBatchResult(item.sourceId, extractedResult, job)
+      const blockedExtractedResult = classifyBlockedBatchResult(item, extractedResult, job)
       if (blockedExtractedResult) {
         return blockedExtractedResult
       }
@@ -232,13 +232,13 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
 }
 
 function classifyBlockedBatchResult(
-  sourceId: BatchItem["sourceId"],
-  item: Pick<ClassifiedBatchResult, "title" | "detailUrl" | "hash" | "magnetUrl" | "torrentUrl">,
+  originalItem: BatchItem,
+  result: Pick<ClassifiedBatchResult, "title" | "detailUrl" | "hash" | "magnetUrl" | "torrentUrl">,
   job: BatchJob
 ): ClassifiedBatchResult | null {
   const filterDecision = decideFilterAction({
-    sourceId,
-    title: item.title,
+    sourceId: originalItem.sourceId,
+    title: originalItem.title,
     filters: job.settings.filters
   })
   if (filterDecision.accepted) {
@@ -247,12 +247,12 @@ function classifyBlockedBatchResult(
 
   return {
     ok: false,
-    title: item.title,
-    detailUrl: item.detailUrl,
-    hash: item.hash || "",
-    magnetUrl: item.magnetUrl || "",
-    torrentUrl: item.torrentUrl || "",
-    failureReason: "",
+    title: originalItem.title,
+    detailUrl: result.detailUrl,
+    hash: result.hash || "",
+    magnetUrl: result.magnetUrl || "",
+    torrentUrl: result.torrentUrl || "",
+    failureReason: "filtered_out",
     status: "failed",
     deliveryMode: "",
     submitUrl: "",

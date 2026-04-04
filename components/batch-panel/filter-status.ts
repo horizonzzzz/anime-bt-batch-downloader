@@ -19,8 +19,8 @@ function buildEmptyStateText(summary: EffectiveFilterSummary) {
   }
 
   return summary.emptyStateReason === "no-enabled-filters"
-    ? "当前站点未加载可生效的筛选规则，默认全部保留。"
-    : "当前站点未加载可生效的筛选规则，默认全部保留。"
+    ? "当前站点未启用筛选规则，默认全部保留。"
+    : "当前站点未启用筛选规则，默认全部保留。"
 }
 
 function createFilterStatusItem(

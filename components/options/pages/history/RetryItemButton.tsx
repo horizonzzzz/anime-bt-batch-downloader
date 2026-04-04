@@ -13,7 +13,7 @@ type RetryItemButtonProps = {
 export function RetryItemButton({ record, item, onRetryComplete }: RetryItemButtonProps) {
   const [loading, setLoading] = useState(false)
 
-  if (item.status !== "failed") {
+  if (item.status !== "failed" || item.failure?.retryable === false) {
     return null
   }
 

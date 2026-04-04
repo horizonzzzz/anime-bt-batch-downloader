@@ -23,7 +23,9 @@ export function RetryAllButton({ record, onRetryComplete }: RetryAllButtonProps)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const failedCount = record.items.filter(i => i.status === "failed").length
+  const failedCount = record.items.filter(
+    (item) => item.status === "failed" && (item.failure ? item.failure.retryable : true)
+  ).length
 
   if (failedCount === 0) {
     return null

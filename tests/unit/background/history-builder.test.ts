@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS } from "../../../lib/settings"
 import type { BatchJob } from "../../../lib/background/types"
 
 describe("buildHistoryRecord", () => {
-  it("maps batch results into success, duplicate, and failed history items only", () => {
+  it("marks filter-blocked failures as non-retryable filtered items", () => {
     const job: BatchJob = {
       sourceTabId: 1,
       savePath: "",
@@ -26,7 +26,7 @@ describe("buildHistoryRecord", () => {
           hash: "",
           magnetUrl: "",
           torrentUrl: "",
-          failureReason: "",
+          failureReason: "filtered_out",
           status: "failed",
           deliveryMode: "",
           submitUrl: "",
@@ -47,6 +47,11 @@ describe("buildHistoryRecord", () => {
     expect(record.items[0]).toMatchObject({
       status: "failed"
     })
-    expect(record.items[0].failure).toBeDefined()
+    expect(record.items[0].failure).toMatchObject({
+      reason: "filtered_out",
+      message: "Blocked by filters: no filter matched",
+      retryable: false,
+      retryCount: 0
+    })
   })
 })

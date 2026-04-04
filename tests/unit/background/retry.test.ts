@@ -59,6 +59,24 @@ function createFailedTorrentFileItem(id: string, title: string, torrentUrl: stri
   }
 }
 
+function createFilteredOutItem(id: string, title: string, magnetUrl?: string): TaskHistoryItem {
+  return {
+    id,
+    title,
+    detailUrl: `https://example.com/${id}`,
+    sourceId: "kisssub",
+    magnetUrl,
+    status: "failed",
+    failure: {
+      reason: "filtered_out",
+      message: "Blocked by filters: no filter matched",
+      retryable: false,
+      retryCount: 0
+    },
+    deliveryMode: "magnet"
+  }
+}
+
 function createSuccessItem(id: string, title: string): TaskHistoryItem {
   return {
     id,
@@ -138,6 +156,22 @@ describe("retryFailedItems", () => {
       expect(result.failedCount).toBe(0)
       expect(deps.addUrlsToQb).not.toHaveBeenCalled()
       expect(result.updatedRecord.stats.failed).toBe(0)
+    })
+
+    it("skips failed items that are marked as non-retryable", async () => {
+      const record = createMockRecord("batch-1", [
+        createFilteredOutItem("item-1", "[LoliHouse] Episode 01 [1080p]", "magnet:?xt=test")
+      ])
+      deps.getHistoryRecord = vi.fn(async () => record)
+
+      const result = await retryFailedItems({ recordId: "batch-1" }, deps)
+
+      expect(result.successCount).toBe(0)
+      expect(result.failedCount).toBe(0)
+      expect(deps.loginQb).not.toHaveBeenCalled()
+      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(deps.updateHistoryRecord).not.toHaveBeenCalled()
+      expect(result.updatedRecord).toEqual(record)
     })
 
     it("retries explicitly selected failed items only", async () => {
@@ -364,6 +398,20 @@ describe("retryFailedItems", () => {
       const updatedRecord = (deps.updateHistoryRecord as Mock).mock.calls[0][0]
       expect(updatedRecord.items[0].status).toBe("success")
       expect(updatedRecord.items[1].status).toBe("failed")
+    })
+
+    it("ignores explicitly selected items when they are not retryable", async () => {
+      const filteredOut = createFilteredOutItem("item-1", "[LoliHouse] Episode 01 [1080p]", "magnet:?xt=1")
+      const retryable = createFailedItem("item-2", "Failed 2", "magnet:?xt=2")
+      const record = createMockRecord("batch-1", [filteredOut, retryable])
+      deps.getHistoryRecord = vi.fn(async () => record)
+
+      const result = await retryFailedItems({ recordId: "batch-1", itemIds: ["item-1"] }, deps)
+
+      expect(result.successCount).toBe(0)
+      expect(result.failedCount).toBe(0)
+      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(result.updatedRecord).toEqual(record)
     })
   })
 

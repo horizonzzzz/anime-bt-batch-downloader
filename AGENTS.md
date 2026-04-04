@@ -30,8 +30,8 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `options.html#/overview`
 - Supported downloader target: `qBittorrent WebUI` only
 - Optional per-batch save path override is supported
-- Pre-submit filters can keep resources by source field, title field, and extracted subgroup field
-- When any enabled filter exists, unmatched resources are blocked; when no enabled filters exist, resources are allowed by default
+- Pre-submit filters can keep resources by source field, title field, and subgroup text extracted from the list-page title
+- When the current source has effective filters (global rules plus rules targeting that source), unmatched resources are blocked; when the current source has no effective filters, resources are allowed by default
 - Magnet links are preferred; torrent URLs are the fallback
 - Each supported source can be enabled or disabled by the user:
   - disabled sources keep their saved per-site configuration

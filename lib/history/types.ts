@@ -4,7 +4,13 @@ export type TaskHistoryStatus = "completed" | "partial_failure"
 
 export type TaskItemStatus = "success" | "duplicate" | "failed"
 
-export type FailureReason = "parse_error" | "timeout" | "qb_error" | "network_error" | "unknown"
+export type FailureReason =
+  | "parse_error"
+  | "timeout"
+  | "qb_error"
+  | "network_error"
+  | "filtered_out"
+  | "unknown"
 
 export type FailureInfo = {
   reason: FailureReason
