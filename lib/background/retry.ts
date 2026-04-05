@@ -1,4 +1,4 @@
-import type { QbTorrentFile } from "../downloader/qb"
+import type { DownloaderAdapter, DownloaderTorrentFile } from "../downloader"
 import type { TaskHistoryItem, TaskHistoryRecord } from "../history/types"
 import type { Settings } from "../shared/types"
 
@@ -17,20 +17,20 @@ export type RetryDependencies = {
   getSettings: () => Promise<Settings>
   getHistoryRecord: (recordId: string) => Promise<TaskHistoryRecord | null>
   updateHistoryRecord: (record: TaskHistoryRecord) => Promise<void>
-  loginQb: (settings: Settings) => Promise<void>
-  addUrlsToQb: (settings: Settings, urls: string[], options?: { savePath?: string }) => Promise<void>
-  fetchTorrentForUpload: (torrentUrl: string) => Promise<QbTorrentFile>
-  addTorrentFilesToQb: (settings: Settings, torrents: QbTorrentFile[], options?: { savePath?: string }) => Promise<void>
+  downloader: DownloaderAdapter
+  fetchTorrentForUpload: (torrentUrl: string) => Promise<DownloaderTorrentFile>
 }
 
 function getSubmitUrl(item: TaskHistoryItem): string | null {
-  if (item.magnetUrl) return item.magnetUrl
-  if (item.torrentUrl) return item.torrentUrl
-  return null
+  if (item.deliveryMode === "torrent-file" || item.deliveryMode === "torrent-url") {
+    return item.torrentUrl ?? null
+  }
+
+  return item.magnetUrl ?? null
 }
 
 function isTorrentFileItem(item: TaskHistoryItem): boolean {
-  return item.deliveryMode === "torrent-file" && !!item.torrentUrl
+  return item.deliveryMode === "torrent-file"
 }
 
 function isRetryableFailedItem(item: TaskHistoryItem): boolean {
@@ -124,7 +124,7 @@ export async function retryFailedItems(
 
   if (urlItems.length > 0 || torrentFileItems.length > 0) {
     try {
-      await deps.loginQb(settings)
+      await deps.downloader.authenticate(settings)
     } catch (error) {
       throw new Error(`qBittorrent 登录失败: ${error instanceof Error ? error.message : String(error)}`)
     }
@@ -133,7 +133,7 @@ export async function retryFailedItems(
   if (urlItems.length > 0) {
     for (const { item, url } of urlItems) {
       try {
-        await deps.addUrlsToQb(settings, [url], savePathOption)
+        await deps.downloader.addUrls(settings, [url], savePathOption)
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterSuccess(item)
@@ -154,7 +154,7 @@ export async function retryFailedItems(
     for (const { item, url } of torrentFileItems) {
       try {
         const torrent = await deps.fetchTorrentForUpload(url)
-        await deps.addTorrentFilesToQb(settings, [torrent], savePathOption)
+        await deps.downloader.addTorrentFiles(settings, [torrent], savePathOption)
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterSuccess(item)

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 import { retryFailedItems, type RetryDependencies, type RetryRequest } from "../../../lib/background/retry"
-import type { Settings } from "../../../lib/shared/types"
+import type { DownloaderAdapter, DownloaderTorrentFile } from "../../../lib/downloader"
 import type { TaskHistoryItem, TaskHistoryRecord } from "../../../lib/history/types"
-import type { QbTorrentFile } from "../../../lib/downloader/qb"
 import { DEFAULT_SETTINGS } from "../../../lib/settings/defaults"
+import type { Settings } from "../../../lib/shared/types"
 
 function createMockRecord(id: string, items: TaskHistoryItem[]): TaskHistoryRecord {
   return {
@@ -92,6 +92,15 @@ function createSuccessItem(id: string, title: string): TaskHistoryItem {
 function createMockDeps(
   overrides?: Partial<RetryDependencies>
 ): RetryDependencies {
+  const downloader = {
+    id: "qbittorrent",
+    displayName: "qBittorrent",
+    authenticate: vi.fn(async () => {}),
+    addUrls: vi.fn(async () => {}),
+    addTorrentFiles: vi.fn(async () => {}),
+    testConnection: vi.fn()
+  } satisfies DownloaderAdapter
+
   return {
     getSettings: vi.fn(async () => ({
       ...DEFAULT_SETTINGS,
@@ -102,13 +111,11 @@ function createMockDeps(
     })),
     getHistoryRecord: vi.fn(async () => null),
     updateHistoryRecord: vi.fn(async () => {}),
-    loginQb: vi.fn(async () => {}),
-    addUrlsToQb: vi.fn(async () => {}),
-    fetchTorrentForUpload: vi.fn(async () => ({
+    downloader,
+    fetchTorrentForUpload: vi.fn(async (): Promise<DownloaderTorrentFile> => ({
       filename: "test.torrent",
       blob: new Blob(["test"], { type: "application/x-bittorrent" })
     })),
-    addTorrentFilesToQb: vi.fn(async () => {}),
     ...overrides
   }
 }
@@ -133,7 +140,7 @@ describe("retryFailedItems", () => {
     it("throws when qBittorrent login fails", async () => {
       const record = createMockRecord("batch-1", [createFailedItem("item-1", "Test", "magnet:?xt=test")])
       deps.getHistoryRecord = vi.fn(async () => record)
-      deps.loginQb = vi.fn(async () => { throw new Error("Connection refused") })
+      deps.downloader.authenticate = vi.fn(async () => { throw new Error("Connection refused") })
 
       const request: RetryRequest = { recordId: "batch-1" }
 
@@ -154,7 +161,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(0)
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(deps.downloader.addUrls).not.toHaveBeenCalled()
       expect(result.updatedRecord.stats.failed).toBe(0)
     })
 
@@ -168,8 +175,8 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(0)
-      expect(deps.loginQb).not.toHaveBeenCalled()
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(deps.downloader.authenticate).not.toHaveBeenCalled()
+      expect(deps.downloader.addUrls).not.toHaveBeenCalled()
       expect(deps.updateHistoryRecord).not.toHaveBeenCalled()
       expect(result.updatedRecord).toEqual(record)
     })
@@ -182,7 +189,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(deps.downloader.addUrls).toHaveBeenCalledTimes(1)
       expect(result.updatedRecord.items[0].status).toBe("success")
     })
 
@@ -196,7 +203,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.addUrlsToQb).toHaveBeenCalledWith(
+      expect(deps.downloader.addUrls).toHaveBeenCalledWith(
         expect.anything(),
         ["magnet:?xt=test"],
         undefined
@@ -243,8 +250,8 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.loginQb).toHaveBeenCalledTimes(1)
-      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(deps.downloader.authenticate).toHaveBeenCalledTimes(1)
+      expect(deps.downloader.addUrls).toHaveBeenCalledTimes(1)
       expect(result.updatedRecord.items[0].status).toBe("success")
       expect(result.updatedRecord.stats).toEqual({
         total: 1,
@@ -291,8 +298,8 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(0)
-      expect(deps.loginQb).toHaveBeenCalledTimes(1)
-      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(deps.downloader.authenticate).toHaveBeenCalledTimes(1)
+      expect(deps.downloader.addUrls).toHaveBeenCalledTimes(1)
       expect(result.updatedRecord.items[0].status).toBe("success")
       expect(result.updatedRecord.status).toBe("completed")
     })
@@ -308,7 +315,7 @@ describe("retryFailedItems", () => {
       const request: RetryRequest = { recordId: "batch-1" }
       await retryFailedItems(request, deps)
 
-      expect(deps.addUrlsToQb).toHaveBeenCalledWith(
+      expect(deps.downloader.addUrls).toHaveBeenCalledWith(
         expect.anything(),
         ["magnet:?xt=test"],
         { savePath: "/downloads/anime" }
@@ -327,7 +334,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(1)
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(deps.downloader.addUrls).not.toHaveBeenCalled()
       const updatedRecord = (deps.updateHistoryRecord as Mock).mock.calls[0][0]
       expect(updatedRecord.items[0].status).toBe("failed")
       expect(updatedRecord.items[0].failure?.message).toBe("无可用的 magnet 或 torrent 链接")
@@ -338,7 +345,7 @@ describe("retryFailedItems", () => {
       const failedItem = createFailedItem("item-1", "Failed", "magnet:?xt=test")
       const record = createMockRecord("batch-1", [failedItem])
       deps.getHistoryRecord = vi.fn(async () => record)
-      deps.addUrlsToQb = vi.fn(async () => { throw new Error("HTTP 500") })
+      deps.downloader.addUrls = vi.fn(async () => { throw new Error("HTTP 500") })
 
       const request: RetryRequest = { recordId: "batch-1" }
       const result = await retryFailedItems(request, deps)
@@ -358,7 +365,7 @@ describe("retryFailedItems", () => {
 
       let callCount = 0
       deps.getHistoryRecord = vi.fn(async () => record)
-      deps.addUrlsToQb = vi.fn(async () => {
+      deps.downloader.addUrls = vi.fn(async () => {
         callCount++
         if (callCount === 2) {
           throw new Error("HTTP 500")
@@ -370,7 +377,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(1)
       expect(result.failedCount).toBe(1)
-      expect(deps.addUrlsToQb).toHaveBeenCalledTimes(2)
+      expect(deps.downloader.addUrls).toHaveBeenCalledTimes(2)
 
       const updatedRecord = (deps.updateHistoryRecord as Mock).mock.calls[0][0]
       expect(updatedRecord.items[0].status).toBe("success")
@@ -390,7 +397,7 @@ describe("retryFailedItems", () => {
       const result = await retryFailedItems(request, deps)
 
       expect(result.successCount).toBe(1)
-      expect(deps.addUrlsToQb).toHaveBeenCalledWith(
+      expect(deps.downloader.addUrls).toHaveBeenCalledWith(
         expect.anything(),
         ["magnet:?xt=1"],
         undefined
@@ -410,7 +417,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(0)
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(deps.downloader.addUrls).not.toHaveBeenCalled()
       expect(result.updatedRecord).toEqual(record)
     })
   })
@@ -444,12 +451,28 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(1)
       expect(deps.fetchTorrentForUpload).toHaveBeenCalledWith("https://acg.rip/test.torrent")
-      expect(deps.addTorrentFilesToQb).toHaveBeenCalledWith(
+      expect(deps.downloader.addTorrentFiles).toHaveBeenCalledWith(
         expect.anything(),
         [{ filename: "test.torrent", blob: expect.any(Blob) }],
         undefined
       )
-      expect(deps.addUrlsToQb).not.toHaveBeenCalled()
+      expect(deps.downloader.addUrls).not.toHaveBeenCalled()
+    })
+
+    it("prefers torrentUrl for torrent-file items even when a magnet URL is also stored", async () => {
+      const failedTorrentItem: TaskHistoryItem = {
+        ...createFailedTorrentFileItem("item-1", "Failed Torrent", "https://acg.rip/test.torrent"),
+        magnetUrl: "magnet:?xt=urn:btih:test"
+      }
+      const record = createMockRecord("batch-1", [failedTorrentItem])
+      record.sourceId = "acgrip" as const
+      deps.getHistoryRecord = vi.fn(async () => record)
+
+      await retryFailedItems({ recordId: "batch-1" }, deps)
+
+      expect(deps.fetchTorrentForUpload).toHaveBeenCalledWith("https://acg.rip/test.torrent")
+      expect(deps.downloader.addTorrentFiles).toHaveBeenCalledTimes(1)
+      expect(deps.downloader.addUrls).not.toHaveBeenCalled()
     })
 
     it("uses savePath for torrent-file uploads", async () => {
@@ -464,7 +487,7 @@ describe("retryFailedItems", () => {
       const request: RetryRequest = { recordId: "batch-1" }
       await retryFailedItems(request, deps)
 
-      expect(deps.addTorrentFilesToQb).toHaveBeenCalledWith(
+      expect(deps.downloader.addTorrentFiles).toHaveBeenCalledWith(
         expect.anything(),
         [{ filename: "test.torrent", blob: expect.any(Blob) }],
         { savePath: "/downloads/anime" }
@@ -483,7 +506,7 @@ describe("retryFailedItems", () => {
 
       expect(result.successCount).toBe(0)
       expect(result.failedCount).toBe(1)
-      expect(deps.addTorrentFilesToQb).not.toHaveBeenCalled()
+      expect(deps.downloader.addTorrentFiles).not.toHaveBeenCalled()
       const updatedRecord = (deps.updateHistoryRecord as Mock).mock.calls[0][0]
       expect(updatedRecord.items[0].status).toBe("failed")
       expect(updatedRecord.items[0].failure?.message).toContain("HTTP 404")

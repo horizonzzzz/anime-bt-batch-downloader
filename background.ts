@@ -9,7 +9,7 @@ import {
   testQbConnection,
   setSourceEnabledForPopup
 } from "./lib/background"
-import { addTorrentFilesToQb, addUrlsToQb, loginQb } from "./lib/downloader/qb"
+import { getDefaultDownloaderAdapter } from "./lib/downloader"
 import {
   clearHistory,
   deleteHistoryRecord,
@@ -35,13 +35,13 @@ import { getSourceAdapterForPage } from "./lib/sources"
 import iconColor from "./assets/icon.png"
 import iconGrayscale from "./assets/icon-grayscale.png"
 
+const downloader = getDefaultDownloaderAdapter()
+
 const batchDownloadManager = createBatchDownloadManager({
   saveSettings,
   extractSingleItem,
   sendBatchEvent,
-  loginQb,
-  addUrlsToQb,
-  addTorrentFilesToQb
+  downloader
 })
 
 /**
@@ -212,10 +212,8 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
                 getSettings,
                 getHistoryRecord,
                 updateHistoryRecord,
-                loginQb,
-                addUrlsToQb,
-                fetchTorrentForUpload,
-                addTorrentFilesToQb
+                downloader,
+                fetchTorrentForUpload
               }
             )
             sendResponse(

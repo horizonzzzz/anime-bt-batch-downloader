@@ -1,9 +1,9 @@
-import type { QbTorrentFile } from "../downloader/qb"
+import type { DownloaderTorrentFile } from "../downloader"
 
 export async function fetchTorrentForUpload(
   torrentUrl: string,
   fetchImpl: typeof fetch = fetch
-): Promise<QbTorrentFile> {
+): Promise<DownloaderTorrentFile> {
   const response = await fetchImpl(torrentUrl, {
     credentials: "include"
   })

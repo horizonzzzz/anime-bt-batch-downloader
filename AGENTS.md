@@ -96,6 +96,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Domain-organized shared logic:
   - `lib/background/` for batch orchestration, job-state helpers, and background-only services
   - `lib/content/` for source-page matching helpers and Shadow Root host/style orchestration
+  - `lib/downloader/` for downloader adapter contracts, default downloader selection, and downloader-facing shared types
   - `lib/downloader/qb/` for qBittorrent WebUI client helpers and submission APIs
   - `lib/settings/` for defaults, sanitization, storage access, and source enablement helpers
   - `lib/shared/` for cross-runtime messages, shared types, and Tailwind utility helpers
@@ -140,9 +141,11 @@ Use this section as the shortest runtime-oriented guide to the current code layo
    Normalizes selected items, classifies prepared links, and deduplicates extracted results before submission.
 5. `lib/sources/extraction.ts`
    Delegates per-item detail-page extraction to the matched source adapter in `lib/sources/`.
-6. `lib/downloader/qb/`
-   Logs into qBittorrent, submits magnet or torrent URLs, and uploads torrent files when required.
-7. `lib/background/job-state.ts`
+6. `lib/downloader/`
+   Resolves the active downloader adapter and exposes the shared downloader contract used by background services.
+7. `lib/downloader/qb/`
+   Implements the qBittorrent adapter, including authentication, URL submission, torrent upload, and connection testing.
+8. `lib/background/job-state.ts`
    Tracks per-job stats, accumulates results, and produces the completion summary payload sent back to the content script.
 
 ### Popup Runtime Flow
@@ -170,6 +173,8 @@ Use this section as the shortest runtime-oriented guide to the current code layo
   Source registry, site adapters, site metadata, and source delivery-mode capabilities.
 - `lib/settings/`
   Default settings, sanitization, storage access, and source enablement resolution.
+- `lib/downloader/`
+  Downloader adapter registry, downloader-facing shared types, and default downloader selection.
 - `lib/downloader/qb/`
   qBittorrent WebUI client and submission APIs.
 - `lib/shared/`

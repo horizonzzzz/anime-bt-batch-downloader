@@ -1,4 +1,4 @@
-import { loginQb, qbFetchText } from "../downloader/qb"
+import { getDefaultDownloaderAdapter } from "../downloader"
 import { getSettings, sanitizeSettings } from "../settings"
 import type { Settings, TestQbConnectionResult } from "../shared/types"
 
@@ -10,11 +10,10 @@ export async function testQbConnection(
     ...(overrideSettings ?? {})
   })
 
-  await loginQb(settings)
-  const version = await qbFetchText(settings, "/api/v2/app/version", { method: "GET" })
+  const result = await getDefaultDownloaderAdapter().testConnection(settings)
 
   return {
-    baseUrl: settings.qbBaseUrl,
-    version: version.trim() || "unknown"
+    baseUrl: result.baseUrl,
+    version: result.version
   }
 }

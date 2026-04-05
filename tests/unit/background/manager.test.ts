@@ -9,6 +9,7 @@ vi.mock("../../../lib/background/history-builder", () => ({
 }))
 
 import { createBatchDownloadManager } from "../../../lib/background/manager"
+import type { DownloaderAdapter } from "../../../lib/downloader"
 import { DEFAULT_SETTINGS } from "../../../lib/settings/defaults"
 import type {
   BatchEventPayload,
@@ -32,14 +33,20 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
 
 function createManager(overrides: Partial<Parameters<typeof createBatchDownloadManager>[0]> = {}) {
   const settings = createSettings()
+  const downloader = {
+    id: "qbittorrent",
+    displayName: "qBittorrent",
+    authenticate: vi.fn().mockResolvedValue(undefined),
+    addUrls: vi.fn().mockResolvedValue(undefined),
+    addTorrentFiles: vi.fn().mockResolvedValue(undefined),
+    testConnection: vi.fn()
+  } satisfies DownloaderAdapter
 
   const dependencies = {
     saveSettings: vi.fn().mockResolvedValue(settings),
     extractSingleItem: vi.fn(),
     sendBatchEvent: vi.fn().mockResolvedValue(undefined),
-    loginQb: vi.fn().mockResolvedValue(undefined),
-    addUrlsToQb: vi.fn().mockResolvedValue(undefined),
-    addTorrentFilesToQb: vi.fn().mockResolvedValue(undefined),
+    downloader,
     fetchImpl: vi.fn().mockResolvedValue(
       new Response("torrent-data", {
         status: 200,
@@ -98,12 +105,12 @@ describe("createBatchDownloadManager", () => {
     })
 
     await vi.waitFor(() => {
-      expect(dependencies.addTorrentFilesToQb).toHaveBeenCalledTimes(1)
+      expect(dependencies.downloader.addTorrentFiles).toHaveBeenCalledTimes(1)
     })
 
     expect(dependencies.extractSingleItem).not.toHaveBeenCalled()
-    expect(dependencies.loginQb).toHaveBeenCalledTimes(1)
-    expect(dependencies.addTorrentFilesToQb).toHaveBeenCalledWith(
+    expect(dependencies.downloader.authenticate).toHaveBeenCalledTimes(1)
+    expect(dependencies.downloader.addTorrentFiles).toHaveBeenCalledWith(
       expect.objectContaining({ lastSavePath: "D:\\Anime" }),
       [expect.objectContaining({ filename: "episode-01.torrent" })],
       {
@@ -159,10 +166,10 @@ describe("createBatchDownloadManager", () => {
     )
 
     await vi.waitFor(() => {
-      expect(dependencies.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(dependencies.downloader.addUrls).toHaveBeenCalledTimes(1)
     })
 
-    expect(dependencies.addUrlsToQb).toHaveBeenCalledWith(
+    expect(dependencies.downloader.addUrls).toHaveBeenCalledWith(
       expect.any(Object),
       ["magnet:?xt=urn:btih:deadbeef"],
       undefined
@@ -235,9 +242,9 @@ describe("createBatchDownloadManager", () => {
     })
 
     expect(dependencies.extractSingleItem).toHaveBeenCalledTimes(1)
-    expect(dependencies.loginQb).not.toHaveBeenCalled()
-    expect(dependencies.addUrlsToQb).not.toHaveBeenCalled()
-    expect(dependencies.addTorrentFilesToQb).not.toHaveBeenCalled()
+    expect(dependencies.downloader.authenticate).not.toHaveBeenCalled()
+    expect(dependencies.downloader.addUrls).not.toHaveBeenCalled()
+    expect(dependencies.downloader.addTorrentFiles).not.toHaveBeenCalled()
     expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].results).toEqual([
       {
         title: "[喵萌奶茶屋] Episode 01 [1080p][RAW]",
@@ -325,9 +332,9 @@ describe("createBatchDownloadManager", () => {
       })
     })
 
-    expect(dependencies.loginQb).not.toHaveBeenCalled()
-    expect(dependencies.addUrlsToQb).not.toHaveBeenCalled()
-    expect(dependencies.addTorrentFilesToQb).not.toHaveBeenCalled()
+    expect(dependencies.downloader.authenticate).not.toHaveBeenCalled()
+    expect(dependencies.downloader.addUrls).not.toHaveBeenCalled()
+    expect(dependencies.downloader.addTorrentFiles).not.toHaveBeenCalled()
     expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].results).toEqual([
       {
         title: "[LoliHouse] Episode 01 [1080p]",
@@ -391,8 +398,8 @@ describe("createBatchDownloadManager", () => {
     })
 
     expect(dependencies.extractSingleItem).not.toHaveBeenCalled()
-    expect(dependencies.loginQb).not.toHaveBeenCalled()
-    expect(dependencies.addUrlsToQb).not.toHaveBeenCalled()
+    expect(dependencies.downloader.authenticate).not.toHaveBeenCalled()
+    expect(dependencies.downloader.addUrls).not.toHaveBeenCalled()
     expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].results).toEqual([
       {
         title: "[LoliHouse] Episode 01 [1080p]",
@@ -464,8 +471,8 @@ describe("createBatchDownloadManager", () => {
     })
 
     expect(dependencies.extractSingleItem).toHaveBeenCalledTimes(1)
-    expect(dependencies.loginQb).not.toHaveBeenCalled()
-    expect(dependencies.addUrlsToQb).not.toHaveBeenCalled()
+    expect(dependencies.downloader.authenticate).not.toHaveBeenCalled()
+    expect(dependencies.downloader.addUrls).not.toHaveBeenCalled()
     expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1].results).toEqual([
       {
         title: "Episode 01",
@@ -518,12 +525,12 @@ describe("createBatchDownloadManager", () => {
     })
 
     await vi.waitFor(() => {
-      expect(dependencies.addUrlsToQb).toHaveBeenCalledTimes(1)
+      expect(dependencies.downloader.addUrls).toHaveBeenCalledTimes(1)
     })
 
     expect(dependencies.extractSingleItem).not.toHaveBeenCalled()
-    expect(dependencies.loginQb).toHaveBeenCalledTimes(1)
-    expect(dependencies.addUrlsToQb).toHaveBeenCalledWith(
+    expect(dependencies.downloader.authenticate).toHaveBeenCalledTimes(1)
+    expect(dependencies.downloader.addUrls).toHaveBeenCalledWith(
       expect.any(Object),
       ["magnet:?xt=urn:btih:cafebabe"],
       undefined

@@ -6,13 +6,13 @@ import type { Settings } from "../../../lib/shared/types"
 const {
   getSettingsMock,
   sanitizeSettingsMock,
-  loginQbMock,
-  qbFetchTextMock
+  getDefaultDownloaderAdapterMock,
+  testConnectionMock
 } = vi.hoisted(() => ({
   getSettingsMock: vi.fn(),
   sanitizeSettingsMock: vi.fn(),
-  loginQbMock: vi.fn(),
-  qbFetchTextMock: vi.fn()
+  getDefaultDownloaderAdapterMock: vi.fn(),
+  testConnectionMock: vi.fn()
 }))
 
 vi.mock("../../../lib/settings", async () => {
@@ -27,17 +27,9 @@ vi.mock("../../../lib/settings", async () => {
   }
 })
 
-vi.mock("../../../lib/downloader/qb", async () => {
-  const actual = await vi.importActual<typeof import("../../../lib/downloader/qb")>(
-    "../../../lib/downloader/qb"
-  )
-
-  return {
-    ...actual,
-    loginQb: loginQbMock,
-    qbFetchText: qbFetchTextMock
-  }
-})
+vi.mock("../../../lib/downloader", () => ({
+  getDefaultDownloaderAdapter: getDefaultDownloaderAdapterMock
+}))
 
 import { testQbConnection } from "../../../lib/background/service"
 
@@ -59,11 +51,16 @@ describe("testQbConnection", () => {
     vi.clearAllMocks()
     getSettingsMock.mockResolvedValue(storedSettings)
     sanitizeSettingsMock.mockReturnValue(sanitizedSettings)
-    loginQbMock.mockResolvedValue(undefined)
-    qbFetchTextMock.mockResolvedValue(" 4.6.0 \n")
+    getDefaultDownloaderAdapterMock.mockReturnValue({
+      testConnection: testConnectionMock
+    })
+    testConnectionMock.mockResolvedValue({
+      baseUrl: "http://127.0.0.1:17474",
+      version: "4.6.0"
+    })
   })
 
-  it("merges stored settings with overrides, sanitizes them, and fetches the qB version", async () => {
+  it("merges stored settings with overrides, sanitizes them, and uses the default downloader adapter", async () => {
     await expect(
       testQbConnection({
         qbBaseUrl: " http://127.0.0.1:17474/// ",
@@ -80,17 +77,15 @@ describe("testQbConnection", () => {
       qbBaseUrl: " http://127.0.0.1:17474/// ",
       qbUsername: " root "
     })
-    expect(loginQbMock).toHaveBeenCalledWith(sanitizedSettings)
-    expect(qbFetchTextMock).toHaveBeenCalledWith(sanitizedSettings, "/api/v2/app/version", {
-      method: "GET"
-    })
-    expect(loginQbMock.mock.invocationCallOrder[0]).toBeLessThan(
-      qbFetchTextMock.mock.invocationCallOrder[0]
-    )
+    expect(getDefaultDownloaderAdapterMock).toHaveBeenCalledTimes(1)
+    expect(testConnectionMock).toHaveBeenCalledWith(sanitizedSettings)
   })
 
-  it("falls back to unknown when the version response is blank", async () => {
-    qbFetchTextMock.mockResolvedValueOnce("   ")
+  it("returns adapter-provided fallback values unchanged", async () => {
+    testConnectionMock.mockResolvedValueOnce({
+      baseUrl: "http://127.0.0.1:17474",
+      version: "unknown"
+    })
 
     await expect(testQbConnection(null)).resolves.toEqual({
       baseUrl: "http://127.0.0.1:17474",
@@ -98,17 +93,9 @@ describe("testQbConnection", () => {
     })
   })
 
-  it("rethrows qb login failures", async () => {
-    loginQbMock.mockRejectedValueOnce(new Error("bad login"))
+  it("rethrows default adapter connection failures", async () => {
+    testConnectionMock.mockRejectedValueOnce(new Error("bad login"))
 
     await expect(testQbConnection(null)).rejects.toThrow("bad login")
-    expect(qbFetchTextMock).not.toHaveBeenCalled()
-  })
-
-  it("rethrows version lookup failures after logging in", async () => {
-    qbFetchTextMock.mockRejectedValueOnce(new Error("version endpoint failed"))
-
-    await expect(testQbConnection(null)).rejects.toThrow("version endpoint failed")
-    expect(loginQbMock).toHaveBeenCalledTimes(1)
   })
 })

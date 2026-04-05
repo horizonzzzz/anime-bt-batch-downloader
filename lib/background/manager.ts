@@ -86,7 +86,7 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
       })
 
       try {
-        await dependencies.loginQb(job.settings)
+        await dependencies.downloader.authenticate(job.settings)
         await submitPreparedResults(job, preparedSubmissions)
       } catch (error: unknown) {
         const failure = error instanceof Error ? error.message : String(error)
@@ -157,7 +157,7 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
 
     if (urlSubmissions.length) {
       try {
-        await dependencies.addUrlsToQb(
+        await dependencies.downloader.addUrls(
           job.settings,
           urlSubmissions.map((entry) => entry.submitUrl),
           getSavePathOption(job.savePath)
@@ -180,7 +180,11 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
     for (const entry of torrentFileSubmissions) {
       try {
         const torrent = await fetchTorrentForUpload(entry.submitUrl, dependencies.fetchImpl)
-        await dependencies.addTorrentFilesToQb(job.settings, [torrent], getSavePathOption(job.savePath))
+        await dependencies.downloader.addTorrentFiles(
+          job.settings,
+          [torrent],
+          getSavePathOption(job.savePath)
+        )
 
         entry.status = "submitted"
         entry.message = "Torrent file uploaded to qBittorrent."
