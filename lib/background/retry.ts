@@ -17,7 +17,7 @@ export type RetryDependencies = {
   getSettings: () => Promise<Settings>
   getHistoryRecord: (recordId: string) => Promise<TaskHistoryRecord | null>
   updateHistoryRecord: (record: TaskHistoryRecord) => Promise<void>
-  downloader: DownloaderAdapter
+  getDownloader: (settings: Settings) => DownloaderAdapter
   fetchTorrentForUpload: (torrentUrl: string) => Promise<DownloaderTorrentFile>
 }
 
@@ -90,6 +90,7 @@ export async function retryFailedItems(
   }
 
   const settings = await deps.getSettings()
+  const downloader = deps.getDownloader(settings)
   const urlItems: { item: TaskHistoryItem; url: string }[] = []
   const torrentFileItems: { item: TaskHistoryItem; url: string }[] = []
   const itemsWithoutUrls: TaskHistoryItem[] = []
@@ -124,23 +125,23 @@ export async function retryFailedItems(
 
   if (urlItems.length > 0 || torrentFileItems.length > 0) {
     try {
-      await deps.downloader.authenticate(settings)
+      await downloader.authenticate(settings)
     } catch (error) {
-      throw new Error(`qBittorrent 登录失败: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(`下载器登录失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
   if (urlItems.length > 0) {
     for (const { item, url } of urlItems) {
       try {
-        await deps.downloader.addUrls(settings, [url], savePathOption)
+        await downloader.addUrls(settings, [url], savePathOption)
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterSuccess(item)
         }
         successCount++
       } catch (error) {
-        const message = `qBittorrent 提交失败: ${error instanceof Error ? error.message : String(error)}`
+        const message = `下载器提交失败: ${error instanceof Error ? error.message : String(error)}`
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterFailure(item, message)
@@ -154,14 +155,14 @@ export async function retryFailedItems(
     for (const { item, url } of torrentFileItems) {
       try {
         const torrent = await deps.fetchTorrentForUpload(url)
-        await deps.downloader.addTorrentFiles(settings, [torrent], savePathOption)
+        await downloader.addTorrentFiles(settings, [torrent], savePathOption)
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterSuccess(item)
         }
         successCount++
       } catch (error) {
-        const message = `qBittorrent 提交失败: ${error instanceof Error ? error.message : String(error)}`
+        const message = `下载器提交失败: ${error instanceof Error ? error.message : String(error)}`
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterFailure(item, message)

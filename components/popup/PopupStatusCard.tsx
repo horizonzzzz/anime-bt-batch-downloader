@@ -6,12 +6,16 @@ import {
 } from "react-icons/hi2"
 
 import { POPUP_SUPPORTED_SITE_META } from "../../lib/shared/popup"
-import type { PopupActiveTabViewModel, PopupQbConnectionStatus } from "../../lib/shared/popup"
+import type {
+  PopupActiveTabViewModel,
+  PopupDownloaderConnectionStatus
+} from "../../lib/shared/popup"
 import type { SourceId } from "../../lib/shared/types"
 import { Switch } from "../ui"
 
 type PopupStatusCardProps = {
-  qbConnectionStatus: PopupQbConnectionStatus
+  downloaderConnectionStatus: PopupDownloaderConnectionStatus
+  currentDownloaderName: string
   activeTab: PopupActiveTabViewModel
   onOpenGeneralOptions: () => void
   onToggleCurrentSiteEnabled: (sourceId: SourceId, enabled: boolean) => void
@@ -19,7 +23,8 @@ type PopupStatusCardProps = {
 }
 
 export function PopupStatusCard({
-  qbConnectionStatus,
+  downloaderConnectionStatus,
+  currentDownloaderName,
   activeTab,
   onOpenGeneralOptions,
   onToggleCurrentSiteEnabled,
@@ -57,7 +62,7 @@ export function PopupStatusCard({
     )
   }
 
-  if (qbConnectionStatus === "checking") {
+  if (downloaderConnectionStatus === "checking") {
     const currentSiteSwitch = renderCurrentSiteSwitch("text-sky-900")
 
     return (
@@ -65,10 +70,10 @@ export function PopupStatusCard({
         <div className="p-4">
           <div className="flex items-center gap-2 text-sky-700 mb-2">
             <HiOutlineArrowPath className="h-5 w-5 animate-spin" />
-            <h2 className="font-semibold">正在检测 qBittorrent 连接</h2>
+            <h2 className="font-semibold">正在检测下载器连接</h2>
           </div>
           <p className="text-xs text-sky-700/80 leading-relaxed">
-            正在验证当前 qBittorrent WebUI 是否可用。检测完成后，会显示可直接批量发送，或提示您前往配置页检查连接信息。
+            正在验证当前下载器 {currentDownloaderName} 是否可用。检测完成后，会显示可直接批量发送，或提示您前往配置页检查连接信息。
           </p>
         </div>
         {currentSiteSwitch ? (
@@ -78,7 +83,7 @@ export function PopupStatusCard({
     )
   }
 
-  if (qbConnectionStatus === "failed") {
+  if (downloaderConnectionStatus === "failed") {
     const currentSiteSwitch = renderCurrentSiteSwitch("text-rose-900")
 
     return (
@@ -86,10 +91,10 @@ export function PopupStatusCard({
         <div className="p-4">
           <div className="flex items-center gap-2 text-rose-700 mb-2">
             <HiOutlineExclamationCircle className="h-5 w-5" />
-            <h2 className="font-semibold">qBittorrent 连接失败</h2>
+            <h2 className="font-semibold">下载器连接失败</h2>
           </div>
           <p className="text-xs text-rose-700/85 leading-relaxed mb-4">
-            当前页面已就绪，但扩展暂时无法连接到 qBittorrent WebUI。请前往配置页检查地址、账号密码或 WebUI 是否已启动。
+            当前页面已就绪，但扩展暂时无法连接到 {currentDownloaderName}。请前往配置页检查连接地址、账号密码或目标客户端是否已启动。
           </p>
           <button
             onClick={onOpenGeneralOptions}

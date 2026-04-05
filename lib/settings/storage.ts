@@ -1,8 +1,9 @@
 import type { Settings } from "../shared/types"
 import { DEFAULT_SETTINGS } from "./defaults"
+import { mergeSettings } from "./merge"
 import { sanitizeSettings } from "./sanitize"
 
-type RawSettings = Partial<Settings> & Record<string, unknown>
+type RawSettings = Record<string, unknown>
 const SETTINGS_STORAGE_KEY = "settings_v2"
 
 export async function ensureSettings(): Promise<void> {
@@ -22,10 +23,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function saveSettings(partialSettings: RawSettings): Promise<Settings> {
-  const merged = sanitizeSettings({
-    ...(await getSettings()),
-    ...(partialSettings ?? {})
-  })
+  const merged = sanitizeSettings(mergeSettings(await getSettings(), partialSettings))
 
   await chrome.storage.local.set({ [SETTINGS_STORAGE_KEY]: merged })
   return merged

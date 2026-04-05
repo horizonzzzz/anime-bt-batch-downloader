@@ -1,5 +1,6 @@
 import { normalizeSourceDeliveryModes } from "../sources/delivery"
 import type {
+  DownloaderId,
   FilterCondition,
   FilterConditionField,
   FilterEntry,
@@ -9,7 +10,7 @@ import type {
 import { DEFAULT_SETTINGS } from "./defaults"
 import { normalizeEnabledSources } from "./source-enablement"
 
-type RawSettings = Partial<Settings> & Record<string, unknown>
+type RawSettings = Record<string, unknown>
 
 const VALID_SOURCE_IDS: SourceId[] = [
   "kisssub",
@@ -25,9 +26,10 @@ const VALID_FILTER_CONDITION_FIELDS: FilterConditionField[] = [
 
 export function sanitizeSettings(raw: RawSettings): Settings {
   return {
-    qbBaseUrl: normalizeBaseUrl(raw.qbBaseUrl ?? DEFAULT_SETTINGS.qbBaseUrl),
-    qbUsername: String(raw.qbUsername ?? "").trim(),
-    qbPassword: String(raw.qbPassword ?? ""),
+    currentDownloaderId: normalizeDownloaderId(
+      raw.currentDownloaderId ?? DEFAULT_SETTINGS.currentDownloaderId
+    ),
+    downloaders: normalizeDownloaders(raw.downloaders ?? DEFAULT_SETTINGS.downloaders),
     concurrency: clampInteger(raw.concurrency, 1, 5, DEFAULT_SETTINGS.concurrency),
     injectTimeoutMs: clampInteger(raw.injectTimeoutMs, 3000, 60000, DEFAULT_SETTINGS.injectTimeoutMs),
     domSettleMs: clampInteger(raw.domSettleMs, 200, 10000, DEFAULT_SETTINGS.domSettleMs),
@@ -42,6 +44,28 @@ export function sanitizeSettings(raw: RawSettings): Settings {
     ),
     enabledSources: normalizeEnabledSources(raw.enabledSources ?? DEFAULT_SETTINGS.enabledSources),
     filters: normalizeFilters(raw.filters ?? DEFAULT_SETTINGS.filters)
+  }
+}
+
+function normalizeDownloaderId(value: unknown): DownloaderId {
+  return value === "qbittorrent" ? "qbittorrent" : DEFAULT_SETTINGS.currentDownloaderId
+}
+
+function normalizeDownloaders(raw: unknown): Settings["downloaders"] {
+  const record = raw && typeof raw === "object"
+    ? (raw as Record<string, unknown>)
+    : {}
+  const qbRaw =
+    record.qbittorrent && typeof record.qbittorrent === "object"
+      ? (record.qbittorrent as Record<string, unknown>)
+      : {}
+
+  return {
+    qbittorrent: {
+      baseUrl: normalizeBaseUrl(qbRaw.baseUrl ?? DEFAULT_SETTINGS.downloaders.qbittorrent.baseUrl),
+      username: String(qbRaw.username ?? "").trim(),
+      password: String(qbRaw.password ?? "")
+    }
   }
 }
 
@@ -63,7 +87,7 @@ function normalizeBaseUrl(url: unknown): string {
     .trim()
     .replace(/\/+$/, "")
 
-  return normalized || DEFAULT_SETTINGS.qbBaseUrl
+  return normalized || DEFAULT_SETTINGS.downloaders.qbittorrent.baseUrl
 }
 
 function normalizeRemoteScriptUrl(url: unknown): string {

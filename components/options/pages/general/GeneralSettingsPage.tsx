@@ -2,6 +2,7 @@ import { useState } from "react"
 
 import type { ConnectionState } from "../../hooks/use-settings-form"
 import { ConnectionHelpAlert } from "./ConnectionHelpAlert"
+import { DownloaderSelectorSection } from "./DownloaderSelectorSection"
 import { ExtractionCadenceSection } from "./ExtractionCadenceSection"
 import { QbCredentialsSection } from "./QbCredentialsSection"
 
@@ -22,6 +23,7 @@ export function GeneralSettingsPage({
 
   return (
     <div className="space-y-6">
+      <DownloaderSelectorSection />
       <ConnectionHelpAlert />
       <QbCredentialsSection
         connectionMessage={connectionMessage}

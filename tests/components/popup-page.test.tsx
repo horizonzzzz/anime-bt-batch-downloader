@@ -10,7 +10,9 @@ type PopupPageProps = ComponentProps<typeof PopupPage>
 
 function createState(overrides: Partial<PopupStateViewModel> = {}): PopupStateViewModel {
   return {
-    qbConnectionStatus: "idle",
+    downloaderConnectionStatus: "idle",
+    currentDownloaderId: "qbittorrent",
+    currentDownloaderName: "qBittorrent",
     activeTab: {
       url: null,
       sourceId: null,
@@ -75,11 +77,12 @@ function renderPopup(overrides: Partial<PopupPageProps> = {}) {
 }
 
 describe("PopupPage", () => {
-  it("renders unsupported state and still shows quick actions when qB has not been verified", () => {
+  it("renders unsupported state and still shows quick actions when the current downloader has not been verified", () => {
     renderPopup()
 
     expect(screen.getByText("当前页面暂不支持批量下载")).toBeInTheDocument()
     expect(screen.queryByText("未配置 qBittorrent")).not.toBeInTheDocument()
+    expect(screen.getByText("一键发送到当前下载器")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "批次历史" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "过滤规则" })).toBeInTheDocument()
   })
@@ -87,7 +90,7 @@ describe("PopupPage", () => {
   it("renders configured + supported state with current-site toggle and quick actions", () => {
     renderPopup({
       state: createState({
-        qbConnectionStatus: "ready",
+        downloaderConnectionStatus: "ready",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
@@ -107,7 +110,7 @@ describe("PopupPage", () => {
   it("renders a disabled-state card when the current supported site is turned off", () => {
     renderPopup({
       state: createState({
-        qbConnectionStatus: "idle",
+        downloaderConnectionStatus: "idle",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
@@ -127,7 +130,7 @@ describe("PopupPage", () => {
   it("renders configured + unsupported state and hides current-site toggle", () => {
     renderPopup({
       state: createState({
-        qbConnectionStatus: "idle",
+        downloaderConnectionStatus: "idle",
         activeTab: {
           url: "https://example.org/",
           sourceId: null,
@@ -148,7 +151,7 @@ describe("PopupPage", () => {
     const user = userEvent.setup()
     const { onOpenOptionsRoute } = renderPopup({
       state: createState({
-        qbConnectionStatus: "ready",
+        downloaderConnectionStatus: "ready",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
@@ -170,7 +173,7 @@ describe("PopupPage", () => {
     const user = userEvent.setup()
     const { onToggleCurrentSiteEnabled } = renderPopup({
       state: createState({
-        qbConnectionStatus: "ready",
+        downloaderConnectionStatus: "ready",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
@@ -186,10 +189,10 @@ describe("PopupPage", () => {
     expect(onToggleCurrentSiteEnabled).toHaveBeenCalledWith("kisssub", false)
   })
 
-  it("renders a checking-state card while popup is probing qB connectivity", () => {
+  it("renders a checking-state card while popup is probing the current downloader", () => {
     renderPopup({
       state: createState({
-        qbConnectionStatus: "checking",
+        downloaderConnectionStatus: "checking",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
@@ -200,7 +203,7 @@ describe("PopupPage", () => {
       })
     })
 
-    expect(screen.getByText("正在检测 qBittorrent 连接")).toBeInTheDocument()
+    expect(screen.getByText("正在检测下载器连接")).toBeInTheDocument()
     expect(screen.getByRole("switch", { name: "当前站点启用开关" })).toBeInTheDocument()
     expect(screen.queryByText("插件已就绪")).not.toBeInTheDocument()
   })
@@ -208,7 +211,7 @@ describe("PopupPage", () => {
   it("renders a failed-connection card with a configure CTA", () => {
     renderPopup({
       state: createState({
-        qbConnectionStatus: "failed",
+        downloaderConnectionStatus: "failed",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",
@@ -219,7 +222,7 @@ describe("PopupPage", () => {
       })
     })
 
-    expect(screen.getByText("qBittorrent 连接失败")).toBeInTheDocument()
+    expect(screen.getByText("下载器连接失败")).toBeInTheDocument()
     expect(screen.getByRole("switch", { name: "当前站点启用开关" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "前往配置" })).toBeInTheDocument()
     expect(screen.queryByText("插件已就绪")).not.toBeInTheDocument()
@@ -228,7 +231,7 @@ describe("PopupPage", () => {
   it("disables current-site switch and shows hint when batch is running", () => {
     renderPopup({
       state: createState({
-        qbConnectionStatus: "ready",
+        downloaderConnectionStatus: "ready",
         activeTab: {
           url: "https://kisssub.org/",
           sourceId: "kisssub",

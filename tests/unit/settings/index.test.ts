@@ -13,15 +13,23 @@ describe("sanitizeSettings", () => {
   it("uses defaults and normalizes the base url", () => {
     expect(
       sanitizeSettings({
-        qbBaseUrl: " http://127.0.0.1:17474/// ",
-        qbUsername: " admin ",
-        qbPassword: "123456"
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// ",
+            username: " admin ",
+            password: "123456"
+          }
+        }
       })
     ).toEqual({
       ...DEFAULT_SETTINGS,
-      qbBaseUrl: "http://127.0.0.1:17474",
-      qbUsername: "admin",
-      qbPassword: "123456"
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "admin",
+          password: "123456"
+        }
+      }
     })
   })
 
@@ -57,8 +65,12 @@ describe("sanitizeSettings", () => {
   it("keeps all sources enabled when older settings omit enabledSources", () => {
     expect(
       sanitizeSettings({
-        qbBaseUrl: "http://127.0.0.1:17474",
-        qbUsername: "admin"
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "admin"
+          }
+        }
       }).enabledSources
     ).toEqual({
       kisssub: true,

@@ -3,6 +3,10 @@ import type { QbTorrentFile } from "./types"
 
 type FetchLike = typeof fetch
 
+function getQbSettings(settings: Settings) {
+  return settings.downloaders.qbittorrent
+}
+
 export async function addUrlsToQb(
   settings: Settings,
   urls: string[],
@@ -14,6 +18,7 @@ export async function addUrlsToQb(
   if (!urls.length) {
     return
   }
+  const qbSettings = getQbSettings(settings)
 
   const formData = new FormData()
   formData.append("urls", urls.join("\n"))
@@ -22,7 +27,7 @@ export async function addUrlsToQb(
     formData.append("savepath", savePath)
   }
 
-  const response = await fetchImpl(`${settings.qbBaseUrl}/api/v2/torrents/add`, {
+  const response = await fetchImpl(`${qbSettings.baseUrl}/api/v2/torrents/add`, {
     method: "POST",
     credentials: "include",
     body: formData
@@ -44,6 +49,7 @@ export async function addTorrentFilesToQb(
   if (!torrents.length) {
     return
   }
+  const qbSettings = getQbSettings(settings)
 
   const formData = new FormData()
   for (const torrent of torrents) {
@@ -60,7 +66,7 @@ export async function addTorrentFilesToQb(
     formData.append("savepath", savePath)
   }
 
-  const response = await fetchImpl(`${settings.qbBaseUrl}/api/v2/torrents/add`, {
+  const response = await fetchImpl(`${qbSettings.baseUrl}/api/v2/torrents/add`, {
     method: "POST",
     credentials: "include",
     body: formData

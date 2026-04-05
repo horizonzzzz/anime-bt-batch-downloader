@@ -1,4 +1,10 @@
-import type { BatchEventPayload, BatchItem, Settings, SourceId, TestQbConnectionResult } from "./types"
+import type {
+  BatchEventPayload,
+  BatchItem,
+  Settings,
+  SourceId,
+  TestDownloaderConnectionResult
+} from "./types"
 import type { TaskHistoryRecord } from "../history/types"
 import type { PopupOptionsRoute, PopupStateViewModel } from "./popup"
 
@@ -55,9 +61,9 @@ export type SaveSettingsSuccessResponse = {
   settings: Settings
 }
 
-export type TestQbConnectionSuccessResponse = {
+export type TestDownloaderConnectionSuccessResponse = {
   ok: true
-  result: TestQbConnectionResult
+  result: TestDownloaderConnectionResult
 }
 
 export type OpenOptionsPageSuccessResponse = {
@@ -105,7 +111,7 @@ export type RuntimeSuccessResponseMap = {
   RETRY_FAILED_ITEMS: RetryFailedItemsSuccessResponse
   GET_SETTINGS: GetSettingsSuccessResponse
   SAVE_SETTINGS: SaveSettingsSuccessResponse
-  TEST_QB_CONNECTION: TestQbConnectionSuccessResponse
+  TEST_QB_CONNECTION: TestDownloaderConnectionSuccessResponse
   GET_POPUP_STATE: GetPopupStateSuccessResponse
   SET_SOURCE_ENABLED: SetSourceEnabledSuccessResponse
   OPEN_OPTIONS_PAGE: OpenOptionsPageSuccessResponse
@@ -125,7 +131,7 @@ export type DeleteHistoryRecordResponse = RuntimeResponseFor<"DELETE_HISTORY_REC
 export type RetryFailedItemsResponse = RuntimeResponseFor<"RETRY_FAILED_ITEMS">
 export type GetSettingsResponse = RuntimeResponseFor<"GET_SETTINGS">
 export type SaveSettingsResponse = RuntimeResponseFor<"SAVE_SETTINGS">
-export type TestQbConnectionResponse = RuntimeResponseFor<"TEST_QB_CONNECTION">
+export type TestDownloaderConnectionResponse = RuntimeResponseFor<"TEST_QB_CONNECTION">
 export type GetPopupStateResponse = RuntimeResponseFor<"GET_POPUP_STATE">
 export type SetSourceEnabledResponse = RuntimeResponseFor<"SET_SOURCE_ENABLED">
 export type OpenOptionsPageResponse = RuntimeResponseFor<"OPEN_OPTIONS_PAGE">

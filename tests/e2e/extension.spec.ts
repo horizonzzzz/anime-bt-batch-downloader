@@ -132,7 +132,7 @@ async function assertBatchPanelInjection(
   await page.getByRole("button", { name: "打开设置页" }).click()
 
   const popup = await popupPromise
-  await expect(popup).toHaveURL(/options\.html#\/general$/)
+  await expect(popup).toHaveURL(/options\.html#\/filters$/)
 }
 
 async function countInjectedCheckboxes(page: import("@playwright/test").Page) {
@@ -232,7 +232,7 @@ async function openOptionsPage(
 ) {
   const route = options?.route ?? ""
   const expectedRoute = options?.route ?? "/general"
-  const expectedHeading = options?.heading ?? "连接与基础设置"
+  const expectedHeading = options?.heading ?? "下载器与基础设置"
   const page = await extension.context.newPage()
   await page.goto(`chrome-extension://${extension.extensionId}/options.html${route ? `#${route}` : ""}`)
   await expect(page).toHaveURL(new RegExp(`options\\.html#${expectedRoute.replace("/", "\\/")}$`))

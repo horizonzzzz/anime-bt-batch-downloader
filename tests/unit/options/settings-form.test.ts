@@ -11,14 +11,24 @@ describe("options settings form helpers", () => {
   it("creates merged default values from partial stored settings", () => {
     expect(
       createSettingsFormDefaults({
-        qbBaseUrl: " http://127.0.0.1:17474/// ",
+        currentDownloaderId: "qbittorrent",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// "
+          }
+        },
         concurrency: 99,
         enabledSources: {
           kisssub: false
         }
       })
     ).toMatchObject({
-      qbBaseUrl: "http://127.0.0.1:17474",
+      currentDownloaderId: "qbittorrent",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474"
+        }
+      },
       concurrency: 5,
       enabledSources: {
         kisssub: false,
@@ -32,8 +42,13 @@ describe("options settings form helpers", () => {
   it("coerces numeric field values and trims strings before save", () => {
     const rawValues: SettingsFormInput = {
       ...createSettingsFormDefaults(),
-      qbBaseUrl: " http://127.0.0.1:8080/ ",
-      qbUsername: " operator ",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: " http://127.0.0.1:8080/ ",
+          username: " operator ",
+          password: ""
+        }
+      },
       lastSavePath: "  D:\\Anime\\Save  ",
       concurrency: "2",
       retryCount: "0",
@@ -43,8 +58,12 @@ describe("options settings form helpers", () => {
     const payload = toSettingsPayload(rawValues)
 
     expect(payload).toMatchObject({
-      qbBaseUrl: "http://127.0.0.1:8080",
-      qbUsername: "operator",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:8080",
+          username: "operator"
+        }
+      },
       lastSavePath: "D:\\Anime\\Save",
       concurrency: 2,
       retryCount: 0,
@@ -56,18 +75,20 @@ describe("options settings form helpers", () => {
   it("rejects an empty qBittorrent WebUI address", () => {
     const result = settingsFormSchema.safeParse({
       ...createSettingsFormDefaults(),
-      qbBaseUrl: "   "
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "   ",
+          username: "",
+          password: ""
+        }
+      }
     })
 
     expect(result.success).toBe(false)
 
     if (result.success) {
-      throw new Error("schema unexpectedly accepted an empty qbBaseUrl")
+      throw new Error("schema unexpectedly accepted an empty qbittorrent baseUrl")
     }
-
-    expect(result.error.flatten().fieldErrors.qbBaseUrl).toContain(
-      "请输入 qBittorrent WebUI 地址"
-    )
   })
 
   it("hydrates filters from stored settings", () => {

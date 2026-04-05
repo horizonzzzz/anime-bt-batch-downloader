@@ -5,13 +5,17 @@ import type { Settings } from "../../../lib/shared/types"
 
 const {
   getSettingsMock,
+  mergeSettingsMock,
   sanitizeSettingsMock,
-  getDefaultDownloaderAdapterMock,
+  getDownloaderAdapterMock,
+  getDownloaderMetaMock,
   testConnectionMock
 } = vi.hoisted(() => ({
   getSettingsMock: vi.fn(),
+  mergeSettingsMock: vi.fn(),
   sanitizeSettingsMock: vi.fn(),
-  getDefaultDownloaderAdapterMock: vi.fn(),
+  getDownloaderAdapterMock: vi.fn(),
+  getDownloaderMetaMock: vi.fn(),
   testConnectionMock: vi.fn()
 }))
 
@@ -23,36 +27,52 @@ vi.mock("../../../lib/settings", async () => {
   return {
     ...actual,
     getSettings: getSettingsMock,
+    mergeSettings: mergeSettingsMock,
     sanitizeSettings: sanitizeSettingsMock
   }
 })
 
 vi.mock("../../../lib/downloader", () => ({
-  getDefaultDownloaderAdapter: getDefaultDownloaderAdapterMock
+  getDownloaderAdapter: getDownloaderAdapterMock,
+  getDownloaderMeta: getDownloaderMetaMock
 }))
 
-import { testQbConnection } from "../../../lib/background/service"
+import { testDownloaderConnection } from "../../../lib/background/service"
 
-describe("testQbConnection", () => {
+describe("testDownloaderConnection", () => {
   const storedSettings: Settings = {
     ...DEFAULT_SETTINGS,
-    qbBaseUrl: "http://127.0.0.1:7474",
-    qbUsername: "admin",
-    qbPassword: "secret"
+    downloaders: {
+      qbittorrent: {
+        baseUrl: "http://127.0.0.1:7474",
+        username: "admin",
+        password: "secret"
+      }
+    }
   }
 
   const sanitizedSettings: Settings = {
     ...storedSettings,
-    qbBaseUrl: "http://127.0.0.1:17474",
-    qbUsername: "root"
+    downloaders: {
+      qbittorrent: {
+        baseUrl: "http://127.0.0.1:17474",
+        username: "root",
+        password: "secret"
+      }
+    }
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
     getSettingsMock.mockResolvedValue(storedSettings)
+    mergeSettingsMock.mockReturnValue(sanitizedSettings)
     sanitizeSettingsMock.mockReturnValue(sanitizedSettings)
-    getDefaultDownloaderAdapterMock.mockReturnValue({
+    getDownloaderAdapterMock.mockReturnValue({
       testConnection: testConnectionMock
+    })
+    getDownloaderMetaMock.mockReturnValue({
+      id: "qbittorrent",
+      displayName: "qBittorrent"
     })
     testConnectionMock.mockResolvedValue({
       baseUrl: "http://127.0.0.1:17474",
@@ -60,24 +80,36 @@ describe("testQbConnection", () => {
     })
   })
 
-  it("merges stored settings with overrides, sanitizes them, and uses the default downloader adapter", async () => {
+  it("merges stored settings with overrides, sanitizes them, and uses the selected downloader adapter", async () => {
     await expect(
-      testQbConnection({
-        qbBaseUrl: " http://127.0.0.1:17474/// ",
-        qbUsername: " root "
+      testDownloaderConnection({
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// ",
+            username: " root ",
+            password: "secret"
+          }
+        }
       })
     ).resolves.toEqual({
+      downloaderId: "qbittorrent",
+      displayName: "qBittorrent",
       baseUrl: "http://127.0.0.1:17474",
       version: "4.6.0"
     })
 
     expect(getSettingsMock).toHaveBeenCalledTimes(1)
-    expect(sanitizeSettingsMock).toHaveBeenCalledWith({
-      ...storedSettings,
-      qbBaseUrl: " http://127.0.0.1:17474/// ",
-      qbUsername: " root "
+    expect(mergeSettingsMock).toHaveBeenCalledWith(storedSettings, {
+      downloaders: {
+        qbittorrent: {
+          baseUrl: " http://127.0.0.1:17474/// ",
+          username: " root ",
+          password: "secret"
+        }
+      }
     })
-    expect(getDefaultDownloaderAdapterMock).toHaveBeenCalledTimes(1)
+    expect(sanitizeSettingsMock).toHaveBeenCalledWith(sanitizedSettings)
+    expect(getDownloaderAdapterMock).toHaveBeenCalledWith("qbittorrent")
     expect(testConnectionMock).toHaveBeenCalledWith(sanitizedSettings)
   })
 
@@ -87,7 +119,9 @@ describe("testQbConnection", () => {
       version: "unknown"
     })
 
-    await expect(testQbConnection(null)).resolves.toEqual({
+    await expect(testDownloaderConnection(null)).resolves.toEqual({
+      downloaderId: "qbittorrent",
+      displayName: "qBittorrent",
       baseUrl: "http://127.0.0.1:17474",
       version: "unknown"
     })
@@ -96,6 +130,6 @@ describe("testQbConnection", () => {
   it("rethrows default adapter connection failures", async () => {
     testConnectionMock.mockRejectedValueOnce(new Error("bad login"))
 
-    await expect(testQbConnection(null)).rejects.toThrow("bad login")
+    await expect(testDownloaderConnection(null)).rejects.toThrow("bad login")
   })
 })

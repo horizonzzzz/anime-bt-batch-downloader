@@ -1,7 +1,7 @@
 import { SOURCE_IDS } from "../sources/catalog"
 import { SITE_CONFIG_META } from "../sources/site-meta"
 import type { OptionsRoutePath } from "./options-routes"
-import type { SourceId } from "./types"
+import type { DownloaderId, SourceId } from "./types"
 
 export const POPUP_HELP_URL = "https://github.com/horizonzzzz/anime-bt-batch-downloader"
 
@@ -23,10 +23,12 @@ export type PopupActiveTabViewModel = {
   batchRunning: boolean
 }
 
-export type PopupQbConnectionStatus = "idle" | "checking" | "ready" | "failed"
+export type PopupDownloaderConnectionStatus = "idle" | "checking" | "ready" | "failed"
 
 export type PopupStateViewModel = {
-  qbConnectionStatus: PopupQbConnectionStatus
+  downloaderConnectionStatus: PopupDownloaderConnectionStatus
+  currentDownloaderId: DownloaderId
+  currentDownloaderName: string
   activeTab: PopupActiveTabViewModel
   supportedSites: PopupSupportedSiteViewModel[]
   version: string

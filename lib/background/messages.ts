@@ -8,7 +8,7 @@ export function getBatchStartedMessage(total: number, savePath: string): string 
 
 export function getBatchSubmittingMessage(total: number, savePath: string): string {
   if (savePath) {
-    return `Submitting ${total} unique item(s) to qBittorrent with save path ${savePath}.`
+    return `Submitting ${total} unique item(s) to the downloader with save path ${savePath}.`
   }
 
   return `Submitting ${total} unique link(s) to the downloader using the default save path.`

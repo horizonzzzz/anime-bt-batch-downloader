@@ -25,9 +25,9 @@ export const OPTIONS_ROUTES: OptionsRouteMeta[] = [
   {
     id: "general",
     path: GENERAL_ROUTE,
-    label: "连接与基础设置",
-    title: "连接与基础设置",
-    description: "配置 qBittorrent WebUI 的连接信息，以及全局批量提取节奏。",
+    label: "下载器与基础设置",
+    title: "下载器与基础设置",
+    description: "选择当前下载器，配置连接信息，并调整全局批量提取节奏。",
     footerLabel: "正在编辑全局配置",
     mode: "form"
   },

@@ -2,7 +2,10 @@ import { useEffect, useState } from "react"
 
 import { sendRuntimeRequest } from "../../lib/shared/messages"
 import { DEFAULT_OPTIONS_ROUTE, type OptionsRoutePath } from "../../lib/shared/options-routes"
-import type { PopupQbConnectionStatus, PopupStateViewModel } from "../../lib/shared/popup"
+import type {
+  PopupDownloaderConnectionStatus,
+  PopupStateViewModel
+} from "../../lib/shared/popup"
 import type { Settings, SourceId } from "../../lib/shared/types"
 import { Alert, Button } from "../ui"
 import { PopupPage } from "./PopupPage"
@@ -19,9 +22,9 @@ async function requestPopupState(): Promise<PopupStateViewModel> {
   return response.state
 }
 
-function resolveQbConnectionStatus(
+function resolveDownloaderConnectionStatus(
   activeTab: PopupStateViewModel["activeTab"]
-): PopupQbConnectionStatus {
+): PopupDownloaderConnectionStatus {
   if (activeTab.supported && activeTab.enabled && activeTab.sourceId) {
     return "checking"
   }
@@ -62,7 +65,7 @@ export function PopupContainer() {
   }, [])
 
   useEffect(() => {
-    if (!state || state.qbConnectionStatus !== "checking") {
+    if (!state || state.downloaderConnectionStatus !== "checking") {
       return
     }
 
@@ -79,13 +82,13 @@ export function PopupContainer() {
         }
 
         setState((currentState) => {
-          if (!currentState || currentState.qbConnectionStatus !== "checking") {
+          if (!currentState || currentState.downloaderConnectionStatus !== "checking") {
             return currentState
           }
 
           return {
             ...currentState,
-            qbConnectionStatus: response.ok ? "ready" : "failed"
+            downloaderConnectionStatus: response.ok ? "ready" : "failed"
           }
         })
       } catch {
@@ -94,13 +97,13 @@ export function PopupContainer() {
         }
 
         setState((currentState) => {
-          if (!currentState || currentState.qbConnectionStatus !== "checking") {
+          if (!currentState || currentState.downloaderConnectionStatus !== "checking") {
             return currentState
           }
 
           return {
             ...currentState,
-            qbConnectionStatus: "failed"
+            downloaderConnectionStatus: "failed"
           }
         })
       }
@@ -151,7 +154,7 @@ export function PopupContainer() {
 
     return {
       ...current,
-      qbConnectionStatus: resolveQbConnectionStatus(nextActiveTab),
+      downloaderConnectionStatus: resolveDownloaderConnectionStatus(nextActiveTab),
       activeTab: nextActiveTab,
       supportedSites: current.supportedSites.map((site) => ({
         ...site,

@@ -10,7 +10,10 @@ The extension injects selection UI into supported list pages, reuses direct magn
 
 - Supported source adapters: `kisssub.org`, `dongmanhuayuan.com`, `acg.rip`, `bangumi.moe`
 - Supported source management in the options page:
-  - `Connection & Basic Settings`
+  - `Downloader & Basic Settings`
+    - rendered as a downloader-first workspace backed by persisted `currentDownloaderId` plus nested `downloaders` settings
+    - users select the current downloader first, then edit the active downloader configuration block
+    - currently only `qBittorrent` is available in the selector, but the UI and settings model are structured for future downloader additions
   - `Site Configuration`
   - `Filter Rules`
     - rendered as a simplified filter workspace backed by persisted `filters`
@@ -20,7 +23,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `Source Overview`
 - Supported popup surface responsibilities:
   - loading extension runtime status for quick checks before opening options
-  - probing qBittorrent connectivity on the active supported/enabled source page, surfacing active-tab source support/enabled state, and linking to configuration when the connection check fails
+  - probing current-downloader connectivity on the active supported/enabled source page, surfacing active-tab source support/enabled state, and linking to configuration when the connection check fails
   - offering quick links into options routes and one-click enable/disable for the active supported source, with immediate sync to the current tab's injected UI
 - the options workspace uses hash-routed navigation with:
   - `options.html#/general`
@@ -66,7 +69,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 ## Source Of Truth Files
 
 - `background.ts`
-  Handles runtime message registration and delegates batch orchestration plus qBittorrent connection tests to `lib/background/`.
+  Handles runtime message registration and delegates batch orchestration plus current-downloader connection tests to `lib/background/`.
 - `options.tsx`
   Boots the hash-routed options page, loads `styles/options.css`, and wires the React options UI to background message APIs.
 - `popup.tsx`
@@ -96,9 +99,9 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Domain-organized shared logic:
   - `lib/background/` for batch orchestration, job-state helpers, and background-only services
   - `lib/content/` for source-page matching helpers and Shadow Root host/style orchestration
-  - `lib/downloader/` for downloader adapter contracts, default downloader selection, and downloader-facing shared types
+  - `lib/downloader/` for downloader adapter contracts, supported-downloader registry/meta, and downloader-facing shared types
   - `lib/downloader/qb/` for qBittorrent WebUI client helpers and submission APIs
-  - `lib/settings/` for defaults, sanitization, storage access, and source enablement helpers
+  - `lib/settings/` for defaults, nested downloader settings merge/sanitization, storage access, and source enablement helpers
   - `lib/shared/` for cross-runtime messages, shared types, and Tailwind utility helpers
 - `.github/workflows/release.yml`
   Tagged-release automation that validates versions, packages the extension, extracts the matching `CHANGELOG.md` section, renames the packaged archive, and publishes the GitHub Release.
@@ -174,7 +177,7 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 - `lib/settings/`
   Default settings, sanitization, storage access, and source enablement resolution.
 - `lib/downloader/`
-  Downloader adapter registry, downloader-facing shared types, and default downloader selection.
+  Downloader adapter registry, supported-downloader metadata, and downloader-facing shared types.
 - `lib/downloader/qb/`
   qBittorrent WebUI client and submission APIs.
 - `lib/shared/`

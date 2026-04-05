@@ -15,7 +15,7 @@ export const qbDownloaderAdapter: DownloaderAdapter = {
     const version = await qbFetchText(settings, "/api/v2/app/version", { method: "GET" })
 
     return {
-      baseUrl: settings.qbBaseUrl,
+      baseUrl: settings.downloaders.qbittorrent.baseUrl,
       version: version.trim() || "unknown"
     }
   }

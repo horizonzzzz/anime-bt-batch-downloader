@@ -11,16 +11,26 @@ import { DEFAULT_SETTINGS } from "../../../lib/settings"
 
 const qbSettings = {
   ...DEFAULT_SETTINGS,
-  qbBaseUrl: "http://127.0.0.1:17474",
-  qbUsername: "admin",
-  qbPassword: "secret"
+  downloaders: {
+    qbittorrent: {
+      baseUrl: "http://127.0.0.1:17474",
+      username: "admin",
+      password: "secret"
+    }
+  }
 }
 
 describe("getQbLoginErrorMessage", () => {
   it("returns actionable guidance for 401 responses", () => {
     expect(
       getQbLoginErrorMessage(401, {
-        qbBaseUrl: "http://127.0.0.1:17474"
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "",
+            password: ""
+          }
+        }
       })
     ).toContain("Enable Cross-Site Request Forgery (CSRF) protection")
   })
@@ -28,7 +38,13 @@ describe("getQbLoginErrorMessage", () => {
   it("falls back to the generic HTTP status message", () => {
     expect(
       getQbLoginErrorMessage(403, {
-        qbBaseUrl: "http://127.0.0.1:17474"
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "",
+            password: ""
+          }
+        }
       })
     ).toBe("qBittorrent login failed with HTTP 403.")
   })

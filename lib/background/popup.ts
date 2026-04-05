@@ -1,4 +1,5 @@
 import packageJson from "../../package.json"
+import { getDownloaderMeta } from "../downloader"
 import { getSourceAdapterForPage } from "../sources"
 import { getSettings, resolveSourceEnabled, saveSettings } from "../settings"
 import {
@@ -12,7 +13,7 @@ import {
   POPUP_HELP_URL,
   POPUP_SUPPORTED_SITE_IDS,
   POPUP_SUPPORTED_SITE_META,
-  type PopupQbConnectionStatus,
+  type PopupDownloaderConnectionStatus,
   type PopupStateViewModel
 } from "../shared/popup"
 import type { Settings, SourceId } from "../shared/types"
@@ -125,9 +126,15 @@ export async function buildPopupState(
   const activeTabEnabled = activeSourceId ? resolveSourceEnabled(activeSourceId, settings) : false
   const activeTabBatchRunning =
     typeof activeTab.id === "number" ? dependencies.isBatchRunningInTab(activeTab.id) : false
+  const currentDownloader = getDownloaderMeta(settings.currentDownloaderId)
 
   return {
-    qbConnectionStatus: resolvePopupQbConnectionStatus(activeSourceId !== null, activeTabEnabled),
+    downloaderConnectionStatus: resolvePopupDownloaderConnectionStatus(
+      activeSourceId !== null,
+      activeTabEnabled
+    ),
+    currentDownloaderId: currentDownloader.id,
+    currentDownloaderName: currentDownloader.displayName,
     activeTab: {
       url: activeTab.url,
       sourceId: activeSourceId,
@@ -269,10 +276,10 @@ function resolveActiveSourceId(url: string | null): SourceId | null {
   }
 }
 
-function resolvePopupQbConnectionStatus(
+function resolvePopupDownloaderConnectionStatus(
   activeTabSupported: boolean,
   activeTabEnabled: boolean
-): PopupQbConnectionStatus {
+): PopupDownloaderConnectionStatus {
   if (activeTabSupported && activeTabEnabled) {
     return "checking"
   }

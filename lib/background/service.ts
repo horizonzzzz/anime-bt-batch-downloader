@@ -1,18 +1,20 @@
-import { getDefaultDownloaderAdapter } from "../downloader"
-import { getSettings, sanitizeSettings } from "../settings"
-import type { Settings, TestQbConnectionResult } from "../shared/types"
+import { getDownloaderAdapter, getDownloaderMeta } from "../downloader"
+import { getSettings, mergeSettings, sanitizeSettings } from "../settings"
+import type { Settings, TestDownloaderConnectionResult } from "../shared/types"
 
-export async function testQbConnection(
+export async function testDownloaderConnection(
   overrideSettings: Partial<Settings> | null
-): Promise<TestQbConnectionResult> {
-  const settings = sanitizeSettings({
-    ...(await getSettings()),
-    ...(overrideSettings ?? {})
-  })
+): Promise<TestDownloaderConnectionResult> {
+  const settings = sanitizeSettings(mergeSettings(await getSettings(), overrideSettings))
 
-  const result = await getDefaultDownloaderAdapter().testConnection(settings)
+  const downloaderId = settings.currentDownloaderId
+  const adapter = getDownloaderAdapter(downloaderId)
+  const meta = getDownloaderMeta(downloaderId)
+  const result = await adapter.testConnection(settings)
 
   return {
+    downloaderId,
+    displayName: meta.displayName,
     baseUrl: result.baseUrl,
     version: result.version
   }

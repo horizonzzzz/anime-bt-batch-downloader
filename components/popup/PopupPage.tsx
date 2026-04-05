@@ -40,7 +40,7 @@ export function PopupPage({
           </div>
           <div>
             <h1 className="text-sm font-semibold leading-none tracking-tight text-zinc-100">Anime BT Batch</h1>
-            <p className="text-[11px] text-zinc-500 mt-1 font-medium">一键发送至 qBittorrent</p>
+            <p className="text-[11px] text-zinc-500 mt-1 font-medium">一键发送到当前下载器</p>
           </div>
         </div>
         <button
@@ -55,7 +55,8 @@ export function PopupPage({
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
         <PopupStatusCard
-          qbConnectionStatus={state.qbConnectionStatus}
+          downloaderConnectionStatus={state.downloaderConnectionStatus}
+          currentDownloaderName={state.currentDownloaderName}
           activeTab={state.activeTab}
           actionsDisabled={actionsDisabled}
           onOpenGeneralOptions={onOpenGeneralOptions}

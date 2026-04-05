@@ -3,9 +3,14 @@ import type { Settings } from "../shared/types"
 import { DEFAULT_ENABLED_SOURCES } from "./source-enablement"
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
-  qbBaseUrl: "http://127.0.0.1:7474",
-  qbUsername: "",
-  qbPassword: "",
+  currentDownloaderId: "qbittorrent",
+  downloaders: {
+    qbittorrent: {
+      baseUrl: "http://127.0.0.1:7474",
+      username: "",
+      password: ""
+    }
+  },
   concurrency: 3,
   injectTimeoutMs: 15000,
   domSettleMs: 1200,

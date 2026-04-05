@@ -60,10 +60,19 @@ export type BatchStats = {
   failed: number
 }
 
+export type DownloaderId = "qbittorrent"
+
+export type QbittorrentSettings = {
+  baseUrl: string
+  username: string
+  password: string
+}
+
 export type Settings = {
-  qbBaseUrl: string
-  qbUsername: string
-  qbPassword: string
+  currentDownloaderId: DownloaderId
+  downloaders: {
+    qbittorrent: QbittorrentSettings
+  }
   concurrency: number
   injectTimeoutMs: number
   domSettleMs: number
@@ -76,7 +85,9 @@ export type Settings = {
   filters: FilterEntry[]
 }
 
-export type TestQbConnectionResult = {
+export type TestDownloaderConnectionResult = {
+  downloaderId: DownloaderId
+  displayName: string
   baseUrl: string
   version: string
 }

@@ -6,10 +6,10 @@ import {
   notifyActiveTabOfSourceEnabledChange,
   openOptionsPageForRoute,
   retryFailedItems,
-  testQbConnection,
+  testDownloaderConnection,
   setSourceEnabledForPopup
 } from "./lib/background"
-import { getDefaultDownloaderAdapter } from "./lib/downloader"
+import { getDownloaderAdapter } from "./lib/downloader"
 import {
   clearHistory,
   deleteHistoryRecord,
@@ -35,13 +35,11 @@ import { getSourceAdapterForPage } from "./lib/sources"
 import iconColor from "./assets/icon.png"
 import iconGrayscale from "./assets/icon-grayscale.png"
 
-const downloader = getDefaultDownloaderAdapter()
-
 const batchDownloadManager = createBatchDownloadManager({
   saveSettings,
   extractSingleItem,
   sendBatchEvent,
-  downloader
+  getDownloader: (settings) => getDownloaderAdapter(settings.currentDownloaderId)
 })
 
 /**
@@ -128,7 +126,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
         case "TEST_QB_CONNECTION":
           sendResponse(
             createRuntimeSuccessResponse("TEST_QB_CONNECTION", {
-              result: await testQbConnection(runtimeMessage.settings ?? null)
+              result: await testDownloaderConnection(runtimeMessage.settings ?? null)
             })
           )
           return
@@ -212,7 +210,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
                 getSettings,
                 getHistoryRecord,
                 updateHistoryRecord,
-                downloader,
+                getDownloader: (settings) => getDownloaderAdapter(settings.currentDownloaderId),
                 fetchTorrentForUpload
               }
             )

@@ -1,8 +1,32 @@
+import type { DownloaderId } from "../shared/types"
 import type { DownloaderAdapter } from "./types"
 import { qbDownloaderAdapter } from "./qb"
 
-const DEFAULT_DOWNLOADER_ADAPTER: DownloaderAdapter = qbDownloaderAdapter
+export type DownloaderMeta = {
+  id: DownloaderId
+  displayName: string
+}
 
-export function getDefaultDownloaderAdapter(): DownloaderAdapter {
-  return DEFAULT_DOWNLOADER_ADAPTER
+const DOWNLOADER_ADAPTERS: Record<DownloaderId, DownloaderAdapter> = {
+  qbittorrent: qbDownloaderAdapter
+}
+
+export const SUPPORTED_DOWNLOADERS: DownloaderMeta[] = [
+  {
+    id: "qbittorrent",
+    displayName: "qBittorrent"
+  }
+]
+
+export function getDownloaderAdapter(id: DownloaderId): DownloaderAdapter {
+  return DOWNLOADER_ADAPTERS[id]
+}
+
+export function getDownloaderMeta(id: DownloaderId): DownloaderMeta {
+  const meta = SUPPORTED_DOWNLOADERS.find((entry) => entry.id === id)
+  if (!meta) {
+    throw new Error(`Unsupported downloader: ${id}`)
+  }
+
+  return meta
 }

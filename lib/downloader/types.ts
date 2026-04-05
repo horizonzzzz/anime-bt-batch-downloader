@@ -1,6 +1,4 @@
-import type { Settings } from "../shared/types"
-
-export type DownloaderId = "qbittorrent"
+import type { DownloaderId, Settings } from "../shared/types"
 
 export type DownloaderSubmitOptions = {
   savePath?: string

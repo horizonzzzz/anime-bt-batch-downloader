@@ -5,6 +5,10 @@ import type { TaskHistoryItem, TaskHistoryRecord } from "../../../lib/history/ty
 import { DEFAULT_SETTINGS } from "../../../lib/settings/defaults"
 import type { Settings } from "../../../lib/shared/types"
 
+type RetryTestDeps = RetryDependencies & {
+  downloader: DownloaderAdapter
+}
+
 function createMockRecord(id: string, items: TaskHistoryItem[]): TaskHistoryRecord {
   return {
     id,
@@ -91,7 +95,7 @@ function createSuccessItem(id: string, title: string): TaskHistoryItem {
 
 function createMockDeps(
   overrides?: Partial<RetryDependencies>
-): RetryDependencies {
+): RetryTestDeps {
   const downloader = {
     id: "qbittorrent",
     displayName: "qBittorrent",
@@ -104,13 +108,18 @@ function createMockDeps(
   return {
     getSettings: vi.fn(async () => ({
       ...DEFAULT_SETTINGS,
-      qbBaseUrl: "http://localhost:8080",
-      qbUsername: "admin",
-      qbPassword: "password",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://localhost:8080",
+          username: "admin",
+          password: "password"
+        }
+      },
       filters: []
     })),
     getHistoryRecord: vi.fn(async () => null),
     updateHistoryRecord: vi.fn(async () => {}),
+    getDownloader: vi.fn(() => downloader),
     downloader,
     fetchTorrentForUpload: vi.fn(async (): Promise<DownloaderTorrentFile> => ({
       filename: "test.torrent",
@@ -121,7 +130,7 @@ function createMockDeps(
 }
 
 describe("retryFailedItems", () => {
-  let deps: RetryDependencies
+  let deps: RetryTestDeps
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -137,14 +146,14 @@ describe("retryFailedItems", () => {
       await expect(retryFailedItems(request, deps)).rejects.toThrow("历史记录不存在")
     })
 
-    it("throws when qBittorrent login fails", async () => {
+    it("throws when downloader login fails", async () => {
       const record = createMockRecord("batch-1", [createFailedItem("item-1", "Test", "magnet:?xt=test")])
       deps.getHistoryRecord = vi.fn(async () => record)
       deps.downloader.authenticate = vi.fn(async () => { throw new Error("Connection refused") })
 
       const request: RetryRequest = { recordId: "batch-1" }
 
-      await expect(retryFailedItems(request, deps)).rejects.toThrow("qBittorrent 登录失败")
+      await expect(retryFailedItems(request, deps)).rejects.toThrow("下载器登录失败")
       expect(deps.updateHistoryRecord).not.toHaveBeenCalled()
     })
   })
@@ -224,9 +233,13 @@ describe("retryFailedItems", () => {
       deps.getHistoryRecord = vi.fn(async () => record)
       const filteredSettings: Settings = {
         ...DEFAULT_SETTINGS,
-        qbBaseUrl: "http://localhost:8080",
-        qbUsername: "admin",
-        qbPassword: "password",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://localhost:8080",
+            username: "admin",
+            password: "password"
+          }
+        },
         filters: [
           {
             id: "filter-subgroup",
@@ -272,9 +285,13 @@ describe("retryFailedItems", () => {
       deps.getHistoryRecord = vi.fn(async () => record)
       const includeSettings: Settings = {
         ...DEFAULT_SETTINGS,
-        qbBaseUrl: "http://localhost:8080",
-        qbUsername: "admin",
-        qbPassword: "password",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://localhost:8080",
+            username: "admin",
+            password: "password"
+          }
+        },
         filters: [
           {
             id: "filter-include",

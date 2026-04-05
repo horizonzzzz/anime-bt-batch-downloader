@@ -3,12 +3,17 @@ import { getQbLoginErrorMessage } from "./errors"
 
 type FetchLike = typeof fetch
 
-export async function loginQb(settings: Settings, fetchImpl: FetchLike = fetch): Promise<void> {
-  const body = new URLSearchParams()
-  body.set("username", settings.qbUsername)
-  body.set("password", settings.qbPassword)
+function getQbSettings(settings: Settings) {
+  return settings.downloaders.qbittorrent
+}
 
-  const response = await fetchImpl(`${settings.qbBaseUrl}/api/v2/auth/login`, {
+export async function loginQb(settings: Settings, fetchImpl: FetchLike = fetch): Promise<void> {
+  const qbSettings = getQbSettings(settings)
+  const body = new URLSearchParams()
+  body.set("username", qbSettings.username)
+  body.set("password", qbSettings.password)
+
+  const response = await fetchImpl(`${qbSettings.baseUrl}/api/v2/auth/login`, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -33,7 +38,8 @@ export async function qbFetchText(
   init?: RequestInit,
   fetchImpl: FetchLike = fetch
 ): Promise<string> {
-  const response = await fetchImpl(`${settings.qbBaseUrl}${path}`, {
+  const qbSettings = getQbSettings(settings)
+  const response = await fetchImpl(`${qbSettings.baseUrl}${path}`, {
     credentials: "include",
     ...init
   })

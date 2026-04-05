@@ -5,9 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { OptionsPage, type OptionsApi } from "../../components/options-page"
 
 const settings = {
-  qbBaseUrl: "http://127.0.0.1:17474",
-  qbUsername: "admin",
-  qbPassword: "123456",
+  currentDownloaderId: "qbittorrent",
+  downloaders: {
+    qbittorrent: {
+      baseUrl: "http://127.0.0.1:17474",
+      username: "admin",
+      password: "123456"
+    }
+  },
   concurrency: 1,
   injectTimeoutMs: 15000,
   domSettleMs: 1200,
@@ -35,7 +40,9 @@ function createOptionsApi(overrides: Partial<OptionsApi> = {}): OptionsApi {
     loadSettings: vi.fn().mockResolvedValue(settings),
     saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings),
     testConnection: vi.fn().mockResolvedValue({
-      baseUrl: settings.qbBaseUrl,
+      downloaderId: "qbittorrent",
+      displayName: "qBittorrent",
+      baseUrl: settings.downloaders.qbittorrent.baseUrl,
       version: "5.0.0"
     }),
     ...overrides
@@ -69,14 +76,14 @@ describe("OptionsPage", () => {
     window.location.hash = ""
     const firstRender = render(<OptionsPage api={api} />)
 
-    expect(await screen.findByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "下载器与基础设置" })).toBeInTheDocument()
     expect(window.location.hash).toBe("#/general")
 
     firstRender.unmount()
     window.location.hash = "#/unknown"
     render(<OptionsPage api={api} />)
 
-    expect(await screen.findByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "下载器与基础设置" })).toBeInTheDocument()
     expect(window.location.hash).toBe("#/general")
   })
 
@@ -92,13 +99,15 @@ describe("OptionsPage", () => {
 
     const sidebarNav = screen.getByTestId("options-sidebar-groups")
     expect(within(sidebarNav).getAllByRole("button")).toHaveLength(5)
-    expect(screen.getByRole("button", { name: "连接与基础设置" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "下载器与基础设置" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "站点配置" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "过滤规则" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "批次历史" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "源站概览" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "连接与基础设置" })).toBeInTheDocument()
-    expect(screen.getByText("qB WebUI 兼容性提示")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "下载器与基础设置" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "下载器选择" })).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "qBittorrent" })).toBeChecked()
+    expect(screen.getByText("下载器兼容性提示")).toBeInTheDocument()
   })
 
   it(
@@ -438,7 +447,11 @@ describe("OptionsPage", () => {
       await waitFor(() => {
         expect(api.saveSettings).toHaveBeenCalledWith(
           expect.objectContaining({
-            qbUsername: "operator",
+            downloaders: expect.objectContaining({
+              qbittorrent: expect.objectContaining({
+                username: "operator"
+              })
+            }),
             remoteScriptRevision: "20260324.1",
             sourceDeliveryModes: expect.objectContaining({
               acgrip: "torrent-url"
@@ -547,11 +560,23 @@ describe("OptionsPage", () => {
     "shows a live status region and connection feedback while testing",
     async () => {
       const user = userEvent.setup()
-      let resolveConnection: ((value: { baseUrl: string; version: string }) => void) | undefined
+      let resolveConnection:
+        | ((value: {
+            downloaderId: "qbittorrent"
+            displayName: "qBittorrent"
+            baseUrl: string
+            version: string
+          }) => void)
+        | undefined
       const api = createOptionsApi({
         testConnection: vi.fn().mockImplementation(
           () =>
-            new Promise<{ baseUrl: string; version: string }>((resolve) => {
+            new Promise<{
+              downloaderId: "qbittorrent"
+              displayName: "qBittorrent"
+              baseUrl: string
+              version: string
+            }>((resolve) => {
               resolveConnection = resolve
             })
         )
@@ -561,16 +586,18 @@ describe("OptionsPage", () => {
 
       expect(await screen.findByRole("status")).toHaveTextContent("设置已加载。")
 
-      await user.click(screen.getByRole("button", { name: "测试 qB 连接" }))
+      await user.click(screen.getByRole("button", { name: "测试连接" }))
 
       expect(api.testConnection).toHaveBeenCalledWith(settings)
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: "测试 qB 连接" })).toBeDisabled()
+        expect(screen.getByRole("button", { name: "测试连接" })).toBeDisabled()
         expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
       })
 
       resolveConnection?.({
-        baseUrl: settings.qbBaseUrl,
+        downloaderId: "qbittorrent",
+        displayName: "qBittorrent",
+        baseUrl: settings.downloaders.qbittorrent.baseUrl,
         version: "5.0.0"
       })
 
@@ -633,7 +660,7 @@ describe("OptionsPage", () => {
         expect(screen.queryByLabelText("用户名")).not.toBeInTheDocument()
       })
 
-      await user.click(screen.getByRole("button", { name: "连接与基础设置" }))
+      await user.click(screen.getByRole("button", { name: "下载器与基础设置" }))
 
       expect(window.location.hash).toBe("#/general")
       expect(await screen.findByLabelText("用户名")).toHaveValue("testuser")

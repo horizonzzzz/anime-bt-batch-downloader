@@ -20,6 +20,6 @@ export type BackgroundBatchDependencies = {
   saveSettings: (partialSettings: Partial<Settings>) => Promise<Settings>
   extractSingleItem: (item: BatchItem, settings: Settings) => Promise<ExtractionResult>
   sendBatchEvent: (tabId: number, payload: BatchEventPayload) => Promise<void>
-  downloader: DownloaderAdapter
+  getDownloader: (settings: Settings) => DownloaderAdapter
   fetchImpl?: typeof fetch
 }

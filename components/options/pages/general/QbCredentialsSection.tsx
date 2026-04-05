@@ -50,7 +50,7 @@ export function QbCredentialsSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>qBittorrent 认证信息</CardTitle>
+        <CardTitle>qBittorrent 配置</CardTitle>
         <CardDescription>
           配置扩展用于测试连接和提交任务的 WebUI 地址与账号信息。
         </CardDescription>
@@ -60,40 +60,40 @@ export function QbCredentialsSection({
           <div className="md:col-span-2">
             <FormField
               label="qBittorrent WebUI 地址"
-              htmlFor="qbBaseUrl"
+              htmlFor="downloaders.qbittorrent.baseUrl"
               required
-              error={errors.qbBaseUrl?.message}>
+              error={errors.downloaders?.qbittorrent?.baseUrl?.message}>
               <Input
-                id="qbBaseUrl"
+                id="downloaders.qbittorrent.baseUrl"
                 placeholder="http://127.0.0.1:7474"
                 autoComplete="url"
-                {...register("qbBaseUrl")}
+                {...register("downloaders.qbittorrent.baseUrl")}
               />
             </FormField>
           </div>
 
           <FormField
             label="用户名"
-            htmlFor="qbUsername"
-            error={errors.qbUsername?.message}>
+            htmlFor="downloaders.qbittorrent.username"
+            error={errors.downloaders?.qbittorrent?.username?.message}>
             <Input
-              id="qbUsername"
+              id="downloaders.qbittorrent.username"
               placeholder="admin"
               autoComplete="username"
-              {...register("qbUsername")}
+              {...register("downloaders.qbittorrent.username")}
             />
           </FormField>
 
           <FormField
             label="密码"
-            htmlFor="qbPassword"
-            error={errors.qbPassword?.message}>
+            htmlFor="downloaders.qbittorrent.password"
+            error={errors.downloaders?.qbittorrent?.password?.message}>
             <Input
-              id="qbPassword"
+              id="downloaders.qbittorrent.password"
               type="password"
               placeholder="你的 WebUI 密码"
               autoComplete="current-password"
-              {...register("qbPassword")}
+              {...register("downloaders.qbittorrent.password")}
             />
           </FormField>
         </div>
@@ -102,7 +102,7 @@ export function QbCredentialsSection({
           <Button
             type="button"
             variant="secondary"
-            aria-label="测试 qB 连接"
+            aria-label="测试连接"
             onClick={() => void onTestConnection()}
             disabled={testing}>
             {testing ? (

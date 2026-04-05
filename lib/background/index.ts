@@ -9,5 +9,5 @@ export {
   setSourceEnabledForPopup
 } from "./popup"
 export { retryFailedItems } from "./retry"
-export { testQbConnection } from "./service"
+export { testDownloaderConnection } from "./service"
 export { fetchTorrentForUpload, getTorrentFilename } from "./torrent-file"

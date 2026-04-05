@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 
-import type { TestQbConnectionResult } from "../../../lib/shared/types"
+import type { TestDownloaderConnectionResult } from "../../../lib/shared/types"
 import type { OptionsApi } from "../OptionsPage"
 import {
   createSettingsFormDefaults,
@@ -123,12 +123,12 @@ export function useSettingsForm(api: OptionsApi) {
     try {
       const result = (await api.testConnection(
         toSettingsPayload(form.getValues())
-      )) as TestQbConnectionResult
+      )) as TestDownloaderConnectionResult
       setConnectionState("success")
-      setConnectionMessage(`已连接到 ${result.baseUrl || "qBittorrent WebUI"}。`)
+      setConnectionMessage(`已连接到 ${result.displayName}（${result.baseUrl || "未返回地址"}）。`)
       setStatus({
         tone: "success",
-        message: `连接成功。 ${result.baseUrl || ""} 版本 ${result.version || "unknown"}`
+        message: `连接成功。${result.displayName} ${result.baseUrl || ""} 版本 ${result.version || "unknown"}`
       })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "连接测试失败。"

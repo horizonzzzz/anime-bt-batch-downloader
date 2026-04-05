@@ -25,7 +25,9 @@ import { PopupContainer } from "../../components/popup/PopupContainer"
 
 function createState(overrides: Partial<PopupStateViewModel> = {}): PopupStateViewModel {
   return {
-    qbConnectionStatus: "ready",
+    downloaderConnectionStatus: "ready",
+    currentDownloaderId: "qbittorrent",
+    currentDownloaderName: "qBittorrent",
     activeTab: {
       url: "https://kisssub.org/",
       sourceId: "kisssub",
@@ -394,7 +396,7 @@ describe("PopupContainer", () => {
         return okResponse({
           ok: true,
           state: createState({
-            qbConnectionStatus: "checking"
+            downloaderConnectionStatus: "checking"
           })
         })
       }
@@ -408,7 +410,7 @@ describe("PopupContainer", () => {
     render(<PopupContainer />)
 
     await waitFor(() => {
-      expect(screen.getByText("正在检测 qBittorrent 连接")).toBeInTheDocument()
+      expect(screen.getByText("正在检测下载器连接")).toBeInTheDocument()
     })
     expect(sendRuntimeRequestMock).toHaveBeenNthCalledWith(2, {
       type: "TEST_QB_CONNECTION"
@@ -417,6 +419,8 @@ describe("PopupContainer", () => {
     connectionRequest.resolve({
       ok: true,
       result: {
+        downloaderId: "qbittorrent",
+        displayName: "qBittorrent",
         baseUrl: "http://127.0.0.1:17474",
         version: "5.0.4"
       }
@@ -433,7 +437,7 @@ describe("PopupContainer", () => {
         return okResponse({
           ok: true,
           state: createState({
-            qbConnectionStatus: "checking"
+            downloaderConnectionStatus: "checking"
           })
         })
       }
@@ -450,7 +454,7 @@ describe("PopupContainer", () => {
     render(<PopupContainer />)
 
     await waitFor(() => {
-      expect(screen.getByText("qBittorrent 连接失败")).toBeInTheDocument()
+      expect(screen.getByText("下载器连接失败")).toBeInTheDocument()
     })
   })
 })

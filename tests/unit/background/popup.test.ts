@@ -27,8 +27,13 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
 describe("popup background helpers", () => {
   it("builds popup state from settings, active tab URL, site metadata, and version info", async () => {
     const settings = createSettings({
-      qbUsername: "admin",
-      qbPassword: "secret",
+      downloaders: {
+        qbittorrent: {
+          ...DEFAULT_SETTINGS.downloaders.qbittorrent,
+          username: "admin",
+          password: "secret"
+        }
+      },
       enabledSources: {
         ...DEFAULT_SETTINGS.enabledSources,
         acgrip: false
@@ -45,7 +50,9 @@ describe("popup background helpers", () => {
       isBatchRunningInTab: () => false
     })
 
-    expect(state.qbConnectionStatus).toBe("idle")
+    expect(state.downloaderConnectionStatus).toBe("idle")
+    expect(state.currentDownloaderId).toBe("qbittorrent")
+    expect(state.currentDownloaderName).toBe("qBittorrent")
     expect(state.activeTab).toEqual({
       url: "https://acg.rip/",
       sourceId: "acgrip",
@@ -81,16 +88,20 @@ describe("popup background helpers", () => {
       enabled: true,
       batchRunning: false
     })
-    expect(state.qbConnectionStatus).toBe("checking")
+    expect(state.downloaderConnectionStatus).toBe("checking")
   })
 
-  it("keeps unsupported pages idle even when qB credentials are explicitly changed", async () => {
+  it("keeps unsupported pages idle even when downloader credentials are explicitly changed", async () => {
     const state = await buildPopupState({
       getSettings: async () =>
         createSettings({
-          qbBaseUrl: "http://127.0.0.1:17474",
-          qbUsername: "",
-          qbPassword: ""
+          downloaders: {
+            qbittorrent: {
+              baseUrl: "http://127.0.0.1:17474",
+              username: "",
+              password: ""
+            }
+          }
         }),
       getActiveTabContext: async () => ({
         id: 31,
@@ -100,10 +111,10 @@ describe("popup background helpers", () => {
       isBatchRunningInTab: () => false
     })
 
-    expect(state.qbConnectionStatus).toBe("idle")
+    expect(state.downloaderConnectionStatus).toBe("idle")
   })
 
-  it("marks supported and enabled active tabs as requiring a qB connection check even with the default qB placeholder config", async () => {
+  it("marks supported and enabled active tabs as requiring a downloader connection check even with the default placeholder config", async () => {
     const state = await buildPopupState({
       getSettings: async () => createSettings(),
       getActiveTabContext: async () => ({
@@ -114,7 +125,7 @@ describe("popup background helpers", () => {
       isBatchRunningInTab: (tabId) => tabId === 19
     })
 
-    expect(state.qbConnectionStatus).toBe("checking")
+    expect(state.downloaderConnectionStatus).toBe("checking")
     expect(state.activeTab).toEqual({
       url: "https://kisssub.org/",
       sourceId: "kisssub",
@@ -162,7 +173,12 @@ describe("popup background helpers", () => {
 
   it("updates only enabledSources when toggling a source from popup", async () => {
     const settings = createSettings({
-      qbBaseUrl: "http://127.0.0.1:18444",
+      downloaders: {
+        qbittorrent: {
+          ...DEFAULT_SETTINGS.downloaders.qbittorrent,
+          baseUrl: "http://127.0.0.1:18444"
+        }
+      },
       enabledSources: {
         kisssub: true,
         dongmanhuayuan: true,
@@ -192,7 +208,7 @@ describe("popup background helpers", () => {
         bangumimoe: false
       }
     })
-    expect(updated.qbBaseUrl).toBe("http://127.0.0.1:18444")
+    expect(updated.downloaders.qbittorrent.baseUrl).toBe("http://127.0.0.1:18444")
     expect(updated.enabledSources).toEqual({
       kisssub: true,
       dongmanhuayuan: true,

@@ -86,7 +86,8 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
       })
 
       try {
-        await dependencies.downloader.authenticate(job.settings)
+        const downloader = dependencies.getDownloader(job.settings)
+        await downloader.authenticate(job.settings)
         await submitPreparedResults(job, preparedSubmissions)
       } catch (error: unknown) {
         const failure = error instanceof Error ? error.message : String(error)
@@ -153,11 +154,12 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
     job: BatchJob,
     preparedSubmissions: ClassifiedBatchResult[]
   ): Promise<void> {
+    const downloader = dependencies.getDownloader(job.settings)
     const { urlSubmissions, torrentFileSubmissions } = splitPreparedSubmissions(preparedSubmissions)
 
     if (urlSubmissions.length) {
       try {
-        await dependencies.downloader.addUrls(
+        await downloader.addUrls(
           job.settings,
           urlSubmissions.map((entry) => entry.submitUrl),
           getSavePathOption(job.savePath)
@@ -167,8 +169,8 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
           entry.status = "submitted"
           entry.message =
             entry.deliveryMode === "magnet"
-              ? "Magnet queued in qBittorrent."
-              : "Torrent URL queued in qBittorrent."
+              ? "Magnet queued in the downloader."
+              : "Torrent URL queued in the downloader."
           job.stats.submitted += 1
         }
       } catch (error: unknown) {
@@ -180,14 +182,14 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
     for (const entry of torrentFileSubmissions) {
       try {
         const torrent = await fetchTorrentForUpload(entry.submitUrl, dependencies.fetchImpl)
-        await dependencies.downloader.addTorrentFiles(
+        await downloader.addTorrentFiles(
           job.settings,
           [torrent],
           getSavePathOption(job.savePath)
         )
 
         entry.status = "submitted"
-        entry.message = "Torrent file uploaded to qBittorrent."
+        entry.message = "Torrent file uploaded to the downloader."
         job.stats.submitted += 1
       } catch (error: unknown) {
         const failure = error instanceof Error ? error.message : String(error)
@@ -293,7 +295,7 @@ function markFailedSubmissions(
 ): void {
   for (const entry of entries) {
     entry.status = "failed"
-    entry.message = `qBittorrent submission failed: ${failure}`
+    entry.message = `Downloader submission failed: ${failure}`
     job.stats.failed += 1
   }
 }

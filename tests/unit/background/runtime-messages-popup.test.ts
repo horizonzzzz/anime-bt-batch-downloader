@@ -34,7 +34,7 @@ vi.mock("../../../lib/background", async () => {
     setSourceEnabledForPopup: setSourceEnabledForPopupMock,
     fetchTorrentForUpload: vi.fn(),
     retryFailedItems: vi.fn(),
-    testQbConnection: vi.fn()
+    testDownloaderConnection: vi.fn()
   }
 })
 

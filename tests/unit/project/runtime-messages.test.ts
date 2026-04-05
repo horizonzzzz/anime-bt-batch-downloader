@@ -54,7 +54,9 @@ describe("runtime message helpers", () => {
 
   it("supports popup runtime requests and typed popup state responses", () => {
     const popupState: PopupStateViewModel = {
-      qbConnectionStatus: "idle",
+      downloaderConnectionStatus: "idle",
+      currentDownloaderId: "qbittorrent",
+      currentDownloaderName: "qBittorrent",
       activeTab: {
         url: null,
         sourceId: null,

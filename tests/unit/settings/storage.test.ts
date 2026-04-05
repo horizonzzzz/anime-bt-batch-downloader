@@ -63,7 +63,7 @@ describe("settings storage helpers", () => {
 
   it("does not overwrite existing settings during ensureSettings", async () => {
     state.values.settings_v2 = {
-      qbBaseUrl: "http://127.0.0.1:17474"
+      currentDownloaderId: "qbittorrent"
     }
 
     await ensureSettings()
@@ -73,7 +73,7 @@ describe("settings storage helpers", () => {
 
   it("initializes the new storage key even when the legacy key still exists", async () => {
     state.values.settings = {
-      qbBaseUrl: "http://127.0.0.1:17474"
+      currentDownloaderId: "qbittorrent"
     }
 
     await ensureSettings()
@@ -82,15 +82,20 @@ describe("settings storage helpers", () => {
       settings_v2: DEFAULT_SETTINGS
     })
     expect(state.values.settings).toEqual({
-      qbBaseUrl: "http://127.0.0.1:17474"
+      currentDownloaderId: "qbittorrent"
     })
     expect(state.values.settings_v2).toEqual(DEFAULT_SETTINGS)
   })
 
   it("hydrates missing defaults and sanitizes stored values when reading settings", async () => {
     state.values.settings_v2 = {
-      qbBaseUrl: " http://127.0.0.1:17474/// ",
-      qbUsername: " admin ",
+      currentDownloaderId: "qbittorrent",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: " http://127.0.0.1:17474/// ",
+          username: " admin "
+        }
+      },
       lastSavePath: "  D:\\Anime  ",
       enabledSources: {
         kisssub: false
@@ -99,8 +104,13 @@ describe("settings storage helpers", () => {
 
     await expect(getSettings()).resolves.toEqual({
       ...DEFAULT_SETTINGS,
-      qbBaseUrl: "http://127.0.0.1:17474",
-      qbUsername: "admin",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "admin",
+          password: ""
+        }
+      },
       lastSavePath: "D:\\Anime",
       filters: [],
       enabledSources: {
@@ -116,25 +126,45 @@ describe("settings storage helpers", () => {
 
   it("ignores the legacy storage key when reading settings", async () => {
     state.values.settings = {
-      qbBaseUrl: "http://legacy-host:9090",
-      qbUsername: "legacy-user"
+      currentDownloaderId: "qbittorrent",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://legacy-host:9090",
+          username: "legacy-user"
+        }
+      }
     }
     state.values.settings_v2 = {
-      qbBaseUrl: " http://127.0.0.1:17474/// ",
-      qbUsername: " admin "
+      currentDownloaderId: "qbittorrent",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: " http://127.0.0.1:17474/// ",
+          username: " admin "
+        }
+      }
     }
 
     await expect(getSettings()).resolves.toEqual({
       ...DEFAULT_SETTINGS,
-      qbBaseUrl: "http://127.0.0.1:17474",
-      qbUsername: "admin"
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "admin",
+          password: ""
+        }
+      }
     })
   })
 
   it("merges partial updates into the sanitized stored settings before persisting", async () => {
     state.values.settings_v2 = {
-      qbBaseUrl: " http://127.0.0.1:7474/// ",
-      qbUsername: " admin ",
+      currentDownloaderId: "qbittorrent",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: " http://127.0.0.1:7474/// ",
+          username: " admin "
+        }
+      },
       enabledSources: {
         kisssub: false
       }
@@ -142,7 +172,11 @@ describe("settings storage helpers", () => {
 
     await expect(
       saveSettings({
-        qbBaseUrl: " http://127.0.0.1:17474/// ",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// "
+          }
+        },
         lastSavePath: "  D:\\Downloads\\Anime  ",
         enabledSources: {
           acgrip: false
@@ -173,8 +207,13 @@ describe("settings storage helpers", () => {
       })
     ).resolves.toEqual({
       ...DEFAULT_SETTINGS,
-      qbBaseUrl: "http://127.0.0.1:17474",
-      qbUsername: "admin",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "admin",
+          password: ""
+        }
+      },
       lastSavePath: "D:\\Downloads\\Anime",
       filters: [
         {
@@ -200,7 +239,7 @@ describe("settings storage helpers", () => {
         }
       ],
       enabledSources: {
-        kisssub: true,
+        kisssub: false,
         dongmanhuayuan: true,
         acgrip: false,
         bangumimoe: true
@@ -210,8 +249,13 @@ describe("settings storage helpers", () => {
     expect(storage.set).toHaveBeenCalledWith({
       settings_v2: {
         ...DEFAULT_SETTINGS,
-        qbBaseUrl: "http://127.0.0.1:17474",
-        qbUsername: "admin",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "admin",
+            password: ""
+          }
+        },
         lastSavePath: "D:\\Downloads\\Anime",
         filters: [
           {
@@ -237,7 +281,7 @@ describe("settings storage helpers", () => {
           }
         ],
         enabledSources: {
-          kisssub: true,
+          kisssub: false,
           dongmanhuayuan: true,
           acgrip: false,
           bangumimoe: true
@@ -249,11 +293,20 @@ describe("settings storage helpers", () => {
   it("initializes defaults before saving when storage was previously empty", async () => {
     await expect(
       saveSettings({
-        qbUsername: " admin "
+        downloaders: {
+          qbittorrent: {
+            username: " admin "
+          }
+        }
       })
     ).resolves.toEqual({
       ...DEFAULT_SETTINGS,
-      qbUsername: "admin"
+      downloaders: {
+        qbittorrent: {
+          ...DEFAULT_SETTINGS.downloaders.qbittorrent,
+          username: "admin"
+        }
+      }
     })
 
     expect(storage.set).toHaveBeenCalledTimes(2)

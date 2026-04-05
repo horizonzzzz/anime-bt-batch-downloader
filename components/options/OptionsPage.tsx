@@ -10,7 +10,7 @@ import {
   useNavigate
 } from "react-router-dom"
 
-import type { Settings, TestQbConnectionResult } from "../../lib/shared/types"
+import type { Settings, TestDownloaderConnectionResult } from "../../lib/shared/types"
 import {
   DEFAULT_OPTIONS_ROUTE,
   OPTIONS_ROUTES,
@@ -28,7 +28,7 @@ import { SitesPage } from "./pages/sites/SitesPage"
 export type OptionsApi = {
   loadSettings: () => Promise<Settings>
   saveSettings: (settings: Settings) => Promise<Settings>
-  testConnection: (settings: Settings) => Promise<TestQbConnectionResult>
+  testConnection: (settings: Settings) => Promise<TestDownloaderConnectionResult>
 }
 
 type OptionsPageProps = {
