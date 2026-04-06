@@ -103,7 +103,7 @@ The extension will then:
 
 1. Reuse direct magnet or `.torrent` links from the list page when available
 2. Otherwise open the selected detail pages in background tabs
-3. Inject a remote helper script where required
+3. For sources such as `kisssub`, prime helper cookies and reload the hidden detail tab once when a fresh detail page still shows `开启虫洞`
 4. Resolve the actual magnet or torrent URLs
 5. Deduplicate repeated entries
 6. Submit the final batch to the active downloader

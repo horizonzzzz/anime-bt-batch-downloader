@@ -60,7 +60,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `src/components/ui/` primitives that come from the project's `shadcn/ui` pattern may keep `lucide-react` icons when introduced by shadcn
 - `React Hook Form` + `zod` for the options settings form model and validation
 - content-script UI mounts inside WXT-managed `Shadow Root` hosts so the injected batch panel and selection checkbox stay isolated from host-page styles while still using React roots
-- injected contents UI styling comes from `src/entrypoints/source-batch.content/style.css`, imported by the WXT content-script entrypoint and applied through `createShadowRootUi`
+- injected contents UI styling is authored in `src/entrypoints/source-batch.content/style.css`, bundled by WXT into `content-scripts/source-batch.css`, then loaded once at runtime and reused across all injected Shadow Root UIs
 - Browser-extension runtime with:
   - a background service worker entry in `src/entrypoints/background/index.ts`
   - a content script entry in `src/entrypoints/source-batch.content/index.tsx`
@@ -178,7 +178,7 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 - `src/lib/background/popup.ts`
   Popup-only background services for popup state assembly, source enablement writes, and options-page route navigation.
 - `src/lib/content/`
-  Content-script page matching, anchor extraction, and selection/filter derivation helpers. WXT Shadow Root UI lifecycle now lives in `src/entrypoints/source-batch.content/runtime.tsx`; do not reintroduce document stylesheet readback or manual CSS-text injection.
+  Content-script page matching, anchor extraction, and selection/filter derivation helpers. WXT Shadow Root UI lifecycle now lives in `src/entrypoints/source-batch.content/runtime.tsx`; do not reintroduce document stylesheet readback or per-mount uncached stylesheet loading.
 - `src/lib/sources/`
   Source registry, site adapters, site metadata, and source delivery-mode capabilities.
 - `src/lib/settings/`
@@ -220,7 +220,7 @@ These constraints were learned during the `src/lib/`, `src/components/`, and con
 
 ### Contents Injection And Styling
 
-- Contents UI styling must come from `src/entrypoints/source-batch.content/style.css` imported by the WXT content-script entrypoint and applied through `createShadowRootUi`. Do not reintroduce manual CSS-text injection or any page-stylesheet dependency.
+- Contents UI styling must be authored in `src/entrypoints/source-batch.content/style.css`, emitted by WXT as the content-script CSS asset, and reused by `createShadowRootUi` from a cached runtime load. Do not reintroduce document stylesheet readback, per-checkbox stylesheet fetches, or any page-stylesheet dependency.
 - `src/entrypoints/source-batch.content/style.css` is limited to root-scoped tokens, low-specificity reset rules, `::selection`, and minimal root-level responsive constraints. Component visuals should live in `src/components/content-ui/*` and injected UI components, not in new component-level CSS selectors.
 - Treat `checkbox`, `button`, `input`, and other native form controls in contents UI as high-risk controls. Keep reset scope explicit and low-specificity, and preserve native checkbox appearance unless there is a deliberate full custom replacement.
 - Contents UI must stay isolated from options-page primitives unless a contents-specific variant is explicitly designed and verified. Code reuse is not a goal if it weakens cross-site stability.
