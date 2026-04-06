@@ -4,7 +4,7 @@
 
 Anime BT Batch Downloader is an open-source browser extension for batching downloads from supported anime BT source pages into qBittorrent. It injects lightweight selection UI on list pages, prefers already-exposed magnet or torrent links when a source page provides them, falls back to background detail-page extraction when needed, deduplicates entries, and submits the final batch to `qBittorrent WebUI`.
 
-Built with `Plasmo + React 19 + TypeScript`, the project is organized around source adapters so the extension can evolve from a single-site workflow into a reusable multi-source anime BT tool.
+Built with `WXT + React 19 + TypeScript`, the project is organized around source adapters so the extension can evolve from a single-site workflow into a reusable multi-source anime BT tool.
 
 ## Features
 
@@ -105,8 +105,10 @@ pnpm test:all
 
 ### Project Structure
 
-- `background.ts`: service worker and batch orchestration
-- `contents/`: content script entry and injected styles
+- `entrypoints/background/index.ts`: WXT background entrypoint
+- `entrypoints/popup/` and `entrypoints/options/`: WXT HTML + React entrypoints
+- `entrypoints/source-batch.content/index.tsx`: WXT content-script entrypoint
+- `contents/`: injected content-script runtime orchestration
 - `components/`: floating batch panel and options page UI
 - `lib/sources/`: source adapters and source-specific extraction helpers
 - `lib/`: shared settings, qB API helpers, and batch helpers

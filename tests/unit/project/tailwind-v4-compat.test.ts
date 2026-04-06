@@ -22,14 +22,6 @@ function readOptionsStyles() {
   return readFileSync(resolve(process.cwd(), "styles/options.css"), "utf8")
 }
 
-function readPatchFile() {
-  return readFileSync(resolve(process.cwd(), "patches/jiti@2.6.1.patch"), "utf8")
-}
-
-function readOxidePatchFile() {
-  return readFileSync(resolve(process.cwd(), "patches/@tailwindcss__oxide@4.2.2.patch"), "utf8")
-}
-
 describe("tailwind v4 compatibility", () => {
   it("uses the Tailwind v4 PostCSS plugin and dependency versions", () => {
     const packageJson = readPackageJson()
@@ -49,35 +41,23 @@ describe("tailwind v4 compatibility", () => {
     expect(css).not.toContain("@tailwind")
   })
 
-  it("persists the pnpm patch for jiti in package metadata", () => {
+  it("does not keep pnpm patch metadata after the WXT migration", () => {
     const packageJson = readPackageJson()
 
-    expect(packageJson.pnpm?.patchedDependencies?.["jiti@2.6.1"]).toBe("patches/jiti@2.6.1.patch")
+    expect(packageJson.pnpm?.patchedDependencies).toBeUndefined()
   })
 
-  it("stores a jiti patch that removes the node:module require", () => {
-    expect(existsSync(resolve(process.cwd(), "patches/jiti@2.6.1.patch"))).toBe(true)
-
-    const patch = readPatchFile()
-
-    expect(patch).toContain('-const { createRequire } = require("node:module");')
-    expect(patch).toContain('+const { createRequire } = require("module");')
+  it("removes the legacy jiti compatibility patch file", () => {
+    expect(existsSync(resolve(process.cwd(), "patches/jiti@2.6.1.patch"))).toBe(false)
   })
 
-  it("persists the pnpm patch for @tailwindcss/oxide in package metadata", () => {
+  it("does not keep pnpm patch metadata for tailwind oxide after the WXT migration", () => {
     const packageJson = readPackageJson()
 
-    expect(packageJson.pnpm?.patchedDependencies?.["@tailwindcss/oxide@4.2.2"]).toBe(
-      "patches/@tailwindcss__oxide@4.2.2.patch"
-    )
+    expect(packageJson.pnpm?.patchedDependencies).toBeUndefined()
   })
 
-  it("stores an oxide patch that removes the node:fs require", () => {
-    expect(existsSync(resolve(process.cwd(), "patches/@tailwindcss__oxide@4.2.2.patch"))).toBe(true)
-
-    const patch = readOxidePatchFile()
-
-    expect(patch).toContain("-const { readFileSync } = require('node:fs')")
-    expect(patch).toContain("+const { readFileSync } = require('fs')")
+  it("removes the legacy tailwind oxide compatibility patch file", () => {
+    expect(existsSync(resolve(process.cwd(), "patches/@tailwindcss__oxide@4.2.2.patch"))).toBe(false)
   })
 })

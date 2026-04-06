@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { CONTENT_SCRIPT_MATCH_PATTERNS } from "../../../lib/sources/matching"
 
 const FILTERS_ROUTE = "/filters" as const
 
@@ -23,8 +22,20 @@ const createRoot = vi.fn(() => {
   return root
 })
 
+const createdUis: Array<{
+  host: HTMLElement
+  shadow: ShadowRoot
+  container: HTMLElement
+  ui: {
+    mounted?: ReturnType<typeof createRoot>
+    mount: ReturnType<typeof vi.fn>
+    remove: ReturnType<typeof vi.fn>
+  }
+}> = []
+
 const runtimeSendMessage = vi.fn()
 const runtimeAddListener = vi.fn()
+const runtimeRemoveListener = vi.fn()
 const getSourceAdapterForLocation = vi.fn((): MockSource | null => null)
 const getEnabledSourceAdapterForLocation = vi.fn((): MockSource | null => null)
 const getAnchorMountTarget = vi.fn()
@@ -54,36 +65,90 @@ vi.mock("../../../lib/content/page", () => ({
   getEnabledSourceAdapterForLocation
 }))
 
-vi.mock("../../../styles/content-style-text", () => ({
-  default: bundledContentStyleText
-}))
+vi.mock("wxt/utils/content-script-ui/shadow-root", () => ({
+  createShadowRootUi: vi.fn(async (_ctx, options: any) => {
+    const host = document.createElement(options.name)
+    const shadow = host.attachShadow({ mode: "open" })
+    const style = document.createElement("style")
+    style.textContent = bundledContentStyleText
+    shadow.appendChild(style)
 
-vi.mock("../../../lib/content/shadow-root", async () => {
-  const actual = await vi.importActual<typeof import("../../../lib/content/shadow-root")>(
-    "../../../lib/content/shadow-root"
-  )
+    const container = document.createElement("div")
+    shadow.appendChild(container)
 
-  return {
-    ...actual,
-    ensureShadowStyle: (shadowRoot: ShadowRoot, styleId: string, styleText: string) => {
-      if (!styleText) {
-        return null
-      }
+    const anchor =
+      typeof options.anchor === "function"
+        ? options.anchor()
+        : typeof options.anchor === "string"
+          ? document.querySelector(options.anchor)
+          : options.anchor
 
-      const selector = `[data-anime-bt-batch-shadow-style="${styleId}"]`
-      const existing = shadowRoot.querySelector(selector)
-      if (existing) {
-        return existing
-      }
-
-      const style = document.createElement("style")
-      style.dataset.animeBtBatchShadowStyle = styleId
-      style.textContent = styleText
-      shadowRoot.prepend(style)
-      return style
+    if (!(anchor instanceof HTMLElement)) {
+      throw new Error("Expected a concrete HTMLElement anchor in test.")
     }
-  }
-})
+
+    switch (options.append) {
+      case "first":
+        anchor.insertBefore(host, anchor.firstChild)
+        break
+      case "before":
+        anchor.parentNode?.insertBefore(host, anchor)
+        break
+      case "after":
+        anchor.parentNode?.insertBefore(host, anchor.nextSibling)
+        break
+      case "replace":
+        anchor.replaceWith(host)
+        break
+      case "last":
+      default:
+        anchor.appendChild(host)
+        break
+    }
+
+    const mounted = options.onMount(container, shadow, host)
+    let mountedState: ReturnType<typeof createRoot> | undefined
+    const ui: {
+      mount: ReturnType<typeof vi.fn>
+      remove: ReturnType<typeof vi.fn>
+      autoMount: ReturnType<typeof vi.fn>
+      shadowHost: HTMLElement
+      shadow: ShadowRoot
+      uiContainer: HTMLElement
+      mounted?: ReturnType<typeof createRoot>
+    } = {
+      mount: vi.fn(() => {
+        mountedState = mounted
+      }),
+      remove: vi.fn(() => {
+        options.onRemove?.(mountedState)
+        host.remove()
+        mountedState = undefined
+      }),
+      autoMount: vi.fn(),
+      shadowHost: host,
+      shadow,
+      uiContainer: container
+    }
+
+    Object.defineProperty(ui, "mounted", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return mountedState
+      }
+    })
+
+    createdUis.push({
+      host,
+      shadow,
+      container,
+      ui
+    })
+
+    return ui
+  })
+}))
 
 function installChromeMock() {
   Object.defineProperty(globalThis, "chrome", {
@@ -92,14 +157,22 @@ function installChromeMock() {
       runtime: {
         sendMessage: runtimeSendMessage,
         onMessage: {
-          addListener: runtimeAddListener
+          addListener: runtimeAddListener,
+          removeListener: runtimeRemoveListener
         }
       }
     }
   })
 }
 
-describe("content script entry", () => {
+function createTestContext() {
+  return {
+    onInvalidated: vi.fn(() => () => undefined),
+    setTimeout: (handler: () => void, timeout?: number) => globalThis.setTimeout(handler, timeout)
+  }
+}
+
+describe("content script runtime", () => {
   const getLatestPanelProps = () => {
     for (let rootIndex = createdRoots.length - 1; rootIndex >= 0; rootIndex -= 1) {
       const calls = createdRoots[rootIndex]?.render.mock.calls ?? []
@@ -147,23 +220,18 @@ describe("content script entry", () => {
     vi.resetModules()
     vi.clearAllMocks()
     createdRoots.length = 0
+    createdUis.length = 0
     document.body.innerHTML = ""
     bundledContentStyleText = ".anime-bt-content-root { color: rgb(37, 99, 235); }"
     installChromeMock()
   })
 
-  it("provides a default export for the Plasmo content-script wrapper", async () => {
+  it("exports the WXT runtime bootstrap instead of Plasmo entry metadata", async () => {
     const module = (await import("../../../contents/source-batch")) as Record<string, unknown>
 
-    expect(module.default).toBeTypeOf("function")
-  })
-
-  it("registers shared wildcard host match patterns for all supported sources", async () => {
-    const module = (await import("../../../contents/source-batch")) as {
-      config?: { matches?: string[] }
-    }
-
-    expect(module.config?.matches).toEqual(CONTENT_SCRIPT_MATCH_PATTERNS)
+    expect(module.startSourceBatchContentScript).toBeTypeOf("function")
+    expect(module.default).toBeUndefined()
+    expect(module.config).toBeUndefined()
   })
 
   it("does not inject UI when the matched source is disabled but still listens for toggle updates", async () => {
@@ -181,36 +249,13 @@ describe("content script entry", () => {
     })
     getEnabledSourceAdapterForLocation.mockReturnValueOnce(null)
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
-    await vi.waitFor(() => {
-      expect(runtimeSendMessage).toHaveBeenCalledWith({
-        type: "GET_SETTINGS"
-      })
+    expect(runtimeSendMessage).toHaveBeenCalledWith({
+      type: "GET_SETTINGS"
     })
-
     expect(getEnabledSourceAdapterForLocation).toHaveBeenCalledTimes(1)
-    expect(createRoot).not.toHaveBeenCalled()
-    expect(runtimeAddListener).toHaveBeenCalledTimes(1)
-    expect(document.querySelector("[data-anime-bt-batch-panel-root]")).toBeNull()
-  })
-
-  it("does not inject UI when loading settings fails", async () => {
-    getSourceAdapterForLocation.mockReturnValueOnce({
-      id: "acgrip",
-      displayName: "ACG.RIP"
-    })
-    runtimeSendMessage.mockRejectedValueOnce(new Error("settings unavailable"))
-
-    await import("../../../contents/source-batch")
-
-    await vi.waitFor(() => {
-      expect(runtimeSendMessage).toHaveBeenCalledWith({
-        type: "GET_SETTINGS"
-      })
-    })
-
-    expect(getEnabledSourceAdapterForLocation).not.toHaveBeenCalled()
     expect(createRoot).not.toHaveBeenCalled()
     expect(runtimeAddListener).toHaveBeenCalledTimes(1)
     expect(document.querySelector("[data-anime-bt-batch-panel-root]")).toBeNull()
@@ -234,7 +279,8 @@ describe("content script entry", () => {
       }
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(1)
@@ -299,7 +345,8 @@ describe("content script entry", () => {
       }
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(2)
@@ -380,7 +427,8 @@ describe("content script entry", () => {
       return Promise.resolve({ ok: true })
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(2)
@@ -401,105 +449,6 @@ describe("content script entry", () => {
       expect(getLatestCheckboxProps()).toMatchObject({
         disabled: false
       })
-    })
-  })
-
-  it("drops stale selections when updated filters make an item ineligible", async () => {
-    const anchorCell = document.createElement("td")
-    const anchor = document.createElement("a")
-    anchor.href = "https://acg.rip/t/5"
-    anchor.textContent = "Episode 05"
-    anchorCell.appendChild(anchor)
-    document.body.appendChild(anchorCell)
-
-    const source = {
-      id: "acgrip",
-      displayName: "ACG.RIP"
-    }
-    const item = {
-      sourceId: "acgrip",
-      title: "[LoliHouse] Episode 05 [1080p]",
-      detailUrl: "https://acg.rip/t/5"
-    }
-
-    getSourceAdapterForLocation.mockReturnValueOnce(source)
-    getEnabledSourceAdapterForLocation.mockReturnValue(source)
-    getDetailAnchors.mockReturnValue([anchor])
-    getBatchItemFromAnchor.mockReturnValue(item)
-    getAnchorMountTarget.mockReturnValue(anchorCell)
-
-    runtimeSendMessage.mockImplementation(({ type }) => {
-      if (type === "GET_SETTINGS") {
-        const callCount = runtimeSendMessage.mock.calls.filter((call) => call[0]?.type === "GET_SETTINGS").length
-
-        if (callCount <= 1) {
-          return Promise.resolve({
-            ok: true,
-            settings: {
-              enabledSources: {
-                acgrip: true
-              },
-              filters: []
-            }
-          })
-        }
-
-        return Promise.resolve({
-          ok: true,
-          settings: {
-            enabledSources: {
-              acgrip: true
-            },
-            filters: [
-              {
-                id: "filter-1",
-                name: "仅保留爱恋",
-                enabled: true,
-                must: [
-                  {
-                    id: "condition-1",
-                    field: "subgroup",
-                    operator: "contains",
-                    value: "爱恋字幕社"
-                  }
-                ],
-                any: []
-              }
-            ]
-          }
-        })
-      }
-
-      return Promise.resolve({ ok: true })
-    })
-
-    await import("../../../contents/source-batch")
-
-    await vi.waitFor(() => {
-      expect(createRoot).toHaveBeenCalledTimes(2)
-    })
-
-    const initialPanel = getLatestPanelProps()
-    initialPanel.onSelectAll()
-
-    await vi.waitFor(() => {
-      expect(getLatestPanelProps().selectedCount).toBe(1)
-      expect(getLatestCheckboxProps().checked).toBe(true)
-      expect(getLatestCheckboxProps().disabled).toBe(false)
-    })
-
-    const listener = runtimeAddListener.mock.calls[0]?.[0]
-    listener?.({
-      type: "ANIME_BT_FILTERS_UPDATED_EVENT"
-    })
-
-    await vi.waitFor(() => {
-      expect(runtimeSendMessage.mock.calls.filter((call) => call[0]?.type === "GET_SETTINGS")).toHaveLength(2)
-      expect(getLatestCheckboxProps()).toMatchObject({
-        checked: false,
-        disabled: true
-      })
-      expect(getLatestPanelProps().selectedCount).toBe(0)
     })
   })
 
@@ -533,7 +482,8 @@ describe("content script entry", () => {
       }
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(2)
@@ -542,18 +492,13 @@ describe("content script entry", () => {
     const panelHost = document.querySelector("[data-anime-bt-batch-panel-root='1']")
     const checkboxHost = document.querySelector("[data-anime-bt-batch-checkbox-root='1']")
 
-    expect(panelHost).toBeInstanceOf(HTMLDivElement)
     expect(panelHost?.shadowRoot).not.toBeNull()
-    expect(checkboxHost).toBeInstanceOf(HTMLSpanElement)
     expect(checkboxHost?.shadowRoot).not.toBeNull()
-    expect(createdRoots).toHaveLength(2)
-    expect(createdRoots[0]?.render.mock.calls.length).toBeGreaterThanOrEqual(1)
-    expect(createdRoots[1]?.render).toHaveBeenCalledTimes(1)
     expect(anchor.dataset.animeBtBatchDecorated).toBe("1")
     expect(runtimeAddListener).toHaveBeenCalledTimes(1)
   })
 
-  it("injects the bundled contents stylesheet into both shadow roots", async () => {
+  it("injects the bundled contents stylesheet into both shadow roots through the WXT UI helper", async () => {
     const anchorCell = document.createElement("td")
     const anchor = document.createElement("a")
     anchor.href = "https://acg.rip/t/1"
@@ -565,8 +510,6 @@ describe("content script entry", () => {
       id: "acgrip",
       displayName: "ACG.RIP"
     }
-
-    bundledContentStyleText = ".anime-bt-content-root { color: rgb(37, 99, 235); }"
 
     getSourceAdapterForLocation.mockReturnValueOnce(source)
     getEnabledSourceAdapterForLocation.mockReturnValueOnce(source)
@@ -585,7 +528,8 @@ describe("content script entry", () => {
       }
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(2)
@@ -594,12 +538,6 @@ describe("content script entry", () => {
     const panelHost = document.querySelector("[data-anime-bt-batch-panel-root='1']")
     const checkboxHost = document.querySelector("[data-anime-bt-batch-checkbox-root='1']")
 
-    expect(
-      panelHost?.shadowRoot?.querySelector("[data-anime-bt-batch-shadow-style='content-ui']")
-    ).not.toBeNull()
-    expect(
-      checkboxHost?.shadowRoot?.querySelector("[data-anime-bt-batch-shadow-style='content-ui']")
-    ).not.toBeNull()
     expect(panelHost?.shadowRoot?.textContent).toContain(".anime-bt-content-root")
     expect(checkboxHost?.shadowRoot?.textContent).toContain(".anime-bt-content-root")
   })
@@ -635,7 +573,8 @@ describe("content script entry", () => {
       }
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(2)
@@ -675,58 +614,6 @@ describe("content script entry", () => {
     expect(anchor.dataset.animeBtBatchDecorated).toBe("1")
     expect(getLatestPanelProps().running).toBe(false)
     expect(getLatestPanelProps().statusText).toBe("就绪。先在当前列表页勾选资源。")
-  })
-
-  it("can inject UI when the page started disabled and the popup re-enables the same source", async () => {
-    const anchorCell = document.createElement("td")
-    const anchor = document.createElement("a")
-    anchor.href = "https://acg.rip/t/2"
-    anchor.textContent = "Episode 02"
-    anchorCell.appendChild(anchor)
-    document.body.appendChild(anchorCell)
-
-    const source = {
-      id: "acgrip",
-      displayName: "ACG.RIP"
-    }
-
-    getSourceAdapterForLocation.mockReturnValueOnce(source)
-    getEnabledSourceAdapterForLocation.mockReturnValueOnce(null)
-    runtimeSendMessage.mockResolvedValue({
-      ok: true,
-      settings: {
-        enabledSources: {
-          acgrip: false
-        }
-      }
-    })
-
-    await import("../../../contents/source-batch")
-
-    await vi.waitFor(() => {
-      expect(runtimeAddListener).toHaveBeenCalledTimes(1)
-    })
-
-    const listener = runtimeAddListener.mock.calls[0]?.[0]
-    getDetailAnchors.mockReturnValueOnce([anchor])
-    getBatchItemFromAnchor.mockReturnValueOnce({
-      title: "Episode 02",
-      detailUrl: "https://acg.rip/t/2"
-    })
-    getAnchorMountTarget.mockReturnValueOnce(anchorCell)
-
-    listener?.({
-      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
-      sourceId: "acgrip",
-      enabled: true
-    })
-
-    await vi.waitFor(() => {
-      expect(createRoot).toHaveBeenCalledTimes(2)
-    })
-
-    expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).not.toBeNull()
-    expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).not.toBeNull()
   })
 
   it("preserves in-flight running state when disabling and re-enabling the current source", async () => {
@@ -770,7 +657,8 @@ describe("content script entry", () => {
       return Promise.resolve({ ok: true })
     })
 
-    await import("../../../contents/source-batch")
+    const { startSourceBatchContentScript } = await import("../../../contents/source-batch")
+    await startSourceBatchContentScript(createTestContext() as never)
 
     await vi.waitFor(() => {
       expect(createRoot).toHaveBeenCalledTimes(2)

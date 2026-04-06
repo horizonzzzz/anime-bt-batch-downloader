@@ -42,7 +42,7 @@ function getLocalBrowserExecutable() {
 }
 
 async function launchExtensionContext() {
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "anime-bt-batch-plasmo-"))
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "anime-bt-batch-wxt-"))
   const executablePath = getBundledBrowserExecutable() || getLocalBrowserExecutable()
   const context = await chromium.launchPersistentContext(userDataDir, {
     ...(executablePath ? { executablePath } : { channel: "chromium" as const }),

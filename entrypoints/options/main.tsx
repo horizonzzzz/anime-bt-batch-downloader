@@ -1,7 +1,9 @@
-import "./styles/options.css"
+import { createRoot } from "react-dom/client"
 
-import { OptionsPage, type OptionsApi } from "./components/options-page"
-import { sendRuntimeRequest } from "./lib/shared/messages"
+import "../../styles/options.css"
+
+import { OptionsPage, type OptionsApi } from "../../components/options-page"
+import { sendRuntimeRequest } from "../../lib/shared/messages"
 
 const api: OptionsApi = {
   async loadSettings() {
@@ -38,8 +40,10 @@ const api: OptionsApi = {
   }
 }
 
-function Options() {
-  return <OptionsPage api={api} />
+const container = document.getElementById("app")
+
+if (!container) {
+  throw new Error("Options root container was not found.")
 }
 
-export default Options
+createRoot(container).render(<OptionsPage api={api} />)

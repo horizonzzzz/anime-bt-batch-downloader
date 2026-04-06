@@ -83,7 +83,14 @@ export function SiteManagementView() {
   }
 
   const toggleEnabled = (sourceId: SourceId, enabled: boolean) => {
-    setValue(`enabledSources.${sourceId}`, enabled, { shouldDirty: true })
+    setValue(
+      "enabledSources",
+      {
+        ...enabledSources,
+        [sourceId]: enabled
+      },
+      { shouldDirty: true }
+    )
   }
 
   return (

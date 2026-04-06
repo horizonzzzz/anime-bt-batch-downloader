@@ -75,7 +75,8 @@ describe("background popup runtime boundary", () => {
     vi.clearAllMocks()
     activeJobsMock.clear()
     installChromeMock()
-    await import("../../../background")
+    const { registerBackgroundRuntime } = await import("../../../lib/background/runtime")
+    registerBackgroundRuntime()
   })
 
   it("rejects OPEN_OPTIONS_PAGE when route is invalid", async () => {

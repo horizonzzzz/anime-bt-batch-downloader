@@ -49,31 +49,35 @@ The extension injects selection UI into supported list pages, reuses direct magn
 
 ## Stack And Runtime Model
 
-- `Plasmo`
+- `WXT`
 - `React 19`
 - `TypeScript`
-- `Tailwind CSS` for the options UI layout and visual styling, plus scoped contents UI styling compiled into injected shadow-root CSS text
+- `Tailwind CSS` for the options UI layout and visual styling, plus scoped contents UI styling bundled once and mounted into WXT Shadow Root UIs
 - lightweight `shadcn/ui`-style primitives built in-repo with `Radix UI`
 - icon-library policy:
   - project-owned UI outside `components/ui/` should use `react-icons`
   - `components/ui/` primitives that come from the project's `shadcn/ui` pattern may keep `lucide-react` icons when introduced by shadcn
 - `React Hook Form` + `zod` for the options settings form model and validation
-- content-script UI mounts inside `Shadow Root` hosts so the injected batch panel and selection checkbox stay isolated from host-page styles while still using React roots
-- injected contents UI styling is provided by dedicated CSS text from `styles/content.css`, injected into each shadow root at runtime
+- content-script UI mounts inside WXT-managed `Shadow Root` hosts so the injected batch panel and selection checkbox stay isolated from host-page styles while still using React roots
+- injected contents UI styling comes from `styles/content.css`, imported by the WXT content-script entrypoint and applied through `createShadowRootUi`
 - Browser-extension runtime with:
-  - a background service worker in `background.ts`
-  - a content script entry in `contents/source-batch.tsx`
-  - a popup entry in `popup.tsx`
-  - an options page entry in `options.tsx`
+  - a background service worker entry in `entrypoints/background/index.ts`
+  - a content script entry in `entrypoints/source-batch.content/index.tsx`
+  - a popup entry in `entrypoints/popup/`
+  - an options page entry in `entrypoints/options/`
 
 ## Source Of Truth Files
 
-- `background.ts`
-  Handles runtime message registration and delegates batch orchestration plus current-downloader connection tests to `lib/background/`.
-- `options.tsx`
-  Boots the hash-routed options page, loads `styles/options.css`, and wires the React options UI to background message APIs.
-- `popup.tsx`
-  Boots the popup page, loads `styles/popup.css`, and mounts the popup container that drives popup actions via runtime message APIs.
+- `wxt.config.ts`
+  WXT project configuration, including manifest metadata, React module registration, and build output paths.
+- `entrypoints/background/index.ts`
+  Boots the background runtime through WXT and delegates orchestration to `lib/background/runtime.ts`.
+- `entrypoints/options/`
+  Boots the hash-routed options page and mounts the React options workspace.
+- `entrypoints/popup/`
+  Boots the popup page and mounts the popup container that drives popup actions via runtime message APIs.
+- `entrypoints/source-batch.content/index.tsx`
+  WXT content-script entrypoint that registers source match patterns, imports `styles/content.css`, and starts the injected runtime in `contents/source-batch.tsx`.
 - `components/`
   UI components for the floating batch panel, popup surface, and selection checkbox. The root `components/batch-panel.tsx` now acts as the injected panel entry shell and delegates focused panel sections to `components/batch-panel/`; popup UI lives under `components/popup/`; the options workspace lives under `components/options/`, contents-specific primitives under `components/content-ui/`, and shared option-page primitives under `components/ui/`.
 - `components/batch-panel/`
@@ -88,11 +92,11 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `components/ui/`
   Tailwind-first primitive components used by the options workspace, including buttons, inputs, cards, badges, alerts, switches, and radio groups.
 - `contents/`
-  Content script entry for supported source pages, Shadow Root host orchestration, and injected React UI mounting.
+  Content-script runtime orchestration for supported source pages, including WXT Shadow Root UI creation and injected React UI mounting.
 - `styles/`
-  `styles/options.css` is the Tailwind entry for the options page, `styles/popup.css` is the popup entry stylesheet, and `styles/content.css` is the root-scoped Tailwind components/utilities entry for injected content UI tokens, reset rules, and shadow-root CSS-text injection. Contents styling should continue to be injected from bundled CSS text into each shadow root, not re-read from page stylesheets.
+  `styles/options.css` is the Tailwind entry for the options page, `styles/popup.css` is the popup entry stylesheet, and `styles/content.css` is the root-scoped Tailwind components/utilities entry for injected content UI tokens, reset rules, and WXT Shadow Root UI styling.
 - `assets/`
-  Static icon assets used by the extension UI. `anime-bt-icon-speedline.svg` is the extension brand icon, packaged site icons for the options-page site-management cards are normalized to local `site-icon-*.(png|svg)` assets, and `icon.png` is the generated packaging icon consumed by Plasmo for extension icon sizes.
+  Static icon assets used by the extension UI. `anime-bt-icon-speedline.svg` is the extension brand icon, packaged site icons for the options-page site-management cards are normalized to local `site-icon-*.(png|svg)` assets, and `icon.png` is the generated packaging icon copied to `public/` for WXT manifest icons.
 - `CHANGELOG.md`
   Canonical release notes for tagged versions. Each GitHub Release page should reuse the matching version section from this file. New release entries must summarize the changes from the previous version tag up to the new release commit.
 - `lib/`
@@ -110,13 +114,15 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `lib/sources/`
   Source adapter registry plus site-specific page matching and extraction logic, source delivery-mode capability helpers, and options-page site metadata.
 - `lib/sources/matching.ts`
-  Shared runtime source host definitions and host-matching helpers. Keep adapter and popup/runtime host recognition here; the content-script `config.matches` array must stay as a static literal in `contents/source-batch.tsx` for Plasmo to analyze correctly, and tests must keep both sides aligned.
+  Shared runtime source host definitions and host-matching helpers. Keep adapter and popup/runtime host recognition here; the WXT content-script entrypoint should stay aligned with these shared wildcard patterns, and tests must keep both sides aligned.
 - `tests/`
   Unit, component, and Playwright end-to-end coverage.
 - `lib/history/`
   Task history persistence module, including type definitions, storage read/write, automatic cleanup logic, and downloader audit metadata such as the original downloader plus the most recent retry downloader. Automatically saved by the background when a batch completes.
 - `lib/background/retry.ts`
   Orchestration logic for retrying failed entries, extracting failed entries from history records and resubmitting them with the current configured downloader while updating retry audit metadata on the history record.
+- `lib/background/runtime.ts`
+  Background runtime registration helpers, including icon updates, runtime message listeners, and shared bootstrap helpers used by the WXT background entrypoint.
 - `lib/background/popup.ts`
   Popup-specific background helpers for building popup view state, normalizing options routes, opening options tabs, persisting source enable/disable toggles from the popup, and syncing the current active tab after popup source toggles.
 - `lib/shared/popup.ts`
@@ -136,28 +142,30 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 
 1. `contents/source-batch.tsx`
    Collects selected source-page items and sends `START_BATCH_DOWNLOAD`.
-2. `background.ts`
+2. `entrypoints/background/index.ts`
+   Boots the WXT background entrypoint and registers the shared runtime.
+3. `lib/background/runtime.ts`
    Routes the runtime message and injects concrete dependencies into `lib/background/`.
-3. `lib/background/manager.ts`
+4. `lib/background/manager.ts`
    Validates the request, creates the batch job, coordinates concurrent preparation, and drives final submission.
-4. `lib/background/preparation.ts`
+5. `lib/background/preparation.ts`
    Normalizes selected items, classifies prepared links, and deduplicates extracted results before submission.
-5. `lib/sources/extraction.ts`
+6. `lib/sources/extraction.ts`
    Delegates per-item detail-page extraction to the matched source adapter in `lib/sources/`.
-6. `lib/downloader/`
+7. `lib/downloader/`
    Resolves the active downloader adapter and exposes the shared downloader contract used by background services.
-7. `lib/downloader/qb/`
+8. `lib/downloader/qb/`
    Implements the qBittorrent adapter, including authentication, URL submission, torrent upload, and connection testing.
-8. `lib/background/job-state.ts`
+9. `lib/background/job-state.ts`
    Tracks per-job stats, accumulates results, and produces the completion summary payload sent back to the content script.
 
 ### Popup Runtime Flow
 
-1. `popup.tsx`
-   Mounts the popup surface and loads popup styling.
+1. `entrypoints/popup/`
+   Mounts the popup surface and loads popup styling through WXT.
 2. `components/popup/PopupContainer.tsx`
    Requests popup state, drives popup actions, and sends popup-triggered runtime messages.
-3. `background.ts`
+3. `lib/background/runtime.ts`
    Routes popup runtime messages for state loading, source toggles, and options-page opening.
 4. `lib/background/popup.ts`
    Builds popup view state from settings and active-tab context, applies source toggle writes, syncs current-tab source enablement state, and resolves options-route navigation targets.
@@ -168,10 +176,12 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 
 - `lib/background/`
   Background-only orchestration, job state, and service helpers.
+- `lib/background/runtime.ts`
+  Background runtime registration for the WXT entrypoint and tab/icon lifecycle hooks.
 - `lib/background/popup.ts`
   Popup-only background services for popup state assembly, source enablement writes, and options-page route navigation.
 - `lib/content/`
-  Content-script page matching, anchor extraction, and Shadow Root host/style utilities. Keep `shadow-root.ts` focused on host creation plus direct style injection into shadow roots; do not reintroduce document stylesheet readback as a runtime dependency.
+  Content-script page matching and anchor extraction helpers. WXT Shadow Root UI lifecycle now lives in `contents/source-batch.tsx`; do not reintroduce document stylesheet readback or manual CSS-text injection.
 - `lib/sources/`
   Source registry, site adapters, site metadata, and source delivery-mode capabilities.
 - `lib/settings/`
@@ -193,7 +203,7 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 
 - Runtime protocol constants and shared message/request types belong in `lib/shared/`.
 - Source-specific parsing, page matching, and capability defaults belong in `lib/sources/`.
-- Source host aliases and runtime host matching belong in `lib/sources/matching.ts`; keep `contents/source-batch.tsx` `config.matches` as a static wildcard literal for Plasmo, and use tests to prevent it from drifting away from the shared runtime host definitions.
+- Source host aliases and runtime host matching belong in `lib/sources/matching.ts`; keep the WXT content-script entrypoint aligned with these shared wildcard patterns, and use tests to prevent drift.
 - Batch orchestration belongs in `lib/background/`; source adapters should not take over job-level concerns.
 - `lib/settings/` may normalize or persist settings, but qB/network behavior belongs outside it.
 - Filters are stored in `Settings.filters`, but matching logic must remain in `lib/filter-rules/`; do not scatter rule judgments across options components or source adapters.
@@ -206,14 +216,14 @@ These constraints were learned during the `lib/`, `components/`, and contents-st
 
 ### Runtime And Module Boundaries
 
-- Keep `background.ts` thin: runtime listener + message routing + dependency wiring only. New orchestration logic belongs under `lib/background/`.
+- Keep `entrypoints/background/index.ts` thin: WXT bootstrap + dependency wiring only. New orchestration logic belongs under `lib/background/`.
 - Add new cross-runtime request/response types, helpers, and protocol constants in `lib/shared/`, not in runtime entry files.
 - Keep tests aligned with ownership boundaries: `background`, `settings`, `shared`, `content`, and `sources` should each have direct tests for their own helpers instead of relying on indirect coverage from another domain.
 - When a helper becomes pure derivation or normalization logic, prefer extracting it and testing it directly rather than growing page components or orchestration files.
 
 ### Contents Injection And Styling
 
-- Contents UI styling must come from bundled CSS text injected directly into each shadow root. Do not reintroduce `document.styleSheets` readback or any page-stylesheet dependency.
+- Contents UI styling must come from `styles/content.css` imported by the WXT content-script entrypoint and applied through `createShadowRootUi`. Do not reintroduce manual CSS-text injection or any page-stylesheet dependency.
 - `styles/content.css` is limited to root-scoped tokens, low-specificity reset rules, `::selection`, and minimal root-level responsive constraints. Component visuals should live in `components/content-ui/*` and injected UI components, not in new component-level CSS selectors.
 - Treat `checkbox`, `button`, `input`, and other native form controls in contents UI as high-risk controls. Keep reset scope explicit and low-specificity, and preserve native checkbox appearance unless there is a deliberate full custom replacement.
 - Contents UI must stay isolated from options-page primitives unless a contents-specific variant is explicitly designed and verified. Code reuse is not a goal if it weakens cross-site stability.
@@ -231,7 +241,7 @@ These constraints were learned during the `lib/`, `components/`, and contents-st
 
 These paths are generated or derived artifacts and should not be treated as the primary place to implement source changes:
 
-- `.plasmo/`
+- `.wxt/`
 - `build/`
 - `coverage/`
 - `test-results/`
