@@ -25,7 +25,7 @@ import {
   getSourceAdapterForLocation
 } from "../../lib/content/page"
 import { buildSelectableBatchItem, type SelectableBatchItem } from "../../lib/content/filter-selection"
-import { getBrowser } from "../../lib/shared/browser"
+import { getBrowser, getExtensionUrl } from "../../lib/shared/browser"
 import type { SourceAdapter } from "../../lib/sources/types"
 import type { BatchEventPayload, BatchItem, FilterEntry, Settings } from "../../lib/shared/types"
 import { FILTERS_ROUTE } from "../../lib/shared/options-routes"
@@ -48,6 +48,7 @@ type PanelSnapshot = {
 
 const DEFAULT_SAVE_PATH_HINT =
   "留空则使用当前下载器默认目录。远程下载器请手动输入目标主机可识别的绝对路径。"
+const CONTENT_SCRIPT_STYLE_PATH = "/content-scripts/source-batch.css"
 
 const ISOLATED_UI_EVENTS = [
   "click",
@@ -62,6 +63,28 @@ const ISOLATED_UI_EVENTS = [
   "keyup",
   "keypress"
 ] as const
+
+let contentScriptUiCssPromise: Promise<string> | null = null
+
+async function getContentScriptUiCss() {
+  if (!contentScriptUiCssPromise) {
+    contentScriptUiCssPromise = loadContentScriptUiCss()
+  }
+
+  return contentScriptUiCssPromise
+}
+
+async function loadContentScriptUiCss() {
+  const url = getExtensionUrl(CONTENT_SCRIPT_STYLE_PATH)
+
+  try {
+    const css = await (await fetch(url)).text()
+    return css.replaceAll(":root", ":host")
+  } catch (error) {
+    console.warn(`[Anime BT Batch] Failed to load content styles from ${url}.`, error)
+    return ""
+  }
+}
 
 export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
   let matchedPageSource: SourceAdapter | null = null
@@ -244,11 +267,14 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
       return
     }
 
+    const css = await getContentScriptUiCss()
+
     panelUi = await createShadowRootUi(ctx, {
       name: "anime-bt-batch-panel",
       position: "inline",
       anchor: document.body,
       append: "last",
+      css,
       isolateEvents: [...ISOLATED_UI_EVENTS],
       onMount(container, _shadow, shadowHost) {
         shadowHost.dataset.animeBtBatchPanelRoot = "1"
@@ -347,6 +373,7 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
 
   async function scanAndDecorate(source: SourceAdapter) {
     const pageUrl = new URL(window.location.href)
+    const css = await getContentScriptUiCss()
 
     for (const anchor of getDetailAnchors(source, document, pageUrl)) {
       if (anchor.dataset.animeBtBatchDecorated === "1") {
@@ -371,6 +398,7 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
           position: "inline",
           anchor: targetCell,
           append: "first",
+          css,
           isolateEvents: [...ISOLATED_UI_EVENTS],
           onMount(container, _shadow, shadowHost) {
             shadowHost.dataset.animeBtBatchCheckboxRoot = "1"

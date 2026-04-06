@@ -57,6 +57,13 @@ describe("package metadata", () => {
     expect(wxtConfig).toContain("popup.html")
     expect(wxtConfig).toContain("options.html")
     expect(wxtConfig).toContain("chrome-mv3-prod")
+    expect(wxtConfig).toContain("optimizeDeps")
+    expect(wxtConfig).toContain("src/entrypoints/options/index.html")
+    expect(wxtConfig).toContain("src/entrypoints/popup/index.html")
+    expect(wxtConfig).toContain("!build/**")
+    expect(wxtConfig).toContain("!tests/e2e/fixtures/**")
+    expect(wxtConfig).toContain("web_accessible_resources")
+    expect(wxtConfig).toContain("content-scripts/source-batch.css")
   })
 
   it("uses the WXT root command for development instead of the invalid 'wxt dev' form", () => {

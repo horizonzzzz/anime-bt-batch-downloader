@@ -8,7 +8,7 @@ import { CONTENT_SCRIPT_MATCH_PATTERNS } from "../../lib/sources/matching"
 export default defineContentScript({
   matches: CONTENT_SCRIPT_MATCH_PATTERNS,
   runAt: "document_idle",
-  cssInjectionMode: "ui",
+  cssInjectionMode: "manual",
   async main(ctx) {
     await startSourceBatchContentScript(ctx)
   }

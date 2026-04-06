@@ -36,11 +36,13 @@ const createdUis: Array<{
 const runtimeSendMessage = vi.fn()
 const runtimeAddListener = vi.fn()
 const runtimeRemoveListener = vi.fn()
+const runtimeGetUrl = vi.fn((path: string) => `chrome-extension://test${path}`)
 const getSourceAdapterForLocation = vi.fn((): MockSource | null => null)
 const getEnabledSourceAdapterForLocation = vi.fn((): MockSource | null => null)
 const getAnchorMountTarget = vi.fn()
 const getBatchItemFromAnchor = vi.fn()
 const getDetailAnchors = vi.fn((): HTMLAnchorElement[] => [])
+const fetchMock = vi.fn()
 let bundledContentStyleText = ".anime-bt-content-root { color: rgb(37, 99, 235); }"
 
 vi.mock("react-dom/client", () => ({
@@ -70,7 +72,7 @@ vi.mock("wxt/utils/content-script-ui/shadow-root", () => ({
     const host = document.createElement(options.name)
     const shadow = host.attachShadow({ mode: "open" })
     const style = document.createElement("style")
-    style.textContent = bundledContentStyleText
+    style.textContent = options.css ?? bundledContentStyleText
     shadow.appendChild(style)
 
     const container = document.createElement("div")
@@ -153,9 +155,11 @@ vi.mock("wxt/utils/content-script-ui/shadow-root", () => ({
 function installChromeMock() {
   Object.defineProperty(globalThis, "chrome", {
     configurable: true,
+    writable: true,
     value: {
       runtime: {
         sendMessage: runtimeSendMessage,
+        getURL: runtimeGetUrl,
         onMessage: {
           addListener: runtimeAddListener,
           removeListener: runtimeRemoveListener
@@ -224,6 +228,14 @@ describe("content script runtime", () => {
     document.body.innerHTML = ""
     bundledContentStyleText = ".anime-bt-content-root { color: rgb(37, 99, 235); }"
     installChromeMock()
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      writable: true,
+      value: fetchMock
+    })
+    fetchMock.mockResolvedValue({
+      text: vi.fn().mockResolvedValue(bundledContentStyleText)
+    })
   })
 
   it("exports the WXT runtime bootstrap instead of Plasmo entry metadata", async () => {
@@ -543,6 +555,61 @@ describe("content script runtime", () => {
 
     expect(panelHost?.shadowRoot?.textContent).toContain(".anime-bt-content-root")
     expect(checkboxHost?.shadowRoot?.textContent).toContain(".anime-bt-content-root")
+  })
+
+  it("loads the bundled stylesheet once and reuses it across the panel and multiple checkboxes", async () => {
+    const firstCell = document.createElement("td")
+    const firstAnchor = document.createElement("a")
+    firstAnchor.href = "https://acg.rip/t/1"
+    firstAnchor.textContent = "Episode 01"
+    firstCell.appendChild(firstAnchor)
+    document.body.appendChild(firstCell)
+
+    const secondCell = document.createElement("td")
+    const secondAnchor = document.createElement("a")
+    secondAnchor.href = "https://acg.rip/t/2"
+    secondAnchor.textContent = "Episode 02"
+    secondCell.appendChild(secondAnchor)
+    document.body.appendChild(secondCell)
+
+    const source = {
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    }
+
+    getSourceAdapterForLocation.mockReturnValueOnce(source)
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce(source)
+    getDetailAnchors.mockReturnValueOnce([firstAnchor, secondAnchor])
+    getBatchItemFromAnchor
+      .mockReturnValueOnce({
+        title: "Episode 01",
+        detailUrl: "https://acg.rip/t/1"
+      })
+      .mockReturnValueOnce({
+        title: "Episode 02",
+        detailUrl: "https://acg.rip/t/2"
+      })
+    getAnchorMountTarget.mockReturnValueOnce(firstCell).mockReturnValueOnce(secondCell)
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      settings: {
+        enabledSources: {
+          acgrip: true
+        }
+      }
+    })
+
+    const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
+    await startSourceBatchContentScript(createTestContext() as never)
+
+    await vi.waitFor(() => {
+      expect(createRoot).toHaveBeenCalledTimes(3)
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith("chrome-extension://test/content-scripts/source-batch.css")
+    expect(createdUis).toHaveLength(3)
+    expect(createdUis.every(({ shadow }) => shadow.textContent?.includes(".anime-bt-content-root"))).toBe(true)
   })
 
   it("tears down injected UI when the current source is disabled from the popup and rebuilds it when re-enabled", async () => {

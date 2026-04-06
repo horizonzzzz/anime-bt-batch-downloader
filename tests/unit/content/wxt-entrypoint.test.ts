@@ -26,7 +26,7 @@ describe("WXT content script entrypoint", () => {
     expect(module.default).toMatchObject({
       matches: CONTENT_SCRIPT_MATCH_PATTERNS,
       runAt: "document_idle",
-      cssInjectionMode: "ui"
+      cssInjectionMode: "manual"
     })
   })
 

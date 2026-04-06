@@ -1,11 +1,23 @@
 import { defineConfig } from "wxt"
 
+import { CONTENT_SCRIPT_MATCH_PATTERNS } from "./src/lib/sources/matching"
+
 export default defineConfig({
   browser: "chrome",
   modules: ["@wxt-dev/module-react"],
   srcDir: "src",
   outDir: "build",
   outDirTemplate: "chrome-mv3-prod",
+  vite: () => ({
+    optimizeDeps: {
+      entries: [
+        "src/entrypoints/options/index.html",
+        "src/entrypoints/popup/index.html",
+        "!build/**",
+        "!tests/e2e/fixtures/**"
+      ]
+    }
+  }),
   manifest: {
     name: "Anime BT Batch",
     description:
@@ -33,6 +45,13 @@ export default defineConfig({
         32: "/icon.png"
       }
     },
+    web_accessible_resources: [
+      {
+        resources: ["content-scripts/source-batch.css"],
+        matches: CONTENT_SCRIPT_MATCH_PATTERNS,
+        use_dynamic_url: true
+      }
+    ],
     options_ui: {
       page: "options.html",
       open_in_tab: true
