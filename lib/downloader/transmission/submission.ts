@@ -29,7 +29,7 @@ export async function addUrlsToTransmission(
 ): Promise<DownloaderUrlSubmissionResult> {
   const entries: DownloaderUrlSubmissionResult["entries"] = []
 
-  for (const [index, url] of urls.entries()) {
+  for (const url of urls) {
     try {
       await transmissionRpc(settings, "torrent-add", {
         filename: url,
@@ -47,16 +47,6 @@ export async function addUrlsToTransmission(
         status: "failed",
         error: failure
       })
-
-      for (const skippedUrl of urls.slice(index + 1)) {
-        entries.push({
-          url: skippedUrl,
-          status: "failed",
-          error: `Skipped after an earlier Transmission submission failed: ${failure}`
-        })
-      }
-
-      return { entries }
     }
   }
 

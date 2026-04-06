@@ -88,6 +88,66 @@ describe("transmission submission", () => {
       }
     })
   })
+
+  it("continues submitting later URLs after one RPC failure", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ result: "success" }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ result: "duplicate torrent" }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ result: "success" }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+      )
+
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      currentDownloaderId: "transmission" as const
+    }
+
+    await expect(
+      addUrlsToTransmission(
+        settings,
+        ["magnet:?xt=urn:btih:ok1", "magnet:?xt=urn:btih:bad", "magnet:?xt=urn:btih:ok2"],
+        {},
+        fetchImpl
+      )
+    ).resolves.toEqual({
+      entries: [
+        {
+          url: "magnet:?xt=urn:btih:ok1",
+          status: "submitted"
+        },
+        {
+          url: "magnet:?xt=urn:btih:bad",
+          status: "failed",
+          error: "Transmission RPC failed: duplicate torrent"
+        },
+        {
+          url: "magnet:?xt=urn:btih:ok2",
+          status: "submitted"
+        }
+      ]
+    })
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+  })
 })
 describe("transmissionDownloaderAdapter", () => {
   it("tests connection through the transmission RPC endpoint", async () => {
@@ -146,6 +206,49 @@ describe("transmissionDownloaderAdapter", () => {
       "Content-Type": "application/json",
       "X-Transmission-Session-Id": "session-123",
       Authorization: `Basic ${Buffer.from("admin:secret").toString("base64")}`
+    })
+  })
+
+  it("encodes unicode credentials as UTF-8 basic auth", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          result: "success",
+          arguments: {
+            version: "4.0.6"
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      )
+    )
+
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      currentDownloaderId: "transmission" as const,
+      downloaders: {
+        ...DEFAULT_SETTINGS.downloaders,
+        transmission: {
+          baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+          username: "管理员",
+          password: "密码123"
+        }
+      }
+    }
+
+    await expect(transmissionRpc(settings, "session-get", {}, fetchImpl)).resolves.toMatchObject({
+      result: "success"
+    })
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    const request = fetchImpl.mock.calls[0]?.[1] as RequestInit
+    expect(request.headers).toMatchObject({
+      "Content-Type": "application/json",
+      Authorization: `Basic ${Buffer.from("管理员:密码123", "utf8").toString("base64")}`
     })
   })
 })

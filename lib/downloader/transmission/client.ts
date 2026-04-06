@@ -11,13 +11,23 @@ function getTransmissionSettings(settings: Settings) {
   return settings.downloaders.transmission
 }
 
+function encodeBase64Utf8(value: string): string {
+  let binary = ""
+
+  for (const byte of new TextEncoder().encode(value)) {
+    binary += String.fromCharCode(byte)
+  }
+
+  return btoa(binary)
+}
+
 function buildAuthHeader(settings: Settings): string | null {
   const { username, password } = getTransmissionSettings(settings)
   if (!username && !password) {
     return null
   }
 
-  return `Basic ${btoa(`${username}:${password}`)}`
+  return `Basic ${encodeBase64Utf8(`${username}:${password}`)}`
 }
 
 function buildHeaders(settings: Settings, sessionId?: string): Record<string, string> {
