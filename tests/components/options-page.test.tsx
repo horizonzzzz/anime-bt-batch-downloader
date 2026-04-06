@@ -645,6 +645,116 @@ describe("OptionsPage", () => {
     10000
   )
 
+  it(
+    "tests the active downloader even when the inactive downloader address is blank",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        testConnection: vi.fn().mockResolvedValue({
+          downloaderId: "qbittorrent",
+          displayName: "qBittorrent",
+          baseUrl: settings.downloaders.qbittorrent.baseUrl,
+          version: "5.0.0"
+        })
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("radio", { name: "Transmission" }))
+      const transmissionBaseUrlField = await screen.findByPlaceholderText(
+        "http://127.0.0.1:9091/transmission/rpc"
+      )
+      await user.clear(transmissionBaseUrlField)
+      expect(transmissionBaseUrlField).toHaveValue("")
+
+      await user.click(screen.getByRole("radio", { name: "qBittorrent" }))
+      await user.click(screen.getByRole("button", { name: "测试连接" }))
+
+      await waitFor(() => {
+        expect(api.testConnection).toHaveBeenCalledWith({
+          ...settings,
+          currentDownloaderId: "qbittorrent",
+          downloaders: {
+            ...settings.downloaders,
+            transmission: {
+              ...settings.downloaders.transmission,
+              baseUrl: ""
+            }
+          }
+        })
+      })
+
+      expect(screen.getByRole("status")).not.toHaveTextContent("请先修正表单中的错误。")
+    },
+    10000
+  )
+
+  it(
+    "saves the active downloader while leaving an inactive downloader address blank",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("radio", { name: "Transmission" }))
+      const transmissionBaseUrlField = await screen.findByPlaceholderText(
+        "http://127.0.0.1:9091/transmission/rpc"
+      )
+      await user.clear(transmissionBaseUrlField)
+      expect(transmissionBaseUrlField).toHaveValue("")
+
+      await user.click(screen.getByRole("radio", { name: "qBittorrent" }))
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith({
+          ...settings,
+          currentDownloaderId: "qbittorrent",
+          downloaders: {
+            ...settings.downloaders,
+            transmission: {
+              ...settings.downloaders.transmission,
+              baseUrl: ""
+            }
+          }
+        })
+      })
+
+      expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
+    },
+    10000
+  )
+
+  it(
+    "clears the displayed connection result when switching downloaders",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi()
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "测试连接" }))
+
+      expect(
+        await screen.findByText(/已连接到 qBittorrent（http:\/\/127.0.0.1:17474）。/)
+      ).toBeInTheDocument()
+
+      await user.click(screen.getByRole("radio", { name: "Transmission" }))
+
+      expect(screen.queryByText(/已连接到 qBittorrent/)).not.toBeInTheDocument()
+    },
+    10000
+  )
+
   it("toggles the extraction cadence card open and closed", async () => {
     const user = userEvent.setup()
     const api = createOptionsApi()

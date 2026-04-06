@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 
 import type { TestDownloaderConnectionResult } from "../../../lib/shared/types"
 import type { OptionsApi } from "../OptionsPage"
@@ -34,6 +34,10 @@ export function useSettingsForm(api: OptionsApi) {
   const [connectionMessage, setConnectionMessage] = useState("")
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  const currentDownloaderId = useWatch({
+    control: form.control,
+    name: "currentDownloaderId"
+  })
 
   useEffect(() => {
     let active = true
@@ -66,6 +70,11 @@ export function useSettingsForm(api: OptionsApi) {
       active = false
     }
   }, [api, form])
+
+  useEffect(() => {
+    setConnectionState("idle")
+    setConnectionMessage("")
+  }, [currentDownloaderId])
 
   const handleSave = form.handleSubmit(
     async (values) => {

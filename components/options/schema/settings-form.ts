@@ -28,6 +28,11 @@ const downloaderIdSchema = z.enum([
   "transmission"
 ] satisfies DownloaderId[])
 
+const downloaderBaseUrlSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/\/+$/, ""))
+
 const textConditionFieldSchema = z.enum([
   "title",
   "subgroup"
@@ -74,20 +79,12 @@ export const settingsFormSchema = z.object({
   currentDownloaderId: downloaderIdSchema,
   downloaders: z.object({
     qbittorrent: z.object({
-      baseUrl: z
-        .string()
-        .trim()
-        .min(1, "请输入 qBittorrent WebUI 地址")
-        .transform((value) => value.replace(/\/+$/, "")),
+      baseUrl: downloaderBaseUrlSchema,
       username: z.string().trim(),
       password: z.string()
     }),
     transmission: z.object({
-      baseUrl: z
-        .string()
-        .trim()
-        .min(1, "请输入 Transmission RPC 地址")
-        .transform((value) => value.replace(/\/+$/, "")),
+      baseUrl: downloaderBaseUrlSchema,
       username: z.string().trim(),
       password: z.string()
     })
@@ -112,6 +109,22 @@ export const settingsFormSchema = z.object({
     bangumimoe: z.boolean().optional()
   }),
   filters: z.array(filterSchema)
+}).superRefine((values, context) => {
+  if (!values.downloaders.qbittorrent.baseUrl && values.currentDownloaderId === "qbittorrent") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "请输入 qBittorrent WebUI 地址",
+      path: ["downloaders", "qbittorrent", "baseUrl"]
+    })
+  }
+
+  if (!values.downloaders.transmission.baseUrl && values.currentDownloaderId === "transmission") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "请输入 Transmission RPC 地址",
+      path: ["downloaders", "transmission", "baseUrl"]
+    })
+  }
 })
 
 export type SettingsFormInput = z.input<typeof settingsFormSchema>

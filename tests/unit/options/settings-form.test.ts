@@ -119,6 +119,81 @@ describe("options settings form helpers", () => {
     }
   })
 
+  it("allows an empty inactive transmission address when qBittorrent is selected", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      currentDownloaderId: "qbittorrent",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "admin",
+          password: ""
+        },
+        transmission: {
+          baseUrl: "   ",
+          username: "",
+          password: ""
+        }
+      }
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it("allows an empty inactive qBittorrent address when transmission is selected", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      currentDownloaderId: "transmission",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "   ",
+          username: "",
+          password: ""
+        },
+        transmission: {
+          baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+          username: "admin",
+          password: ""
+        }
+      }
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it("rejects an empty active transmission address", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      currentDownloaderId: "transmission",
+      downloaders: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "",
+          password: ""
+        },
+        transmission: {
+          baseUrl: "   ",
+          username: "",
+          password: ""
+        }
+      }
+    })
+
+    expect(result.success).toBe(false)
+
+    if (result.success) {
+      throw new Error("schema unexpectedly accepted an empty transmission baseUrl")
+    }
+
+    expect(result.error.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ["downloaders", "transmission", "baseUrl"]
+        })
+      ])
+    )
+  })
+
   it("hydrates filters from stored settings", () => {
     expect(
       createSettingsFormDefaults({
