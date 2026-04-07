@@ -66,6 +66,14 @@ describe("package metadata", () => {
     expect(wxtConfig).toContain("content-scripts/source-batch.css")
   })
 
+  it("keeps manifest host permissions aligned with the shared source match patterns instead of broad wildcards", () => {
+    const wxtConfig = readText("wxt.config.ts")
+
+    expect(wxtConfig).toContain("host_permissions: CONTENT_SCRIPT_MATCH_PATTERNS")
+    expect(wxtConfig).not.toContain('"http://*/*"')
+    expect(wxtConfig).not.toContain('"https://*/*"')
+  })
+
   it("uses the WXT root command for development instead of the invalid 'wxt dev' form", () => {
     const packageJson = readPackageJson()
 

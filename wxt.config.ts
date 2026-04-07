@@ -24,12 +24,7 @@ export default defineConfig({
       "Select posts from supported anime BT source pages, resolve real download links, and send them to qBittorrent in one batch.",
     minimum_chrome_version: "114",
     permissions: ["storage", "tabs", "scripting"],
-    host_permissions: [
-      "http://www.kisssub.org/*",
-      "https://www.kisssub.org/*",
-      "http://*/*",
-      "https://*/*"
-    ],
+    host_permissions: CONTENT_SCRIPT_MATCH_PATTERNS,
     icons: {
       16: "/icon.png",
       32: "/icon.png",
