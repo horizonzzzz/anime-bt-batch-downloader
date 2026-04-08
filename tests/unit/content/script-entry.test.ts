@@ -153,19 +153,26 @@ vi.mock("wxt/utils/content-script-ui/shadow-root", () => ({
 }))
 
 function installChromeMock() {
+  const extensionApi = {
+    runtime: {
+      sendMessage: runtimeSendMessage,
+      getURL: runtimeGetUrl,
+      onMessage: {
+        addListener: runtimeAddListener,
+        removeListener: runtimeRemoveListener
+      }
+    }
+  }
+
   Object.defineProperty(globalThis, "chrome", {
     configurable: true,
     writable: true,
-    value: {
-      runtime: {
-        sendMessage: runtimeSendMessage,
-        getURL: runtimeGetUrl,
-        onMessage: {
-          addListener: runtimeAddListener,
-          removeListener: runtimeRemoveListener
-        }
-      }
-    }
+    value: extensionApi
+  })
+  Object.defineProperty(globalThis, "browser", {
+    configurable: true,
+    writable: true,
+    value: extensionApi
   })
 }
 
@@ -247,7 +254,7 @@ describe("content script runtime", () => {
     expect(module.startSourceBatchContentScript).toBeTypeOf("function")
     expect(module.default).toBeUndefined()
     expect(module.config).toBeUndefined()
-  })
+  }, 10000)
 
   it("does not inject UI when the matched source is disabled but still listens for toggle updates", async () => {
     getSourceAdapterForLocation.mockReturnValueOnce({

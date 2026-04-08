@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
-import { afterEach, vi } from "vitest"
+import { fakeBrowser } from "wxt/testing/fake-browser"
+import { afterEach, beforeEach, vi } from "vitest"
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -24,37 +25,30 @@ class ResizeObserverMock {
 
 globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
 
-// Mock Chrome APIs for extension testing - only set if not already defined
-if (typeof globalThis.chrome === "undefined") {
+beforeEach(() => {
+  fakeBrowser.reset()
+  let extensionApi = fakeBrowser as typeof fakeBrowser
+
   Object.defineProperty(globalThis, "chrome", {
     configurable: true,
-    writable: true,
-    value: {
-      action: {
-        setIcon: vi.fn().mockResolvedValue(undefined)
-      },
-      tabs: {
-        query: vi.fn().mockResolvedValue([]),
-        get: vi.fn().mockResolvedValue({ id: 1, url: "https://example.com" }),
-        onUpdated: {
-          addListener: vi.fn()
-        },
-        onActivated: {
-          addListener: vi.fn()
-        }
-      },
-      runtime: {
-        onInstalled: {
-          addListener: vi.fn()
-        },
-        onMessage: {
-          addListener: vi.fn()
-        },
-        openOptionsPage: vi.fn().mockResolvedValue(undefined)
-      }
+    get() {
+      return extensionApi
+    },
+    set(value) {
+      extensionApi = value as typeof fakeBrowser
     }
   })
-}
+
+  Object.defineProperty(globalThis, "browser", {
+    configurable: true,
+    get() {
+      return extensionApi
+    },
+    set(value) {
+      extensionApi = value as typeof fakeBrowser
+    }
+  })
+})
 
 afterEach(() => {
   cleanup()

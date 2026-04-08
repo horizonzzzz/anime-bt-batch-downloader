@@ -47,8 +47,8 @@ function createMockItem(id: string, overrides?: Partial<TaskHistoryItem>): TaskH
 
 function mockChromeRuntime() {
   const listeners: Array<(message: unknown) => Promise<unknown>> = []
-  
-  vi.stubGlobal("chrome", {
+
+  const extensionApi = {
     runtime: {
       sendMessage: vi.fn(async (message: unknown) => {
         for (const listener of listeners) {
@@ -60,7 +60,10 @@ function mockChromeRuntime() {
         addListener: vi.fn()
       }
     }
-  })
+  }
+
+  vi.stubGlobal("chrome", extensionApi)
+  vi.stubGlobal("browser", extensionApi)
   
   return {
     addListener: (fn: (message: unknown) => Promise<unknown>) => {

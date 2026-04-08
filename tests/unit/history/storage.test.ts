@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { fakeBrowser } from "wxt/testing/fake-browser"
 
 import {
   clearHistory,
@@ -17,41 +18,12 @@ import {
   type TaskHistoryRecord
 } from "../../../src/lib/history/types"
 
-type StoredState = {
-  [HISTORY_STORAGE_KEY]?: unknown
-}
-
-function installChromeStorageMock(state: StoredState) {
-  const get = vi.fn(async () => ({
-    [HISTORY_STORAGE_KEY]: state[HISTORY_STORAGE_KEY]
-  }))
-  const set = vi.fn(async (value: StoredState) => {
-    state[HISTORY_STORAGE_KEY] = value[HISTORY_STORAGE_KEY]
-  })
-
-  Object.defineProperty(globalThis, "chrome", {
-    configurable: true,
-    value: {
-      storage: {
-        local: {
-          get,
-          set
-        }
-      }
-    }
-  })
-
-  return { get, set }
-}
-
 describe("history storage", () => {
-  let state: StoredState
-  let storage: ReturnType<typeof installChromeStorageMock>
+  let setSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    state = {}
-    storage = installChromeStorageMock(state)
+    setSpy = vi.spyOn(fakeBrowser.storage.local, "set")
   })
 
   describe("getHistoryStorage", () => {
@@ -74,10 +46,12 @@ describe("history storage", () => {
           version: 1
         }
       ]
-      state[HISTORY_STORAGE_KEY] = {
-        records: existingRecords,
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: existingRecords,
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       const result = await getHistoryStorage()
       expect(result.records).toHaveLength(1)
@@ -98,10 +72,12 @@ describe("history storage", () => {
           version: 1
         }
       ]
-      state[HISTORY_STORAGE_KEY] = {
-        records: existingRecords,
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: existingRecords,
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       const records = await getHistoryRecords()
       expect(records).toHaveLength(1)
@@ -124,15 +100,14 @@ describe("history storage", () => {
 
       await saveTaskHistory(newRecord)
 
-      expect(storage.set).toHaveBeenCalled()
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      expect(savedData[HISTORY_STORAGE_KEY]).toBeDefined()
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as {
-        records: TaskHistoryRecord[]
-        maxRecords: number
-      }
-      expect(savedStorage.records[0]).toEqual(newRecord)
-      expect(savedStorage.maxRecords).toBe(DEFAULT_MAX_RECORDS)
+      expect(setSpy).toHaveBeenCalled()
+      await expect(fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY)).resolves.toEqual({
+        [HISTORY_STORAGE_KEY]: {
+          records: [newRecord],
+          maxRecords: DEFAULT_MAX_RECORDS,
+          lastCleanupAt: undefined
+        }
+      })
     })
 
     it("trims records when exceeding maxRecords", async () => {
@@ -149,10 +124,12 @@ describe("history storage", () => {
           version: 1
         })
       )
-      state[HISTORY_STORAGE_KEY] = {
-        records: existingRecords,
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: existingRecords,
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       const newRecord: TaskHistoryRecord = {
         id: "batch-new",
@@ -167,9 +144,8 @@ describe("history storage", () => {
 
       await saveTaskHistory(newRecord)
 
-      expect(storage.set).toHaveBeenCalled()
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as {
+      expect(setSpy).toHaveBeenCalled()
+      const savedStorage = (await fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY))[HISTORY_STORAGE_KEY] as {
         records: TaskHistoryRecord[]
         maxRecords: number
         lastCleanupAt?: string
@@ -182,28 +158,31 @@ describe("history storage", () => {
 
   describe("clearHistory", () => {
     it("resets storage to empty", async () => {
-      state[HISTORY_STORAGE_KEY] = {
-        records: [
-          {
-            id: "batch-1",
-            name: "Test",
-            sourceId: "kisssub",
-            status: "completed",
-            createdAt: "2026-01-01T00:00:00Z",
-            stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-            items: [],
-            version: 1
-          }
-        ],
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: [
+            {
+              id: "batch-1",
+              name: "Test",
+              sourceId: "kisssub",
+              status: "completed",
+              createdAt: "2026-01-01T00:00:00Z",
+              stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+              items: [],
+              version: 1
+            }
+          ],
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       await clearHistory()
 
-      expect(storage.set).toHaveBeenCalledWith({
+      expect(setSpy).toHaveBeenLastCalledWith({
         [HISTORY_STORAGE_KEY]: {
           records: [],
-          maxRecords: DEFAULT_MAX_RECORDS
+          maxRecords: DEFAULT_MAX_RECORDS,
+          lastCleanupAt: undefined
         }
       })
     })
@@ -228,10 +207,12 @@ describe("history storage", () => {
           version: 1
         }
       ]
-      state[HISTORY_STORAGE_KEY] = {
-        records: existingRecords,
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: existingRecords,
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       const result = await getHistoryRecord("batch-1")
       expect(result).not.toBeNull()
@@ -253,10 +234,12 @@ describe("history storage", () => {
           version: 1
         }
       ]
-      state[HISTORY_STORAGE_KEY] = {
-        records: existingRecords,
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: existingRecords,
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       const updatedRecord: TaskHistoryRecord = {
         ...existingRecords[0],
@@ -267,18 +250,21 @@ describe("history storage", () => {
 
       await updateHistoryRecord(updatedRecord)
 
-      expect(storage.set).toHaveBeenCalled()
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(setSpy).toHaveBeenCalled()
+      const savedStorage = (await fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY))[HISTORY_STORAGE_KEY] as {
+        records: TaskHistoryRecord[]
+      }
       expect(savedStorage.records[0].name).toBe("Updated Test")
       expect(savedStorage.records[0].status).toBe("partial_failure")
     })
 
     it("does not add new record if id not found", async () => {
-      state[HISTORY_STORAGE_KEY] = {
-        records: [],
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: [],
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       const newRecord: TaskHistoryRecord = {
         id: "batch-new",
@@ -293,8 +279,9 @@ describe("history storage", () => {
 
       await updateHistoryRecord(newRecord)
 
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      const savedStorage = (await fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY))[HISTORY_STORAGE_KEY] as {
+        records: TaskHistoryRecord[]
+      }
       expect(savedStorage.records).toHaveLength(0)
     })
   })
@@ -341,54 +328,63 @@ describe("history storage", () => {
           version: 1
         }
       ]
-      state[HISTORY_STORAGE_KEY] = {
-        records: existingRecords,
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: existingRecords,
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       await deleteHistoryRecord("batch-1")
 
-      expect(storage.set).toHaveBeenCalled()
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      expect(setSpy).toHaveBeenCalled()
+      const savedStorage = (await fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY))[HISTORY_STORAGE_KEY] as {
+        records: TaskHistoryRecord[]
+      }
       expect(savedStorage.records).toHaveLength(1)
       expect(savedStorage.records[0].id).toBe("batch-2")
     })
 
     it("does nothing when record not found", async () => {
-      state[HISTORY_STORAGE_KEY] = {
-        records: [
-          {
-            id: "batch-1",
-            name: "Test",
-            sourceId: "kisssub",
-            status: "completed",
-            createdAt: "2026-01-01T00:00:00Z",
-            stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-            items: [],
-            version: 1
-          }
-        ],
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: [
+            {
+              id: "batch-1",
+              name: "Test",
+              sourceId: "kisssub",
+              status: "completed",
+              createdAt: "2026-01-01T00:00:00Z",
+              stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
+              items: [],
+              version: 1
+            }
+          ],
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       await deleteHistoryRecord("nonexistent")
 
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      const savedStorage = (await fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY))[HISTORY_STORAGE_KEY] as {
+        records: TaskHistoryRecord[]
+      }
       expect(savedStorage.records).toHaveLength(1)
     })
 
     it("handles empty storage", async () => {
-      state[HISTORY_STORAGE_KEY] = {
-        records: [],
-        maxRecords: DEFAULT_MAX_RECORDS
-      }
+      await fakeBrowser.storage.local.set({
+        [HISTORY_STORAGE_KEY]: {
+          records: [],
+          maxRecords: DEFAULT_MAX_RECORDS
+        }
+      })
 
       await deleteHistoryRecord("nonexistent")
 
-      const savedData = storage.set.mock.calls[0]?.[0] as StoredState
-      const savedStorage = savedData[HISTORY_STORAGE_KEY] as { records: TaskHistoryRecord[] }
+      const savedStorage = (await fakeBrowser.storage.local.get(HISTORY_STORAGE_KEY))[HISTORY_STORAGE_KEY] as {
+        records: TaskHistoryRecord[]
+      }
       expect(savedStorage.records).toHaveLength(0)
     })
   })

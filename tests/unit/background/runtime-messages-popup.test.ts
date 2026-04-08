@@ -39,33 +39,39 @@ vi.mock("../../../src/lib/background", async () => {
 })
 
 function installChromeMock() {
+  const extensionApi = {
+    runtime: {
+      onInstalled: {
+        addListener: onInstalledAddListener
+      },
+      onMessage: {
+        addListener: onMessageAddListener
+      },
+      openOptionsPage: runtimeOpenOptionsPage
+    },
+    action: {
+      setIcon: vi.fn(() => Promise.resolve())
+    },
+    tabs: {
+      query: vi.fn(async () => []),
+      get: vi.fn(async () => ({ id: 1, url: "https://example.com/" })),
+      onUpdated: {
+        addListener: onUpdatedAddListener
+      },
+      onActivated: {
+        addListener: onActivatedAddListener
+      },
+      sendMessage: vi.fn()
+    }
+  }
+
   Object.defineProperty(globalThis, "chrome", {
     configurable: true,
-    value: {
-      runtime: {
-        onInstalled: {
-          addListener: onInstalledAddListener
-        },
-        onMessage: {
-          addListener: onMessageAddListener
-        },
-        openOptionsPage: runtimeOpenOptionsPage
-      },
-      action: {
-        setIcon: vi.fn(() => Promise.resolve())
-      },
-      tabs: {
-        query: vi.fn(async () => []),
-        get: vi.fn(async () => ({ id: 1, url: "https://example.com/" })),
-        onUpdated: {
-          addListener: onUpdatedAddListener
-        },
-        onActivated: {
-          addListener: onActivatedAddListener
-        },
-        sendMessage: vi.fn()
-      }
-    }
+    value: extensionApi
+  })
+  Object.defineProperty(globalThis, "browser", {
+    configurable: true,
+    value: extensionApi
   })
 }
 

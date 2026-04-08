@@ -1,106 +1,79 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { fakeBrowser } from "wxt/testing/fake-browser"
 
 import { DEFAULT_SETTINGS } from "../../../src/lib/settings/defaults"
 import { ensureSettings, getSettings, saveSettings } from "../../../src/lib/settings/storage"
 
-type StoredState = {
-  values: Record<string, unknown>
-}
-
-function installChromeStorageMock(state: StoredState) {
-  const get = vi.fn(async (keys?: string | string[]) => {
-    if (typeof keys === "string") {
-      return {
-        [keys]: state.values[keys]
-      }
-    }
-
-    if (Array.isArray(keys)) {
-      return Object.fromEntries(keys.map((key) => [key, state.values[key]]))
-    }
-
-    return { ...state.values }
-  })
-  const set = vi.fn(async (value: Record<string, unknown>) => {
-    Object.assign(state.values, value)
-  })
-
-  Object.defineProperty(globalThis, "chrome", {
-    configurable: true,
-    value: {
-      storage: {
-        local: {
-          get,
-          set
-        }
-      }
-    }
-  })
-
-  return { get, set }
-}
-
 describe("settings storage helpers", () => {
-  let state: StoredState
-  let storage: ReturnType<typeof installChromeStorageMock>
+  let getSpy: ReturnType<typeof vi.spyOn>
+  let setSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    state = {
-      values: {}
-    }
-    storage = installChromeStorageMock(state)
+    getSpy = vi.spyOn(fakeBrowser.storage.local, "get")
+    setSpy = vi.spyOn(fakeBrowser.storage.local, "set")
   })
 
   it("writes default settings when storage is empty", async () => {
     await ensureSettings()
 
-    expect(storage.set).toHaveBeenCalledWith({
+    expect(setSpy).toHaveBeenCalledWith({
       settings_v2: DEFAULT_SETTINGS
     })
-    expect(state.values.settings_v2).toEqual(DEFAULT_SETTINGS)
+    await expect(fakeBrowser.storage.local.get("settings_v2")).resolves.toEqual({
+      settings_v2: DEFAULT_SETTINGS
+    })
   })
 
   it("does not overwrite existing settings during ensureSettings", async () => {
-    state.values.settings_v2 = {
-      currentDownloaderId: "qbittorrent"
-    }
+    await fakeBrowser.storage.local.set({
+      settings_v2: {
+        currentDownloaderId: "qbittorrent"
+      }
+    })
 
     await ensureSettings()
 
-    expect(storage.set).not.toHaveBeenCalled()
+    expect(setSpy).toHaveBeenCalledTimes(1)
   })
 
   it("initializes the new storage key even when the legacy key still exists", async () => {
-    state.values.settings = {
-      currentDownloaderId: "qbittorrent"
-    }
+    await fakeBrowser.storage.local.set({
+      settings: {
+        currentDownloaderId: "qbittorrent"
+      }
+    })
 
     await ensureSettings()
 
-    expect(storage.set).toHaveBeenCalledWith({
+    expect(setSpy).toHaveBeenCalledTimes(2)
+    expect(setSpy).toHaveBeenLastCalledWith({
       settings_v2: DEFAULT_SETTINGS
     })
-    expect(state.values.settings).toEqual({
-      currentDownloaderId: "qbittorrent"
+    await expect(fakeBrowser.storage.local.get(["settings", "settings_v2"])).resolves.toEqual({
+      settings: {
+        currentDownloaderId: "qbittorrent"
+      },
+      settings_v2: DEFAULT_SETTINGS
     })
-    expect(state.values.settings_v2).toEqual(DEFAULT_SETTINGS)
   })
 
   it("hydrates missing defaults and sanitizes stored values when reading settings", async () => {
-    state.values.settings_v2 = {
-      currentDownloaderId: "qbittorrent",
-      downloaders: {
-        qbittorrent: {
-          baseUrl: " http://127.0.0.1:17474/// ",
-          username: " admin "
+    await fakeBrowser.storage.local.set({
+      settings_v2: {
+        currentDownloaderId: "qbittorrent",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// ",
+            username: " admin "
+          }
+        },
+        lastSavePath: "  D:\\Anime  ",
+        enabledSources: {
+          kisssub: false
         }
-      },
-      lastSavePath: "  D:\\Anime  ",
-      enabledSources: {
-        kisssub: false
       }
-    }
+    })
 
     await expect(getSettings()).resolves.toEqual({
       ...DEFAULT_SETTINGS,
@@ -122,28 +95,30 @@ describe("settings storage helpers", () => {
       }
     })
 
-    expect(storage.set).not.toHaveBeenCalled()
+    expect(setSpy).toHaveBeenCalledTimes(1)
   })
 
   it("ignores the legacy storage key when reading settings", async () => {
-    state.values.settings = {
-      currentDownloaderId: "qbittorrent",
-      downloaders: {
-        qbittorrent: {
-          baseUrl: "http://legacy-host:9090",
-          username: "legacy-user"
+    await fakeBrowser.storage.local.set({
+      settings: {
+        currentDownloaderId: "qbittorrent",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: "http://legacy-host:9090",
+            username: "legacy-user"
+          }
+        }
+      },
+      settings_v2: {
+        currentDownloaderId: "qbittorrent",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// ",
+            username: " admin "
+          }
         }
       }
-    }
-    state.values.settings_v2 = {
-      currentDownloaderId: "qbittorrent",
-      downloaders: {
-        qbittorrent: {
-          baseUrl: " http://127.0.0.1:17474/// ",
-          username: " admin "
-        }
-      }
-    }
+    })
 
     await expect(getSettings()).resolves.toEqual({
       ...DEFAULT_SETTINGS,
@@ -154,20 +129,22 @@ describe("settings storage helpers", () => {
           username: "admin",
           password: ""
         }
-      },
+      }
     })
   })
 
   it("hydrates transmission defaults when reading older qb-only settings", async () => {
-    state.values.settings_v2 = {
-      currentDownloaderId: "qbittorrent",
-      downloaders: {
-        qbittorrent: {
-          baseUrl: " http://127.0.0.1:17474/// ",
-          username: " admin "
+    await fakeBrowser.storage.local.set({
+      settings_v2: {
+        currentDownloaderId: "qbittorrent",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:17474/// ",
+            username: " admin "
+          }
         }
       }
-    }
+    })
 
     await expect(getSettings()).resolves.toEqual({
       ...DEFAULT_SETTINGS,
@@ -183,18 +160,20 @@ describe("settings storage helpers", () => {
   })
 
   it("merges partial updates into the sanitized stored settings before persisting", async () => {
-    state.values.settings_v2 = {
-      currentDownloaderId: "qbittorrent",
-      downloaders: {
-        qbittorrent: {
-          baseUrl: " http://127.0.0.1:7474/// ",
-          username: " admin "
+    await fakeBrowser.storage.local.set({
+      settings_v2: {
+        currentDownloaderId: "qbittorrent",
+        downloaders: {
+          qbittorrent: {
+            baseUrl: " http://127.0.0.1:7474/// ",
+            username: " admin "
+          }
+        },
+        enabledSources: {
+          kisssub: false
         }
-      },
-      enabledSources: {
-        kisssub: false
       }
-    }
+    })
 
     await expect(
       saveSettings({
@@ -273,7 +252,7 @@ describe("settings storage helpers", () => {
       }
     })
 
-    expect(storage.set).toHaveBeenCalledWith({
+    expect(setSpy).toHaveBeenLastCalledWith({
       settings_v2: {
         ...DEFAULT_SETTINGS,
         downloaders: {
@@ -338,9 +317,10 @@ describe("settings storage helpers", () => {
       }
     })
 
-    expect(storage.set).toHaveBeenCalledTimes(2)
-    expect(storage.set.mock.calls[0]?.[0]).toEqual({
+    expect(setSpy).toHaveBeenCalledTimes(2)
+    expect(setSpy.mock.calls[0]?.[0]).toEqual({
       settings_v2: DEFAULT_SETTINGS
     })
+    expect(getSpy).toHaveBeenCalled()
   })
 })

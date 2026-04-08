@@ -13,13 +13,19 @@ import type { PopupStateViewModel } from "../../../src/lib/shared/popup"
 const runtimeSendMessage = vi.fn()
 
 function installChromeMock() {
+  const extensionApi = {
+    runtime: {
+      sendMessage: runtimeSendMessage
+    }
+  }
+
   Object.defineProperty(globalThis, "chrome", {
     configurable: true,
-    value: {
-      runtime: {
-        sendMessage: runtimeSendMessage
-      }
-    }
+    value: extensionApi
+  })
+  Object.defineProperty(globalThis, "browser", {
+    configurable: true,
+    value: extensionApi
   })
 }
 

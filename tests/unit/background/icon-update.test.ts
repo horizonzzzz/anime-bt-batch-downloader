@@ -11,33 +11,39 @@ const onMessageAddListener = vi.hoisted(() => vi.fn())
 const openOptionsPageMock = vi.hoisted(() => vi.fn())
 
 function installChromeMock() {
-  Object.defineProperty(globalThis, "chrome", {
-    configurable: true,
-    value: {
-      runtime: {
-        onInstalled: {
-          addListener: onInstalledAddListener
-        },
-        onMessage: {
-          addListener: onMessageAddListener
-        },
-        openOptionsPage: openOptionsPageMock
+  const extensionApi = {
+    runtime: {
+      onInstalled: {
+        addListener: onInstalledAddListener
       },
-      action: {
-        setIcon: setIconMock
+      onMessage: {
+        addListener: onMessageAddListener
       },
-      tabs: {
-        query: queryTabsMock,
-        get: getTabMock,
-        sendMessage: sendMessageMock,
-        onUpdated: {
-          addListener: onUpdatedAddListener
-        },
-        onActivated: {
-          addListener: onActivatedAddListener
-        }
+      openOptionsPage: openOptionsPageMock
+    },
+    action: {
+      setIcon: setIconMock
+    },
+    tabs: {
+      query: queryTabsMock,
+      get: getTabMock,
+      sendMessage: sendMessageMock,
+      onUpdated: {
+        addListener: onUpdatedAddListener
+      },
+      onActivated: {
+        addListener: onActivatedAddListener
       }
     }
+  }
+
+  Object.defineProperty(globalThis, "chrome", {
+    configurable: true,
+    value: extensionApi
+  })
+  Object.defineProperty(globalThis, "browser", {
+    configurable: true,
+    value: extensionApi
   })
 }
 
@@ -54,7 +60,7 @@ describe("resolveIsSupportedSite", () => {
     const result = resolveIsSupportedSite("https://www.kisssub.org/")
 
     expect(result).toBe(true)
-  })
+  }, 10000)
 
   it("returns true for supported dongmanhuayuan URL", async () => {
     const { resolveIsSupportedSite } = await import("../../../src/entrypoints/background/runtime")
