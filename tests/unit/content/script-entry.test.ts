@@ -389,6 +389,7 @@ describe("content script runtime", () => {
             id: "filter-1",
             name: "仅保留爱恋",
             enabled: true,
+            sourceIds: ["acgrip"],
             must: [
               {
                 id: "condition-1",
@@ -456,6 +457,7 @@ describe("content script runtime", () => {
                   id: "filter-1",
                   name: "仅保留爱恋",
                   enabled: true,
+                  sourceIds: ["acgrip"],
                   must: [
                     {
                       id: "condition-1",

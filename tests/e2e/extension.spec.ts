@@ -237,6 +237,11 @@ async function openOptionsPage(
   await page.goto(`chrome-extension://${extension.extensionId}/options.html${route ? `#${route}` : ""}`)
   await expect(page).toHaveURL(new RegExp(`options\\.html#${expectedRoute.replace("/", "\\/")}$`))
   await expect(page.getByRole("heading", { name: expectedHeading, exact: true }).first()).toBeVisible()
+
+  if (expectedRoute === "/general" || expectedRoute === "/sites" || expectedRoute === "/filters") {
+    await expect(page.getByRole("status")).toContainText("设置已加载。")
+  }
+
   return page
 }
 
