@@ -1,19 +1,9 @@
 import { describe, expect, it } from "vitest"
 
 import { buildSelectableBatchItem } from "../../../src/lib/content/filter-selection"
-import type { FilterCondition, FilterEntry } from "../../../src/lib/shared/types"
+import type { FilterCondition, FilterEntry, SourceId } from "../../../src/lib/shared/types"
 
 function createCondition(overrides: Partial<FilterCondition> = {}): FilterCondition {
-  if (overrides.field === "source") {
-    return {
-      id: "condition-source",
-      field: "source",
-      operator: "is",
-      value: "kisssub",
-      ...overrides
-    } as FilterCondition
-  }
-
   return {
     id: "condition-title",
     field: "title",
@@ -28,6 +18,7 @@ function createFilter(overrides: Partial<FilterEntry> = {}): FilterEntry {
     id: "filter-1",
     name: "保留 1080",
     enabled: true,
+    sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
     must: [createCondition()],
     any: [],
     ...overrides
@@ -88,13 +79,8 @@ describe("buildSelectableBatchItem", () => {
         },
         [
           createFilter({
-            must: [
-              createCondition({
-                field: "source",
-                operator: "is",
-                value: "bangumimoe"
-              })
-            ]
+            sourceIds: ["bangumimoe"] as SourceId[],
+            must: [createCondition()]
           })
         ]
       )

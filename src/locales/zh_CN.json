@@ -103,6 +103,7 @@
       "conditionValueRequired": "请输入条件值",
       "filterIdRequired": "筛选器 ID 不能为空",
       "filterNameRequired": "请输入筛选器名称",
+      "filterSourceRequired": "至少选择一个适用站点",
       "filterMustConditionRequired": "至少填写一个必须满足条件",
       "minValue": "最小值为 $1",
       "maxValue": "最大值为 $1",
@@ -397,11 +398,9 @@
       "anyPrefix": "任一",
       "field": {
         "title": "标题",
-        "subgroup": "字幕组",
-        "source": "站点"
+        "subgroup": "字幕组"
       },
       "summary": {
-        "sourceIs": "站点是 $1",
         "contains": "$1包含“$2”",
         "unset": "未设置。"
       },
@@ -412,6 +411,12 @@
         "close": "关闭筛选器面板",
         "nameLabel": "筛选器名称",
         "namePlaceholder": "例如：爱恋 1080 简繁",
+        "sourceTitle": "适用站点",
+        "sourceDescription": "选择这条筛选器会在哪些站点生效。",
+        "sourceSummary": "适用站点：$1",
+        "sourceRequired": "至少选择一个适用站点",
+        "sourceCount": "已选 $1 个站点",
+        "sourceHint": "新建规则默认全选，至少保留一个。",
         "fieldLabel": "字段",
         "fieldValueLabel": "$1内容",
         "fieldAriaLabel": "$1条件字段 $2",

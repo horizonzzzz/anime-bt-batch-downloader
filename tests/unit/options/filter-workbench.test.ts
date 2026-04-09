@@ -25,6 +25,7 @@ function createFilter(overrides: Partial<FilterWorkbenchFilter> = {}): FilterWor
     id: "filter-1",
     name: "保留 LoliHouse",
     enabled: true,
+    sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
     must: [createTextCondition()],
     any: [],
     ...overrides
@@ -36,6 +37,7 @@ describe("filter workbench helpers", () => {
     expect(createAilian1080SimplifiedChineseFilter()).toMatchObject({
       name: "爱恋 1080 简中",
       enabled: true,
+      sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
       must: [
         {
           field: "subgroup",

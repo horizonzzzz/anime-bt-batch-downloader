@@ -277,6 +277,7 @@ describe("retryFailedItems", () => {
             id: "filter-subgroup",
             name: "仅保留爱恋",
             enabled: true,
+            sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
             must: [
               {
                 id: "condition-subgroup",
@@ -330,6 +331,7 @@ describe("retryFailedItems", () => {
             id: "filter-include",
             name: "仅保留喵萌",
             enabled: true,
+            sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
             must: [
               {
                 id: "condition-subgroup",

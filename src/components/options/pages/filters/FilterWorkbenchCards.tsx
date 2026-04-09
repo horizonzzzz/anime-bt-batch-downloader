@@ -3,6 +3,7 @@ import { HiOutlinePencilSquare, HiOutlineTrash } from "react-icons/hi2"
 
 import { Badge, Button, Card, Switch } from "../../../ui"
 import {
+  summarizeSourceIds,
   summarizeConditionList,
   type FilterWorkbenchFilter
 } from "./filter-workbench"
@@ -56,6 +57,14 @@ export function FilterWorkbenchCard({
         </div>
 
         <div className="grid gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              {i18n.t("options.filters.dialog.sourceTitle")}
+            </div>
+            <p className="mt-2 text-sm leading-6 text-zinc-700">
+              {summarizeSourceIds(filter.sourceIds)}
+            </p>
+          </div>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               {i18n.t("options.filters.mustTitle")}

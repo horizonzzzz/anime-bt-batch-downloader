@@ -288,6 +288,7 @@ describe("createBatchDownloadManager", () => {
           id: "filter-subgroup",
           name: "爱恋 1080 简繁",
           enabled: true,
+          sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
           must: [
             {
               id: "condition-subgroup",
@@ -379,6 +380,7 @@ describe("createBatchDownloadManager", () => {
           id: "filter-include",
           name: "仅保留喵萌",
           enabled: true,
+          sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
           must: [
             {
               id: "condition-subgroup",
@@ -452,6 +454,7 @@ describe("createBatchDownloadManager", () => {
           id: "filter-include",
           name: "仅保留喵萌",
           enabled: true,
+          sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
           must: [
             {
               id: "condition-subgroup",
@@ -517,6 +520,7 @@ describe("createBatchDownloadManager", () => {
           id: "filter-subgroup",
           name: "仅保留喵萌",
           enabled: true,
+          sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
           must: [
             {
               id: "condition-subgroup",
@@ -590,12 +594,13 @@ describe("createBatchDownloadManager", () => {
           id: "bangumi-only",
           name: "Bangumi 专用",
           enabled: true,
+          sourceIds: ["bangumimoe"],
           must: [
             {
-              id: "condition-source",
-              field: "source",
-              operator: "is",
-              value: "bangumimoe"
+              id: "condition-title",
+              field: "title",
+              operator: "contains",
+              value: "1080p"
             }
           ],
           any: []

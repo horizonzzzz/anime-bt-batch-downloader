@@ -2,7 +2,6 @@ import { normalizeSourceDeliveryModes } from "../sources/delivery"
 import type {
   DownloaderId,
   FilterCondition,
-  FilterConditionField,
   FilterEntry,
   Settings,
   SourceId
@@ -18,11 +17,7 @@ const VALID_SOURCE_IDS: SourceId[] = [
   "acgrip",
   "bangumimoe"
 ]
-const VALID_FILTER_CONDITION_FIELDS: FilterConditionField[] = [
-  "title",
-  "subgroup",
-  "source"
-]
+const VALID_FILTER_CONDITION_FIELDS: Array<FilterCondition["field"]> = ["title", "subgroup"]
 
 export function sanitizeSettings(raw: RawSettings): Settings {
   return {
@@ -130,12 +125,8 @@ function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | nul
     return null
   }
 
-  const must = normalizeFilterConditions(record.must, {
-    allowSource: true
-  })
-  const any = normalizeFilterConditions(record.any, {
-    allowSource: false
-  })
+  const must = normalizeFilterConditions(record.must)
+  const any = normalizeFilterConditions(record.any)
   if (!must.length) {
     return null
   }
@@ -144,40 +135,49 @@ function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | nul
     id: String(record.id ?? "").trim() || `filter-${fallbackIndex}`,
     name,
     enabled: record.enabled !== false,
+    sourceIds: normalizeExplicitSourceIds(record.sourceIds),
     must,
     any
   }
 }
 
-function normalizeFilterConditions(
-  raw: unknown,
-  options: {
-    allowSource: boolean
+function normalizeExplicitSourceIds(raw: unknown): SourceId[] {
+  if (!Array.isArray(raw)) {
+    return [...VALID_SOURCE_IDS]
   }
-): FilterCondition[] {
+
+  const normalized = raw
+    .map((entry) => String(entry ?? "").trim().toLowerCase() as SourceId)
+    .filter((entry): entry is SourceId => VALID_SOURCE_IDS.includes(entry))
+
+  if (!normalized.length) {
+    return [...VALID_SOURCE_IDS]
+  }
+
+  return Array.from(new Set(normalized))
+}
+
+function normalizeFilterConditions(raw: unknown): FilterCondition[] {
   if (!Array.isArray(raw)) {
     return []
   }
 
   return raw
-    .map((entry, index) => normalizeFilterCondition(entry, index, options))
+    .map((entry, index) => normalizeFilterCondition(entry, index))
     .filter((entry): entry is FilterCondition => entry !== null)
 }
 
 function normalizeFilterCondition(
   raw: unknown,
-  fallbackIndex: number,
-  options: {
-    allowSource: boolean
-  }
+  fallbackIndex: number
 ): FilterCondition | null {
   if (!raw || typeof raw !== "object") {
     return null
   }
 
   const record = raw as Record<string, unknown>
-  const field = VALID_FILTER_CONDITION_FIELDS.includes(record.field as FilterConditionField)
-    ? (record.field as FilterConditionField)
+  const field = VALID_FILTER_CONDITION_FIELDS.includes(record.field as FilterCondition["field"])
+    ? (record.field as FilterCondition["field"])
     : null
   if (!field) {
     return null
@@ -189,28 +189,6 @@ function normalizeFilterCondition(
   }
 
   const id = String(record.id ?? "").trim() || `condition-${fallbackIndex}`
-
-  if (field === "source") {
-    if (!options.allowSource) {
-      return null
-    }
-
-    if (record.operator !== "is") {
-      return null
-    }
-
-    const sourceId = value.toLowerCase() as SourceId
-    if (!VALID_SOURCE_IDS.includes(sourceId)) {
-      return null
-    }
-
-    return {
-      id,
-      field,
-      operator: "is",
-      value: sourceId
-    }
-  }
 
   if (record.operator !== "contains") {
     return null

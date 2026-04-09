@@ -6,16 +6,6 @@ import type { FilterCondition, FilterEntry } from "../../../src/lib/shared/types
 function createCondition(
   overrides: Partial<FilterCondition> = {}
 ): FilterCondition {
-  if (overrides.field === "source") {
-    return {
-      id: "condition-source",
-      field: "source",
-      operator: "is",
-      value: "kisssub",
-      ...overrides
-    } as FilterCondition
-  }
-
   return {
     id: "condition-title",
     field: "title",
@@ -30,6 +20,7 @@ function createFilter(overrides: Partial<FilterEntry> = {}): FilterEntry {
     id: "filter-1",
     name: "保留 1080",
     enabled: true,
+    sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
     must: [createCondition()],
     any: [],
     ...overrides
@@ -58,14 +49,8 @@ describe("createBatchPanelFilterStatus", () => {
           createFilter({
             id: "other-site-filter",
             name: "Bangumi 专用",
-            must: [
-              createCondition({
-                id: "condition-source-2",
-                field: "source",
-                operator: "is",
-                value: "bangumimoe"
-              })
-            ]
+            sourceIds: ["bangumimoe"],
+            must: [createCondition({ field: "title", value: "1080" })]
           })
         ]
       })
@@ -88,26 +73,14 @@ describe("createBatchPanelFilterStatus", () => {
         createFilter({
           id: "site-filter",
           name: "Bangumi 专用",
-          must: [
-            createCondition({
-              id: "condition-source-2",
-              field: "source",
-              operator: "is",
-              value: "bangumimoe"
-            })
-          ]
+          sourceIds: ["bangumimoe"],
+          must: [createCondition({ field: "title", value: "1080" })]
         }),
         createFilter({
           id: "other-site-filter",
           name: "Kisssub 专用",
-          must: [
-            createCondition({
-              id: "condition-source-3",
-              field: "source",
-              operator: "is",
-              value: "kisssub"
-            })
-          ]
+          sourceIds: ["kisssub"],
+          must: [createCondition({ field: "title", value: "1080" })]
         })
       ]
     })
@@ -123,7 +96,7 @@ describe("createBatchPanelFilterStatus", () => {
       {
         id: "site-filter",
         name: "Bangumi 专用",
-        summary: "站点是 Bangumi.moe"
+        summary: "标题包含“1080”"
       }
     ])
   })

@@ -191,12 +191,13 @@ describe("settings storage helpers", () => {
             id: " filter-1 ",
             name: " Bangumi 1080 ",
             enabled: true,
+            sourceIds: ["bangumimoe"],
             must: [
               {
                 id: " condition-1 ",
-                field: "source",
-                operator: "is",
-                value: "bangumimoe"
+                field: "title",
+                operator: "contains",
+                value: " 1080 "
               }
             ],
             any: [
@@ -226,12 +227,13 @@ describe("settings storage helpers", () => {
           id: "filter-1",
           name: "Bangumi 1080",
           enabled: true,
+          sourceIds: ["bangumimoe"],
           must: [
             {
               id: "condition-1",
-              field: "source",
-              operator: "is",
-              value: "bangumimoe"
+              field: "title",
+              operator: "contains",
+              value: "1080"
             }
           ],
           any: [
@@ -269,12 +271,13 @@ describe("settings storage helpers", () => {
             id: "filter-1",
             name: "Bangumi 1080",
             enabled: true,
+            sourceIds: ["bangumimoe"],
             must: [
               {
                 id: "condition-1",
-                field: "source",
-                operator: "is",
-                value: "bangumimoe"
+                field: "title",
+                operator: "contains",
+                value: "1080"
               }
             ],
             any: [

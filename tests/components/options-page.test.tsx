@@ -257,6 +257,7 @@ describe("OptionsPage", () => {
             filters: expect.arrayContaining([
               expect.objectContaining({
                 name: "爱恋 1080 简繁",
+                sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
                 must: expect.arrayContaining([
                   expect.objectContaining({
                     field: "subgroup",
@@ -398,7 +399,7 @@ describe("OptionsPage", () => {
     ).toBeInTheDocument()
   })
 
-  it("switches source conditions to a site selector", async () => {
+  it("shows site tags as a separate multi-select section with all sites selected by default", async () => {
     const user = userEvent.setup()
     const api = createOptionsApi()
 
@@ -409,13 +410,39 @@ describe("OptionsPage", () => {
     await user.click(screen.getByRole("button", { name: "过滤规则" }))
     await user.click(screen.getByRole("button", { name: "新增筛选器" }))
 
-    await user.click(screen.getByLabelText("必须条件字段 1"))
-    await user.click(await screen.findByRole("option", { name: "站点" }))
+    expect(screen.getByText("适用站点")).toBeInTheDocument()
+    expect(screen.getByTestId("filter-source-tag-kisssub")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByTestId("filter-source-tag-dongmanhuayuan")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByTestId("filter-source-tag-acgrip")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByTestId("filter-source-tag-bangumimoe")).toHaveAttribute("aria-pressed", "true")
 
-    await user.click(screen.getByLabelText("必须条件值 1"))
-    expect(await screen.findByRole("option", { name: "Kisssub" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "ACG.RIP" })).toBeInTheDocument()
-    expect(screen.queryByDisplayValue("kisssub")).not.toBeInTheDocument()
+    await user.click(screen.getByTestId("filter-source-tag-acgrip"))
+
+    expect(screen.getByTestId("filter-source-tag-acgrip")).toHaveAttribute("aria-pressed", "false")
+    expect(screen.getByText("已选 3 个站点")).toBeInTheDocument()
+  })
+
+  it("does not allow deselecting the last remaining source tag", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "过滤规则" }))
+    await user.click(screen.getByRole("button", { name: "新增筛选器" }))
+
+    await user.click(screen.getByTestId("filter-source-tag-dongmanhuayuan"))
+    await user.click(screen.getByTestId("filter-source-tag-acgrip"))
+    await user.click(screen.getByTestId("filter-source-tag-bangumimoe"))
+
+    expect(screen.getByText("已选 1 个站点")).toBeInTheDocument()
+
+    await user.click(screen.getByTestId("filter-source-tag-kisssub"))
+
+    expect(screen.getByTestId("filter-source-tag-kisssub")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText("至少选择一个适用站点")).toBeInTheDocument()
   })
 
   it("does not offer source as an any-clause field", async () => {

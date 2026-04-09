@@ -2,6 +2,7 @@ import { i18n } from "../../../../lib/i18n"
 import { useEffect, useId, useState } from "react"
 
 import {
+  Badge,
   Button,
   Input,
   Label,
@@ -32,8 +33,10 @@ import {
   createCondition,
   createFilterDraft,
   getConditionFieldLabel,
+  getSourceLabel,
   normalizeConditionField,
   summarizeConditionList,
+  summarizeSourceIds,
   type FilterWorkbenchCondition,
   type FilterWorkbenchTextCondition,
   type FilterWorkbenchFilter
@@ -59,7 +62,6 @@ export function FilterRuleBuilderDialog({
   const nameId = useId()
   const mustConditionFieldOptions = getMustConditionFieldOptions()
   const anyConditionFieldOptions = getAnyConditionFieldOptions()
-  const sourceOptions = getSourceOptions()
 
   useEffect(() => {
     if (!open) {
@@ -121,6 +123,11 @@ export function FilterRuleBuilderDialog({
       return
     }
 
+    if (!filter.sourceIds.length) {
+      setError(i18n.t("options.filters.dialog.sourceRequired"))
+      return
+    }
+
     const conditions = [...filter.must, ...filter.any]
     if (conditions.some((condition) => !condition.value.trim())) {
       setError(i18n.t("options.filters.dialog.conditionValueRequired"))
@@ -130,6 +137,7 @@ export function FilterRuleBuilderDialog({
     onSave({
       ...filter,
       name: filter.name.trim(),
+      sourceIds: [...filter.sourceIds],
       must: filter.must.map(normalizeConditionValue),
       any: filter.any.map(normalizeTextConditionValue)
     })
@@ -178,6 +186,27 @@ export function FilterRuleBuilderDialog({
             />
           </div>
 
+          <SiteSelectionSection
+            sourceIds={filter.sourceIds}
+            onToggleSource={(sourceId) => {
+              setError("")
+              setFilter((current) => {
+                const hasSource = current.sourceIds.includes(sourceId)
+                if (hasSource && current.sourceIds.length === 1) {
+                  setError(i18n.t("options.filters.dialog.sourceRequired"))
+                  return current
+                }
+
+                return {
+                  ...current,
+                  sourceIds: hasSource
+                    ? current.sourceIds.filter((currentId) => currentId !== sourceId)
+                    : [...current.sourceIds, sourceId]
+                }
+              })
+            }}
+          />
+
           <ConditionSection
             title={i18n.t("options.filters.mustTitle")}
             labelPrefix={i18n.t("options.filters.mustPrefix")}
@@ -208,6 +237,9 @@ export function FilterRuleBuilderDialog({
 
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
             <p className="text-sm font-medium text-zinc-900">{i18n.t("options.filters.dialog.currentSummary")}</p>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">
+              {i18n.t("options.filters.dialog.sourceSummary", [summarizeSourceIds(filter.sourceIds)])}
+            </p>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
               {i18n.t("options.filters.dialog.mustSummary", [summarizeConditionList(filter.must)])}
             </p>
@@ -329,33 +361,14 @@ function ConditionSection({
 
                   <div className="space-y-1">
                     <Label className="text-xs text-zinc-500">
-                      {condition.field === "source"
-                        ? i18n.t("options.filters.field.source")
-                        : i18n.t("options.filters.dialog.fieldValueLabel", [getConditionFieldLabel(condition.field)])}
+                      {i18n.t("options.filters.dialog.fieldValueLabel", [getConditionFieldLabel(condition.field)])}
                     </Label>
-                    {condition.field === "source" ? (
-                      <Select
-                        value={condition.value}
-                        onValueChange={(value: string) => onValueChange(condition.id, value)}>
-                        <SelectTrigger aria-label={i18n.t("options.filters.dialog.valueAriaLabel", [labelPrefix, index + 1])}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sourceOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        aria-label={i18n.t("options.filters.dialog.valueAriaLabel", [labelPrefix, index + 1])}
-                        value={condition.value}
-                        onChange={(event) => onValueChange(condition.id, event.target.value)}
-                        placeholder={i18n.t("options.filters.dialog.valuePlaceholder", [getConditionFieldLabel(condition.field)])}
-                      />
-                    )}
+                    <Input
+                      aria-label={i18n.t("options.filters.dialog.valueAriaLabel", [labelPrefix, index + 1])}
+                      value={condition.value}
+                      onChange={(event) => onValueChange(condition.id, event.target.value)}
+                      placeholder={i18n.t("options.filters.dialog.valuePlaceholder", [getConditionFieldLabel(condition.field)])}
+                    />
                   </div>
                 </div>
 
@@ -380,14 +393,51 @@ function ConditionSection({
   )
 }
 
-function normalizeConditionValue(condition: FilterWorkbenchCondition): FilterWorkbenchCondition {
-  if (condition.field === "source") {
-    return {
-      ...condition,
-      value: condition.value
-    }
-  }
+type SiteSelectionSectionProps = {
+  sourceIds: FilterWorkbenchFilter["sourceIds"]
+  onToggleSource: (sourceId: FilterWorkbenchFilter["sourceIds"][number]) => void
+}
 
+function SiteSelectionSection({ sourceIds, onToggleSource }: SiteSelectionSectionProps) {
+  const sourceOptions = getSourceOptions()
+
+  return (
+    <section className="space-y-4" data-testid="filter-source-selection">
+      <div>
+        <h3 className="text-sm font-semibold text-zinc-900">{i18n.t("options.filters.dialog.sourceTitle")}</h3>
+        <p className="mt-1 text-sm text-zinc-500">{i18n.t("options.filters.dialog.sourceDescription")}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {sourceOptions.map((option) => {
+          const selected = sourceIds.includes(option.value)
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              data-testid={`filter-source-tag-${option.value}`}
+              aria-pressed={selected}
+              onClick={() => onToggleSource(option.value)}
+              className={[
+                "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                selected
+                  ? "border-blue-200 bg-blue-50 text-blue-700"
+                  : "border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
+              ].join(" ")}>
+              {getSourceLabel(option.value)}
+            </button>
+          )
+        })}
+      </div>
+      <div className="flex items-center gap-2 text-xs text-zinc-500">
+        <Badge variant="muted">{i18n.t("options.filters.dialog.sourceCount", [sourceIds.length])}</Badge>
+        <span>{i18n.t("options.filters.dialog.sourceHint")}</span>
+      </div>
+    </section>
+  )
+}
+
+function normalizeConditionValue(condition: FilterWorkbenchCondition): FilterWorkbenchCondition {
   return {
     ...condition,
     value: condition.value.trim()

@@ -103,6 +103,7 @@
       "conditionValueRequired": "Enter a condition value",
       "filterIdRequired": "Filter ID is required",
       "filterNameRequired": "Enter a filter name",
+      "filterSourceRequired": "Select at least one source site",
       "filterMustConditionRequired": "Add at least one required condition",
       "minValue": "Minimum value is $1",
       "maxValue": "Maximum value is $1",
@@ -397,11 +398,9 @@
       "anyPrefix": "Any",
       "field": {
         "title": "Title",
-        "subgroup": "Subgroup",
-        "source": "Source"
+        "subgroup": "Subgroup"
       },
       "summary": {
-        "sourceIs": "Source is $1",
         "contains": "$1 contains \"$2\"",
         "unset": "Not configured."
       },
@@ -412,6 +411,12 @@
         "close": "Close filter panel",
         "nameLabel": "Filter name",
         "namePlaceholder": "For example: Ailian 1080 SC",
+        "sourceTitle": "Applies to sites",
+        "sourceDescription": "Choose which sites this filter should apply to.",
+        "sourceSummary": "Applies to: $1",
+        "sourceRequired": "Select at least one source site",
+        "sourceCount": "$1 site(s) selected",
+        "sourceHint": "New filters default to all sites, and at least one must remain selected.",
         "fieldLabel": "Field",
         "fieldValueLabel": "$1 value",
         "fieldAriaLabel": "$1 condition field $2",

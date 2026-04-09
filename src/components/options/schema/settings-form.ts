@@ -5,8 +5,6 @@ import { DEFAULT_SETTINGS, sanitizeSettings } from "../../../lib/settings"
 import type {
   DeliveryMode,
   DownloaderId,
-  FilterConditionField,
-  FilterConditionOperator,
   Settings,
   SourceId
 } from "../../../lib/shared/types"
@@ -37,15 +35,9 @@ const downloaderBaseUrlSchema = z
 const textConditionFieldSchema = z.enum([
   "title",
   "subgroup"
-] satisfies Array<Extract<FilterConditionField, "title" | "subgroup">>)
+])
 
-const textConditionOperatorSchema = z.literal(
-  "contains" satisfies Extract<FilterConditionOperator, "contains">
-)
-
-const sourceConditionOperatorSchema = z.literal(
-  "is" satisfies Extract<FilterConditionOperator, "is">
-)
+const textConditionOperatorSchema = z.literal("contains")
 
 const textConditionSchema = z.object({
   id: z.string().trim().min(1, i18n.t("options.validation.conditionIdRequired")),
@@ -54,26 +46,13 @@ const textConditionSchema = z.object({
   value: z.string().trim().min(1, i18n.t("options.validation.conditionValueRequired"))
 })
 
-const sourceConditionSchema = z.object({
-  id: z.string().trim().min(1, i18n.t("options.validation.conditionIdRequired")),
-  field: z.literal("source"),
-  operator: sourceConditionOperatorSchema,
-  value: sourceIdSchema
-})
-
-const filterConditionSchema = z.union([
-  textConditionSchema,
-  sourceConditionSchema
-])
-
-const filterAnyConditionSchema = textConditionSchema
-
 const filterSchema = z.object({
   id: z.string().trim().min(1, i18n.t("options.validation.filterIdRequired")),
   name: z.string().trim().min(1, i18n.t("options.validation.filterNameRequired")),
   enabled: z.boolean(),
-  must: z.array(filterConditionSchema).min(1, i18n.t("options.validation.filterMustConditionRequired")),
-  any: z.array(filterAnyConditionSchema)
+  sourceIds: z.array(sourceIdSchema).min(1, i18n.t("options.validation.filterSourceRequired")),
+  must: z.array(textConditionSchema).min(1, i18n.t("options.validation.filterMustConditionRequired")),
+  any: z.array(textConditionSchema)
 })
 
 export const settingsFormSchema = z.object({

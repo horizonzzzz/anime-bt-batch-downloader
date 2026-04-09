@@ -169,41 +169,19 @@ export function matchesCondition(
 ): ConditionMatchResult {
   const targetValue = getConditionTargetValue(condition.field, context)
 
-  if (condition.operator === "is") {
-    return {
-      matched: targetValue.toLowerCase() === condition.value.toLowerCase()
-    }
-  }
-
   return {
     matched: targetValue.toLowerCase().includes(condition.value.toLowerCase())
   }
 }
 
 function isFilterEffectiveForSource(filter: FilterEntry, sourceId: SourceId) {
-  const sourceMustConditions = filter.must.filter(
-    (condition): condition is Extract<FilterCondition, { field: "source" }> =>
-      condition.field === "source"
-  )
-
-  if (
-    sourceMustConditions.length &&
-    !sourceMustConditions.every((condition) => condition.value === sourceId)
-  ) {
-    return false
-  }
-
-  return true
+  return filter.sourceIds.includes(sourceId)
 }
 
 function getConditionTargetValue(
   field: FilterCondition["field"],
   context: FilterMatchContext
 ): string {
-  if (field === "source") {
-    return context.sourceId
-  }
-
   if (field === "subgroup") {
     return context.subgroup
   }

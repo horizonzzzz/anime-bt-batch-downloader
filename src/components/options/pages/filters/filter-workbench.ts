@@ -15,6 +15,7 @@ export type FilterWorkbenchFilter = {
   id: string
   name: string
   enabled: boolean
+  sourceIds: FilterWorkbenchSourceId[]
   must: FilterWorkbenchCondition[]
   any: FilterWorkbenchTextCondition[]
 }
@@ -57,8 +58,7 @@ export function getMustConditionFieldOptions(): Array<{
 }> {
   return [
     { value: "title", label: i18n.t("options.filters.field.title") },
-    { value: "subgroup", label: i18n.t("options.filters.field.subgroup") },
-    { value: "source", label: i18n.t("options.filters.field.source") }
+    { value: "subgroup", label: i18n.t("options.filters.field.subgroup") }
   ]
 }
 
@@ -79,15 +79,6 @@ export function createWorkbenchId(prefix: string) {
 export function createCondition(
   field: FilterWorkbenchCondition["field"] = "title"
 ): FilterWorkbenchCondition {
-  if (field === "source") {
-    return {
-      id: createWorkbenchId("condition"),
-      field: "source",
-      operator: "is",
-      value: "kisssub"
-    }
-  }
-
   return {
     id: createWorkbenchId("condition"),
     field,
@@ -104,6 +95,7 @@ export function createFilterDraft(
       id: createWorkbenchId("filter"),
       name: "",
       enabled: true,
+      sourceIds: VALID_WORKBENCH_SOURCE_IDS,
       must: [createCondition("title")],
       any: []
     }
@@ -111,6 +103,7 @@ export function createFilterDraft(
 
   return {
     ...filter,
+    sourceIds: [...filter.sourceIds],
     must: filter.must.map((condition) => ({ ...condition })),
     any: filter.any.map((condition) => ({ ...condition }))
   }
@@ -121,6 +114,7 @@ export function createAilian1080SimplifiedChineseFilter(): FilterWorkbenchFilter
     id: createWorkbenchId("filter"),
     name: "爱恋 1080 简中",
     enabled: true,
+    sourceIds: VALID_WORKBENCH_SOURCE_IDS,
     must: [
       {
         id: createWorkbenchId("condition"),
@@ -146,10 +140,6 @@ export function createAilian1080SimplifiedChineseFilter(): FilterWorkbenchFilter
 }
 
 export function summarizeCondition(condition: FilterWorkbenchCondition) {
-  if (condition.field === "source") {
-    return i18n.t("options.filters.summary.sourceIs", [getSourceLabel(condition.value)])
-  }
-
   return i18n.t("options.filters.summary.contains", [
     getConditionFieldLabel(condition.field),
     condition.value || "..."
@@ -170,6 +160,14 @@ export function getConditionFieldLabel(
   return getMustConditionFieldOptions().find((item) => item.value === field)?.label ?? field
 }
 
+export function summarizeSourceIds(sourceIds: FilterWorkbenchSourceId[]) {
+  if (!sourceIds.length) {
+    return i18n.t("options.filters.summary.unset")
+  }
+
+  return sourceIds.map(getSourceLabel).join("、")
+}
+
 export function getSourceLabel(source: FilterWorkbenchSourceId) {
   return getSourceOptions().find((item) => item.value === source)?.label ?? source
 }
@@ -178,22 +176,20 @@ export function normalizeConditionField(
   field: FilterWorkbenchCondition["field"],
   condition: FilterWorkbenchCondition
 ): FilterWorkbenchCondition {
-  if (field === "source") {
-    return {
-      id: condition.id,
-      field: "source",
-      operator: "is",
-      value: "kisssub"
-    }
-  }
-
   return {
     id: condition.id,
     field,
     operator: "contains",
-    value: condition.field === "source" ? "" : condition.value
+    value: condition.value
   }
 }
+
+const VALID_WORKBENCH_SOURCE_IDS: FilterWorkbenchSourceId[] = [
+  "kisssub",
+  "dongmanhuayuan",
+  "acgrip",
+  "bangumimoe"
+]
 
 export function runWorkbenchTest(
   input: FilterWorkbenchTestInput,

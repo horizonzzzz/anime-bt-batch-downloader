@@ -198,14 +198,15 @@ describe("options settings form helpers", () => {
     expect(
       createSettingsFormDefaults({
         filters: [
-          {
-            id: "filter-1",
-            name: "爱恋 1080 简繁",
-            enabled: true,
-            must: [
-              {
-                id: "condition-1",
-                field: "subgroup",
+        {
+          id: "filter-1",
+          name: "爱恋 1080 简繁",
+          enabled: true,
+          sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
+          must: [
+            {
+              id: "condition-1",
+              field: "subgroup",
                 operator: "contains",
                 value: "爱恋字幕社"
               }
@@ -226,6 +227,7 @@ describe("options settings form helpers", () => {
         id: "filter-1",
         name: "爱恋 1080 简繁",
         enabled: true,
+        sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
         must: [
           {
             id: "condition-1",
@@ -254,6 +256,7 @@ describe("options settings form helpers", () => {
             id: "filter-1",
             name: "空筛选器",
             enabled: true,
+            sourceIds: ["kisssub"],
             must: [],
             any: []
           }
@@ -270,6 +273,7 @@ describe("options settings form helpers", () => {
           id: "filter-1",
           name: "空筛选器",
           enabled: true,
+          sourceIds: ["kisssub"],
           must: [],
           any: []
         }
@@ -279,20 +283,21 @@ describe("options settings form helpers", () => {
     expect(result.success).toBe(false)
   })
 
-  it("rejects source conditions without a supported source id", () => {
+  it("rejects filters without any selected source ids", () => {
     const result = settingsFormSchema.safeParse({
       ...createSettingsFormDefaults(),
       filters: [
         {
           id: "filter-1",
-          name: "非法站点",
+          name: "未选择站点",
           enabled: true,
+          sourceIds: [],
           must: [
             {
               id: "condition-1",
-              field: "source",
-              operator: "is",
-              value: "invalid-source"
+              field: "title",
+              operator: "contains",
+              value: "1080"
             }
           ],
           any: []
@@ -303,14 +308,15 @@ describe("options settings form helpers", () => {
     expect(result.success).toBe(false)
   })
 
-  it("rejects source conditions inside any clauses", () => {
+  it("rejects source ids outside the supported site list", () => {
     const result = settingsFormSchema.safeParse({
       ...createSettingsFormDefaults(),
       filters: [
         {
           id: "filter-1",
-          name: "Bangumi 任一",
+          name: "非法站点",
           enabled: true,
+          sourceIds: ["invalid-source"],
           must: [
             {
               id: "condition-1",
@@ -319,14 +325,32 @@ describe("options settings form helpers", () => {
               value: "1080"
             }
           ],
-          any: [
+          any: []
+        }
+      ]
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects legacy source conditions inside must clauses", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      filters: [
+        {
+          id: "filter-1",
+          name: "Bangumi 旧规则",
+          enabled: true,
+          sourceIds: ["bangumimoe"],
+          must: [
             {
               id: "condition-2",
               field: "source",
               operator: "is",
               value: "bangumimoe"
-            }
-          ]
+            } as never
+          ],
+          any: []
         }
       ]
     })

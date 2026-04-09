@@ -17,7 +17,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `Site Configuration`
   - `Filter Rules`
     - rendered as a simplified filter workspace backed by persisted `filters`
-    - each filter uses two levels of conditions: `must[]` for conditions that all need to match, and optional `any[]` for conditions where at least one must match
+    - each filter stores `sourceIds[]` as a required site scope plus two levels of text conditions: `must[]` for conditions that all need to match, and optional `any[]` for conditions where at least one must match
     - page interactions write through the shared settings form, and the quick test bench exercises the same include-only filter engine used by the runtime
   - `Batch History`
   - `Source Overview`
@@ -38,8 +38,8 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `options.html#/overview`
 - Supported downloader targets: `qBittorrent WebUI` and `Transmission RPC`
 - Optional per-batch save path override is supported
-- Pre-submit filters can keep resources by source field, title field, and subgroup text extracted from the list-page title
-- When the current source has effective filters (global rules plus rules targeting that source), unmatched resources are blocked; when the current source has no effective filters, resources are allowed by default
+- Pre-submit filters can keep resources by selected source scope, title field, and subgroup text extracted from the list-page title
+- When the current source has effective filters (rules whose `sourceIds[]` include that source), unmatched resources are blocked; when the current source has no effective filters, resources are allowed by default
 - Magnet links are preferred; torrent URLs are the fallback
 - `kisssub.org` detail-page extraction primes the site's helper cookies and reloads the hidden detail tab once when a fresh page still shows `开启虫洞`, so the first item in a cold batch can resolve like later items
 - Each supported source can be enabled or disabled by the user:

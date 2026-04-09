@@ -14,16 +14,6 @@ import type {
 function createCondition(
   overrides: Partial<FilterCondition> = {}
 ): FilterCondition {
-  if (overrides.field === "source") {
-    return {
-      id: "condition-1",
-      field: "source",
-      operator: "is",
-      value: "kisssub",
-      ...overrides
-    } as FilterCondition
-  }
-
   return {
     id: "condition-1",
     field: "title",
@@ -40,6 +30,7 @@ function createFilter(
     id: "filter-1",
     name: "保留 1080p",
     enabled: true,
+    sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
     must: [createCondition()],
     any: [],
     ...overrides
@@ -47,25 +38,6 @@ function createFilter(
 }
 
 describe("matchesCondition", () => {
-  it("supports source equality conditions", () => {
-    expect(
-      matchesCondition(
-        createCondition({
-          field: "source",
-          operator: "is",
-          value: "kisssub"
-        }),
-        {
-          sourceId: "kisssub",
-          title: "Episode 01",
-          subgroup: ""
-        }
-      )
-    ).toEqual({
-      matched: true
-    })
-  })
-
   it("matches title contains conditions case-insensitively", () => {
     expect(
       matchesCondition(createCondition({ value: "raw" }), {
@@ -169,26 +141,14 @@ describe("deriveEffectiveFilterSummary", () => {
         createFilter({
           id: "site-filter",
           name: "Bangumi 专用",
-          must: [
-            createCondition({
-              id: "condition-2",
-              field: "source",
-              operator: "is",
-              value: "bangumimoe"
-            })
-          ]
+          sourceIds: ["bangumimoe"],
+          must: [createCondition({ field: "title", value: "1080" })]
         }),
         createFilter({
           id: "other-site-filter",
           name: "Kisssub 专用",
-          must: [
-            createCondition({
-              id: "condition-3",
-              field: "source",
-              operator: "is",
-              value: "kisssub"
-            })
-          ]
+          sourceIds: ["kisssub"],
+          must: [createCondition({ field: "title", value: "1080" })]
         })
       ]
     })
@@ -209,14 +169,8 @@ describe("deriveEffectiveFilterSummary", () => {
           createFilter({
             id: "site-filter",
             name: "Bangumi 专用",
-            must: [
-              createCondition({
-                id: "condition-2",
-                field: "source",
-                operator: "is",
-                value: "bangumimoe"
-              })
-            ]
+            sourceIds: ["bangumimoe"],
+            must: [createCondition({ field: "title", value: "1080" })]
           })
         ]
       })
@@ -227,29 +181,16 @@ describe("deriveEffectiveFilterSummary", () => {
     })
   })
 
-  it("does not treat source conditions in any clauses as site scoping when deriving effective filters", () => {
+  it("keeps multi-site filters effective for each included source", () => {
     expect(
       deriveEffectiveFilterSummary({
         sourceId: "kisssub",
         filters: [
           createFilter({
-            id: "bangumi-any",
-            name: "Bangumi 任一来源",
-            must: [
-              createCondition({
-                id: "condition-title",
-                field: "title",
-                value: "1080"
-              })
-            ],
-            any: [
-              createCondition({
-                id: "condition-source",
-                field: "source",
-                operator: "is",
-                value: "bangumimoe"
-              })
-            ]
+            id: "kisssub-bangumi",
+            name: "Kisssub 与 Bangumi",
+            sourceIds: ["kisssub", "bangumimoe"],
+            must: [createCondition({ id: "condition-title", field: "title", value: "1080" })]
           })
         ]
       })
@@ -257,6 +198,40 @@ describe("deriveEffectiveFilterSummary", () => {
       effectiveCount: 1,
       hasEnabledFilters: true,
       emptyStateReason: null
+    })
+  })
+
+  it("does not infer site scope from legacy source conditions when sourceIds are missing", () => {
+    expect(
+      deriveEffectiveFilterSummary({
+        sourceId: "bangumimoe",
+        filters: [
+          {
+            id: "legacy-filter",
+            name: "旧 Bangumi 规则",
+            enabled: true,
+            sourceIds: [],
+            must: [
+              {
+                id: "condition-source",
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              } as never,
+              createCondition({
+                id: "condition-title",
+                field: "title",
+                value: "1080"
+              })
+            ],
+            any: []
+          } as never
+        ]
+      })
+    ).toMatchObject({
+      effectiveCount: 0,
+      hasEnabledFilters: true,
+      emptyStateReason: "no-filters-for-source"
     })
   })
 })
@@ -285,13 +260,8 @@ describe("decideFilterAction", () => {
         createFilter({
           id: "bangumi-only",
           name: "Bangumi 专用",
+          sourceIds: ["bangumimoe"],
           must: [
-            createCondition({
-              id: "condition-source",
-              field: "source",
-              operator: "is",
-              value: "bangumimoe"
-            }),
             createCondition({
               id: "condition-title",
               field: "title",
@@ -310,27 +280,20 @@ describe("decideFilterAction", () => {
     expect(result.trace[result.trace.length - 1]).toContain("默认放行")
   })
 
-  it("does not use any-clause source conditions to scope filters to a site", () => {
+  it("blocks items when the current source is included but text conditions do not match", () => {
     const result = decideFilterAction({
       sourceId: "acgrip",
       title: "[LoliHouse] Summer Pockets 01 [1080p]",
       filters: [
         createFilter({
-          id: "bangumi-any",
-          name: "Bangumi 1080",
+          id: "acgrip-filter",
+          name: "ACG.RIP 喵萌",
+          sourceIds: ["acgrip", "bangumimoe"],
           must: [
             createCondition({
-              id: "condition-title",
-              field: "title",
-              value: "1080"
-            })
-          ],
-          any: [
-            createCondition({
-              id: "condition-source",
-              field: "source",
-              operator: "is",
-              value: "bangumimoe"
+              id: "condition-subgroup",
+              field: "subgroup",
+              value: "喵萌奶茶屋"
             })
           ]
         })

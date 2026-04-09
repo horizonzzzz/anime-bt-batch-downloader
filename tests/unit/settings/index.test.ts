@@ -198,6 +198,7 @@ describe("sanitizeSettings", () => {
         id: "filter-1",
         name: "爱恋 1080 简繁",
         enabled: true,
+        sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
         must: [
           {
             id: "condition-1",
@@ -244,13 +245,7 @@ describe("sanitizeSettings", () => {
                 field: "source",
                 operator: "is",
                 value: "kisssub"
-              },
-              {
-                id: "condition-invalid",
-                field: "title",
-                operator: "is",
-                value: "1080p"
-              } as never
+              }
             ],
             any: [
               {
@@ -270,32 +265,10 @@ describe("sanitizeSettings", () => {
           }
         ]
       }).filters
-    ).toEqual([
-      {
-        id: "filter-valid",
-        name: "保留 Kisssub 1080",
-        enabled: true,
-        must: [
-          {
-            id: "condition-valid",
-            field: "source",
-            operator: "is",
-            value: "kisssub"
-          }
-        ],
-        any: [
-          {
-            id: "condition-any",
-            field: "title",
-            operator: "contains",
-            value: "1080p"
-          }
-        ]
-      }
-    ])
+    ).toEqual([])
   })
 
-  it("drops source conditions from any clauses during sanitization", () => {
+  it("drops legacy source conditions from any clauses instead of migrating them", () => {
     expect(
       sanitizeSettings({
         filters: [
@@ -328,29 +301,114 @@ describe("sanitizeSettings", () => {
           }
         ]
       }).filters
+    ).toEqual([])
+  })
+
+  it("defaults filters without legacy source conditions to all supported sites", () => {
+    expect(
+      sanitizeSettings({
+        filters: [
+          {
+            id: "filter-global",
+            name: "全站 1080",
+            enabled: true,
+            must: [
+              {
+                id: "condition-title",
+                field: "title",
+                operator: "contains",
+                value: "1080"
+              }
+            ],
+            any: []
+          }
+        ]
+      }).filters
     ).toEqual([
       {
-        id: "filter-valid",
-        name: "保留 Bangumi 1080",
+        id: "filter-global",
+        name: "全站 1080",
         enabled: true,
+        sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
         must: [
           {
-            id: "condition-must",
-            field: "source",
-            operator: "is",
-            value: "bangumimoe"
-          }
-        ],
-        any: [
-          {
-            id: "condition-any-title",
+            id: "condition-title",
             field: "title",
             operator: "contains",
             value: "1080"
           }
-        ]
+        ],
+        any: []
       }
     ])
+  })
+
+  it("does not migrate legacy source conditions into sourceIds when explicit sourceIds are missing", () => {
+    expect(
+      sanitizeSettings({
+        filters: [
+          {
+            id: "filter-legacy-source-scope",
+            name: "旧 Bangumi 1080",
+            enabled: true,
+            must: [
+              {
+                id: "condition-source",
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              },
+              {
+                id: "condition-title",
+                field: "title",
+                operator: "contains",
+                value: "1080"
+              }
+            ],
+            any: []
+          }
+        ]
+      }).filters
+    ).toEqual([
+      {
+        id: "filter-legacy-source-scope",
+        name: "旧 Bangumi 1080",
+        enabled: true,
+        sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
+        must: [
+          {
+            id: "condition-title",
+            field: "title",
+            operator: "contains",
+            value: "1080"
+          }
+        ],
+        any: []
+      }
+    ])
+  })
+
+  it("drops filters when removing legacy source conditions leaves no must conditions", () => {
+    expect(
+      sanitizeSettings({
+        filters: [
+          {
+            id: "filter-source-only",
+            name: "仅 Bangumi",
+            enabled: true,
+            must: [
+              {
+                id: "condition-source",
+                field: "source",
+                operator: "is",
+                value: "bangumimoe"
+              }
+            ],
+            any: []
+          }
+        ]
+      }).filters
+    ).toEqual([])
   })
 
   it("drops legacy filterGroups data instead of migrating it", () => {

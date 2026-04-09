@@ -13,7 +13,7 @@ const supportedSiteFixtures = [
   {
     url: "https://www.kisssub.org/list-test.html",
     fixtureName: "kisssub-list.html",
-    title: "Kisssub 批量下载"
+    title: "Kisssub 爱恋动漫 批量下载"
   },
   {
     url: "https://www.dongmanhuayuan.com/",
@@ -381,7 +381,7 @@ test("filters page shows the simplified list and quick-test layout", async () =>
   }
 })
 
-test("filter builder select controls stay interactable inside the sheet", async () => {
+test("filter builder site tags stay interactable inside the sheet", async () => {
   const extension = await launchExtensionContext()
 
   try {
@@ -392,14 +392,13 @@ test("filter builder select controls stay interactable inside the sheet", async 
 
     await page.getByRole("button", { name: "新增筛选器" }).click()
 
-    await page.getByLabel("必须条件字段 1").click()
-    await page.getByRole("option", { name: "站点" }).click()
+    await page.getByTestId("filter-source-tag-kisssub").click()
+    await page.getByTestId("filter-source-tag-dongmanhuayuan").click()
+    await page.getByTestId("filter-source-tag-acgrip").click()
 
-    await page.getByLabel("必须条件值 1").click()
-    await page.getByRole("option", { name: "Bangumi.moe" }).click()
-
-    await expect(page.getByLabel("必须条件值 1")).toContainText("Bangumi.moe")
-    await expect(page.getByText(/必须满足：站点是 Bangumi\.moe/)).toBeVisible()
+    await expect(page.getByTestId("filter-source-tag-bangumimoe")).toHaveAttribute("aria-pressed", "true")
+    await expect(page.getByText("已选 1 个站点")).toBeVisible()
+    await expect(page.getByText(/适用站点：Bangumi\.moe/)).toBeVisible()
 
     await page.close()
   } finally {
@@ -445,7 +444,7 @@ test("content script injects the batch panel on a Kisssub list page", async () =
     await assertBatchPanelInjection(extension, {
       url: "https://www.kisssub.org/list-test.html",
       fixtureName: "kisssub-list.html",
-      title: "Kisssub 批量下载"
+      title: "Kisssub 爱恋动漫 批量下载"
     })
   } finally {
     await extension.close()
