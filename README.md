@@ -17,6 +17,7 @@ Built with `WXT + React 19 + TypeScript`, the project is organized around source
 - Submit selected items to the active downloader in one batch
 - Supported downloaders: `qBittorrent WebUI` and `Transmission RPC`
 - Optionally override the active downloader's download path for the current batch
+- UI copy follows the browser UI language automatically; there is no manual language switch inside the extension
 
 ## Supported Sources
 
@@ -63,7 +64,7 @@ pnpm build
    - `qBittorrent WebUI` URL
    - username
    - password
-4. Use `测试 qB 连接` to verify connectivity
+4. Use the connection test action to verify connectivity
 
 Default local URL example:
 
@@ -84,7 +85,7 @@ If qBittorrent is only used on the local machine and the extension still receive
    - `Transmission RPC` URL
    - username
    - password
-4. Use `测试 Transmission 连接` to verify connectivity
+4. Use the connection test action to verify connectivity
 
 Default local URL example:
 
@@ -97,7 +98,7 @@ http://127.0.0.1:9091/transmission/rpc
 1. Open a supported source list page
 2. Select the posts you want
 3. Optionally enter a per-batch save path in the floating panel
-4. Click `批量下载`
+4. Click `Batch download`
 
 The extension will then:
 

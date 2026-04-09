@@ -334,7 +334,7 @@
         "failureCount": "$1 item(s)",
         "itemDetails": "Item details",
         "viewSource": "View on source site",
-        "duplicateMessage": "This item already exists in qBittorrent and was skipped"
+        "duplicateMessage": "This item already exists in the downloader and was skipped"
       },
       "failure": {
         "parse_error": {
@@ -348,8 +348,8 @@
           "suggestion": "Retry later or check your network connection."
         },
         "qb_error": {
-          "label": "qB returned an error",
-          "desc": "qBittorrent rejected the add request.",
+          "label": "Downloader returned an error",
+          "desc": "The current downloader rejected the add request.",
           "suggestion": "Check the WebUI connection, settings, or available disk space."
         },
         "network_error": {
@@ -359,7 +359,7 @@
         },
         "filtered_out": {
           "label": "Blocked by filters",
-          "desc": "This item was blocked by the backend filter fallback and never entered the qBittorrent submission flow.",
+          "desc": "This item was blocked by the backend filter fallback and never entered the downloader submission flow.",
           "suggestion": "If you want to keep it, adjust the filters and restart the batch from the source page."
         },
         "unknown": {
@@ -475,8 +475,8 @@
       "startFailed": "Failed to start the batch download task.",
       "preparingWithCustomPath": "Preparing $1 item(s). They will be sent to the custom path shortly.",
       "preparingWithDefaultPath": "Preparing $1 item(s). They will be sent to the downloader default directory shortly.",
-      "submitting": "Submitting to qBittorrent.",
-      "submittingPrepared": "Submitting to qBittorrent. $1 item(s) are queued.",
+      "submitting": "Submitting to the current downloader.",
+      "submittingPrepared": "Submitting to the current downloader. $1 item(s) are queued.",
       "completed": "Done. Submitted $1 item(s), skipped $2 duplicate(s), failed $3 item(s).",
       "failed": "The batch task failed.",
       "savePathHint": "The downloader will be asked to save this batch to: $1",

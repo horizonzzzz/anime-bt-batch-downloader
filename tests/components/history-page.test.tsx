@@ -7,6 +7,21 @@ import { HistoryListView } from "../../src/components/options/pages/history/Hist
 import { HistoryDetailView } from "../../src/components/options/pages/history/HistoryDetailView"
 import { HistoryPage } from "../../src/components/options/pages/history/HistoryPage"
 
+function formatExpectedDate(locale: string, isoString: string) {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date(isoString))
+}
+
+function formatExpectedTime(locale: string, isoString: string) {
+  return new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(isoString))
+}
+
 function createMockRecord(id: string, overrides?: Partial<TaskHistoryRecord>): TaskHistoryRecord {
   return {
     id,
@@ -108,6 +123,24 @@ describe("HistoryListView", () => {
     expect(screen.getByText("1 失败")).toBeInTheDocument()
   })
 
+  it("renders English locale history list copy and timestamps when the browser locale is English", () => {
+    ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"
+    const createdAt = "2026-01-01T10:00:00Z"
+    const records = [
+      createMockRecord("batch-1", {
+        createdAt
+      })
+    ]
+
+    render(<HistoryListView records={records} onViewDetail={vi.fn()} onRefresh={vi.fn()} />)
+
+    expect(screen.getByText("Latest")).toBeInTheDocument()
+    expect(screen.getByText("Kisssub")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Details" })).toBeInTheDocument()
+    expect(screen.getByText(formatExpectedDate("en", createdAt))).toBeInTheDocument()
+    expect(screen.getByText(formatExpectedTime("en", createdAt))).toBeInTheDocument()
+  })
+
   it("calls onViewDetail when detail button clicked", async () => {
     const user = userEvent.setup()
     const onViewDetail = vi.fn()
@@ -185,7 +218,38 @@ describe("HistoryDetailView", () => {
     expect(screen.getByText("Duplicate Item")).toBeInTheDocument()
     expect(screen.getByText("Failed Item")).toBeInTheDocument()
     expect(screen.getByText("qB rejected")).toBeInTheDocument()
-    expect(screen.getByText("该条目已在 qBittorrent 中存在，跳过提交")).toBeInTheDocument()
+    expect(screen.getByText("该条目已在当前下载器中存在，跳过提交")).toBeInTheDocument()
+  })
+
+  it("renders English locale history detail copy and timestamps when the browser locale is English", () => {
+    ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"
+    const createdAt = "2026-01-01T10:00:00Z"
+    const record = createMockRecord("batch-1", {
+      createdAt,
+      status: "partial_failure",
+      stats: { total: 2, success: 0, duplicated: 1, failed: 1 },
+      items: [
+        createMockItem("item-1", { status: "duplicate", title: "Duplicate Item" }),
+        createMockItem("item-2", {
+          status: "failed",
+          title: "Failed Item",
+          failure: {
+            reason: "qb_error",
+            message: "Rejected by downloader",
+            retryable: true,
+            retryCount: 0
+          }
+        })
+      ]
+    })
+
+    renderHistoryDetail(record, "transmission")
+
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument()
+    expect(screen.getByText("Partial failure")).toBeInTheDocument()
+    expect(screen.getByText("Kisssub")).toBeInTheDocument()
+    expect(screen.getByText("Downloader returned an error")).toBeInTheDocument()
+    expect(screen.getByText("This item already exists in the downloader and was skipped")).toBeInTheDocument()
   })
 
   it("shows failure summary section when there are failures", () => {
@@ -202,7 +266,7 @@ describe("HistoryDetailView", () => {
     renderHistoryDetail(record)
     
     expect(screen.getByText("失败原因汇总")).toBeInTheDocument()
-    expect(screen.getByText("qB 返回错误")).toBeInTheDocument()
+    expect(screen.getByText("下载器返回错误")).toBeInTheDocument()
     expect(screen.getByText("详情页超时")).toBeInTheDocument()
   })
 

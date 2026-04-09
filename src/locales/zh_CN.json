@@ -334,7 +334,7 @@
         "failureCount": "$1 条",
         "itemDetails": "条目详情",
         "viewSource": "在源站查看详情",
-        "duplicateMessage": "该条目已在 qBittorrent 中存在，跳过提交"
+        "duplicateMessage": "该条目已在当前下载器中存在，跳过提交"
       },
       "failure": {
         "parse_error": {
@@ -348,8 +348,8 @@
           "suggestion": "建议稍后重试，或检查网络连接。"
         },
         "qb_error": {
-          "label": "qB 返回错误",
-          "desc": "qBittorrent 拒绝了添加请求。",
+          "label": "下载器返回错误",
+          "desc": "当前下载器拒绝了添加请求。",
           "suggestion": "检查 WebUI 连接、参数设置或磁盘空间。"
         },
         "network_error": {
@@ -359,7 +359,7 @@
         },
         "filtered_out": {
           "label": "筛选规则拦截",
-          "desc": "该条目被后台筛选兜底拦截，没有进入 qBittorrent 提交流程。",
+          "desc": "该条目被后台筛选兜底拦截，没有进入下载器提交流程。",
           "suggestion": "如需保留该条目，请调整筛选规则后回到源页面重新发起批量。"
         },
         "unknown": {
@@ -475,8 +475,8 @@
       "startFailed": "无法启动批量下载任务。",
       "preparingWithCustomPath": "正在整理 $1 项资源，稍后将发送到自定义目录。",
       "preparingWithDefaultPath": "正在整理 $1 项资源，稍后将发送到下载器默认目录。",
-      "submitting": "正在提交到 qBittorrent。",
-      "submittingPrepared": "正在提交到 qBittorrent，当前共有 $1 项待发送。",
+      "submitting": "正在提交到当前下载器。",
+      "submittingPrepared": "正在提交到当前下载器，当前共有 $1 项待发送。",
       "completed": "完成。成功提交 $1 项，重复 $2 项，失败 $3 项。",
       "failed": "批量任务失败。",
       "savePathHint": "本次任务将请求下载器保存到：$1",

@@ -281,7 +281,7 @@ describe("BatchPanel", () => {
     renderBatchPanel({
       selectedCount: 2,
       running: true,
-      statusText: "正在提交到 qBittorrent。"
+      statusText: "正在提交到当前下载器。"
     })
 
     await user.click(screen.getByRole("button", { name: "高级选项" }))
@@ -291,6 +291,6 @@ describe("BatchPanel", () => {
     expect(screen.getByRole("button", { name: "清空选择" })).toBeDisabled()
     expect(screen.getByLabelText("临时下载路径")).toBeDisabled()
     expect(screen.getByRole("button", { name: "清空路径" })).toBeDisabled()
-    expect(screen.getByText("正在提交到 qBittorrent。")).toBeInTheDocument()
+    expect(screen.getByText("正在提交到当前下载器。")).toBeInTheDocument()
   })
 })

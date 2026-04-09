@@ -311,6 +311,51 @@ describe("content script runtime", () => {
     })
   })
 
+  it("renders a downloader-agnostic English submitting status during batch submission", async () => {
+    ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"
+    const source = {
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    }
+
+    getSourceAdapterForLocation.mockReturnValueOnce(source)
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce(source)
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      settings: {
+        enabledSources: {
+          acgrip: true
+        },
+        filters: []
+      }
+    })
+
+    const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
+    await startSourceBatchContentScript(createTestContext() as never)
+
+    await vi.waitFor(() => {
+      expect(createRoot).toHaveBeenCalledTimes(1)
+    })
+
+    const listener = runtimeAddListener.mock.calls[0]?.[0]
+    expect(listener).toBeTypeOf("function")
+
+    listener?.({
+      type: "ANIME_BT_BATCH_EVENT",
+      stage: "submitting",
+      stats: {
+        total: 2,
+        processed: 2,
+        prepared: 2,
+        submitted: 0,
+        duplicated: 0,
+        failed: 0
+      }
+    })
+
+    expect(getLatestPanelProps().statusText).toBe("Submitting to the current downloader. 2 item(s) are queued.")
+  })
+
   it("renders a Chinese tooltip for unmatched disabled checkboxes", async () => {
     const anchorCell = document.createElement("td")
     const anchor = document.createElement("a")

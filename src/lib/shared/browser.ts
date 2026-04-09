@@ -18,3 +18,8 @@ export function getExtensionUrl(path: string): string {
   const runtime = getBrowser().runtime as unknown as { getURL: (value: string) => string }
   return runtime.getURL(path)
 }
+
+export function getUiLanguage(): string | undefined {
+  const i18nApi = getBrowser().i18n as { getUILanguage?: () => string } | undefined
+  return i18nApi?.getUILanguage?.()?.replaceAll("_", "-")
+}

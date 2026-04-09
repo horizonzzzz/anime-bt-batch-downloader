@@ -1,4 +1,5 @@
 import { i18n } from "../../../../lib/i18n"
+import { formatHistoryDate, formatHistoryTime } from "../../../../lib/history/presentation"
 import type { TaskHistoryRecord } from "../../../../lib/history/types"
 import { getLocalizedSiteConfigMeta } from "../../../../lib/sources/site-meta"
 import { cn } from "../../../../lib/shared/cn"
@@ -22,23 +23,6 @@ function StatusDot({ status }: { status: TaskHistoryRecord["status"] }) {
       )}
     />
   )
-}
-
-function formatDate(isoString: string): string {
-  const date = new Date(isoString)
-  return date.toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  })
-}
-
-function formatTime(isoString: string): string {
-  const date = new Date(isoString)
-  return date.toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit"
-  })
 }
 
 function formatStats(stats: TaskHistoryRecord["stats"]): string {
@@ -98,8 +82,8 @@ export function HistoryListView({ records, onViewDetail, onRefresh }: HistoryLis
             </div>
 
             <div className="col-span-1 flex flex-col gap-0.5">
-              <span className="text-sm text-zinc-900">{formatDate(record.createdAt)}</span>
-              <span className="text-xs text-zinc-500">{formatTime(record.createdAt)}</span>
+              <span className="text-sm text-zinc-900">{formatHistoryDate(record.createdAt)}</span>
+              <span className="text-xs text-zinc-500">{formatHistoryTime(record.createdAt)}</span>
             </div>
 
             <div className="col-span-2 flex items-center gap-2 text-sm">

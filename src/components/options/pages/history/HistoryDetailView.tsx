@@ -1,4 +1,5 @@
 import { i18n } from "../../../../lib/i18n"
+import { formatHistoryDate, formatHistoryTime } from "../../../../lib/history/presentation"
 import type { FailureReason, TaskHistoryItem, TaskHistoryRecord } from "../../../../lib/history/types"
 import { getDownloaderMeta } from "../../../../lib/downloader"
 import { getLocalizedSiteConfigMeta } from "../../../../lib/sources/site-meta"
@@ -69,23 +70,6 @@ function ItemStatusIcon({ status }: { status: TaskHistoryItem["status"] }) {
     return <HiOutlineDocumentDuplicate className="w-4 h-4 text-blue-500" />
   }
   return <HiOutlineXCircle className="w-4 h-4 text-red-500" />
-}
-
-function formatDate(isoString: string): string {
-  const date = new Date(isoString)
-  return date.toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  })
-}
-
-function formatTime(isoString: string): string {
-  const date = new Date(isoString)
-  return date.toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit"
-  })
 }
 
 function aggregateFailures(items: TaskHistoryItem[]): Map<FailureReason, { count: number; reason: FailureReason }> {
@@ -173,12 +157,12 @@ export function HistoryDetailView({ currentDownloaderId, record, onBack, onRecor
 
       <div className="flex items-center gap-2 text-sm text-zinc-600">
         <HiOutlineClock className="w-4 h-4" />
-        <span>{formatDate(record.createdAt)}</span>
-        <span>{formatTime(record.createdAt)}</span>
+        <span>{formatHistoryDate(record.createdAt)}</span>
+        <span>{formatHistoryTime(record.createdAt)}</span>
         {record.completedAt && (
           <>
             <span className="text-zinc-400">→</span>
-            <span>{formatTime(record.completedAt)}</span>
+            <span>{formatHistoryTime(record.completedAt)}</span>
           </>
         )}
       </div>
