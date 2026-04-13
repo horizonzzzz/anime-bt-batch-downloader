@@ -5,10 +5,6 @@ import path from "node:path"
 import { chromium, expect, test } from "@playwright/test"
 
 const extensionPath = path.join(process.cwd(), "build", "chrome-mv3-prod")
-const localBrowserCandidates = [
-  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
-]
 const supportedSiteFixtures = [
   {
     url: "https://www.kisssub.org/list-test.html",
@@ -37,15 +33,26 @@ function getBundledBrowserExecutable() {
   return executablePath && fs.existsSync(executablePath) ? executablePath : null
 }
 
-function getLocalBrowserExecutable() {
-  return localBrowserCandidates.find((candidate) => fs.existsSync(candidate))
+function getExtensionTestBrowserExecutable() {
+  const executablePath = getBundledBrowserExecutable()
+
+  if (executablePath) {
+    return executablePath
+  }
+
+  throw new Error(
+    [
+      "Playwright Chromium is required for extension E2E tests, but the bundled browser executable is missing.",
+      "Run `pnpm exec playwright install chromium` and retry."
+    ].join(" ")
+  )
 }
 
 async function launchExtensionContext() {
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "anime-bt-batch-wxt-"))
-  const executablePath = getBundledBrowserExecutable() || getLocalBrowserExecutable()
+  const executablePath = getExtensionTestBrowserExecutable()
   const context = await chromium.launchPersistentContext(userDataDir, {
-    ...(executablePath ? { executablePath } : { channel: "chromium" as const }),
+    executablePath,
     headless: true,
     args: [
       `--disable-extensions-except=${extensionPath}`,
