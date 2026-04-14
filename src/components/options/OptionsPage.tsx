@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 import { FormProvider, useWatch } from "react-hook-form"
 import {
@@ -18,6 +18,7 @@ import {
   getOptionsRouteMeta
 } from "./config/routes"
 import { useSettingsForm } from "./hooks/use-settings-form"
+import type { EditableSettingsPayload } from "./schema/settings-form"
 import { PageShell } from "./layout/PageShell"
 import { OptionsSidebar } from "./layout/OptionsSidebar"
 import { GeneralSettingsPage } from "./pages/general/GeneralSettingsPage"
@@ -25,11 +26,15 @@ import { FiltersPage } from "./pages/filters/FiltersPage"
 import { HistoryPage } from "./pages/history/HistoryPage"
 import { OverviewPage } from "./pages/overview/OverviewPage"
 import { SitesPage } from "./pages/sites/SitesPage"
+import {
+  SubscriptionsPage,
+  type SubscriptionsRuntimeSnapshot
+} from "./pages/subscriptions/SubscriptionsPage"
 
 export type OptionsApi = {
   loadSettings: () => Promise<Settings>
-  saveSettings: (settings: Settings) => Promise<Settings>
-  testConnection: (settings: Settings) => Promise<TestDownloaderConnectionResult>
+  saveSettings: (settings: EditableSettingsPayload) => Promise<Settings>
+  testConnection: (settings: EditableSettingsPayload) => Promise<TestDownloaderConnectionResult>
 }
 
 type OptionsPageProps = {
@@ -41,6 +46,7 @@ type FormShellProps = {
   form: ReturnType<typeof useSettingsForm>["form"]
   status: ReturnType<typeof useSettingsForm>["status"]
   saving: ReturnType<typeof useSettingsForm>["saving"]
+  subscriptionsRuntimeSnapshot: SubscriptionsRuntimeSnapshot | null
   connectionState: ReturnType<typeof useSettingsForm>["connectionState"]
   connectionMessage: ReturnType<typeof useSettingsForm>["connectionMessage"]
   testing: ReturnType<typeof useSettingsForm>["testing"]
@@ -53,6 +59,7 @@ function FormShell({
   form,
   status,
   saving,
+  subscriptionsRuntimeSnapshot,
   connectionState,
   connectionMessage,
   testing,
@@ -77,6 +84,10 @@ function FormShell({
           />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/filters" element={<FiltersPage />} />
+          <Route
+            path="/subscriptions"
+            element={<SubscriptionsPage runtimeSnapshot={subscriptionsRuntimeSnapshot} />}
+          />
           <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
         </Routes>
       </PageShell>
@@ -99,11 +110,43 @@ function ViewShell({ activeMeta }: { activeMeta: ReturnType<typeof getOptionsRou
 function OptionsWorkspace({ api }: OptionsPageProps) {
   const location = useLocation()
   const navigate = useNavigate()
+  const [subscriptionsRuntimeSnapshot, setSubscriptionsRuntimeSnapshot] =
+    useState<SubscriptionsRuntimeSnapshot | null>(null)
   const activeMeta = useMemo(
     () => getOptionsRouteMeta(location.pathname),
     [location.pathname]
   )
   const localizedRoutes = useMemo(() => getOptionsRoutes(), [])
+  const trackedApi = useMemo<OptionsApi>(
+    () => ({
+      loadSettings: async () => {
+        const loaded = await api.loadSettings()
+
+        setSubscriptionsRuntimeSnapshot({
+          lastSchedulerRunAt: loaded.lastSchedulerRunAt ?? null,
+          subscriptionRuntimeStateById: loaded.subscriptionRuntimeStateById ?? {},
+          subscriptionNotificationRounds: loaded.subscriptionNotificationRounds ?? []
+        })
+
+        return loaded
+      },
+      saveSettings: async (settings) => {
+        const saved = await api.saveSettings(settings)
+
+        setSubscriptionsRuntimeSnapshot((current) => ({
+          lastSchedulerRunAt: saved.lastSchedulerRunAt ?? current?.lastSchedulerRunAt ?? null,
+          subscriptionRuntimeStateById:
+            saved.subscriptionRuntimeStateById ?? current?.subscriptionRuntimeStateById ?? {},
+          subscriptionNotificationRounds:
+            saved.subscriptionNotificationRounds ?? current?.subscriptionNotificationRounds ?? []
+        }))
+
+        return saved
+      },
+      testConnection: api.testConnection
+    }),
+    [api]
+  )
 
   const {
     form,
@@ -114,7 +157,7 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
     testing,
     handleSave,
     handleTestConnection
-  } = useSettingsForm(api)
+  } = useSettingsForm(trackedApi)
   const currentDownloaderId = useWatch({
     control: form.control,
     name: "currentDownloaderId"
@@ -128,6 +171,7 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
         form={form}
         status={status}
         saving={saving}
+        subscriptionsRuntimeSnapshot={subscriptionsRuntimeSnapshot}
         connectionState={connectionState}
         connectionMessage={connectionMessage}
         testing={testing}

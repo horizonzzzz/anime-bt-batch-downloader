@@ -1,10 +1,13 @@
 import {
   buildPopupState,
   createBatchDownloadManager,
+  downloadSubscriptionHits,
+  executeSubscriptionScan,
   fetchTorrentForUpload,
   notifySupportedSourceTabsOfFilterChange,
   notifyActiveTabOfSourceEnabledChange,
   openOptionsPageForRoute,
+  reconcileSubscriptionAlarm,
   retryFailedItems,
   testDownloaderConnection,
   setSourceEnabledForPopup
@@ -32,6 +35,10 @@ import type { SourceId } from "../../lib/shared/types"
 import type { BatchEventPayload } from "../../lib/shared/types"
 import { extractSingleItem } from "../../lib/sources/extraction"
 import { getSourceAdapterForPage } from "../../lib/sources"
+import {
+  parseSubscriptionNotificationRoundId,
+  SUBSCRIPTION_ALARM_NAME
+} from "../../lib/subscriptions"
 
 import iconColor from "../../assets/icon.png"
 import iconGrayscale from "../../assets/icon-grayscale.png"
@@ -71,12 +78,43 @@ export function registerBackgroundRuntime() {
 
   const extensionBrowser = getBrowser()
 
+  extensionBrowser.runtime.onStartup?.addListener(() => {
+    void reconcileSubscriptionAlarm()
+  })
+
   extensionBrowser.runtime.onInstalled.addListener(async () => {
     await ensureSettings()
+    await reconcileSubscriptionAlarm()
     const [activeTab] = await extensionBrowser.tabs.query({ active: true, lastFocusedWindow: true })
     if (activeTab?.id) {
       updateIconForTab(activeTab.id, activeTab.url)
     }
+  })
+
+  extensionBrowser.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name !== SUBSCRIPTION_ALARM_NAME) {
+      return
+    }
+
+    void executeSubscriptionScan()
+  })
+
+  extensionBrowser.notifications.onClicked.addListener((notificationId) => {
+    const roundId = parseSubscriptionNotificationRoundId(notificationId)
+    if (!roundId) {
+      return
+    }
+
+    void (async () => {
+      const settings = await getSettings()
+      if (!settings.notificationDownloadActionEnabled) {
+        return
+      }
+
+      await downloadSubscriptionHits({ roundId })
+    })().catch(() => {
+      // Notification click downloads are best-effort and should not crash the runtime.
+    })
   })
 
   extensionBrowser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -114,6 +152,10 @@ export function registerBackgroundRuntime() {
           case "SAVE_SETTINGS":
             const savedSettings = await saveSettings(runtimeMessage.settings ?? {})
             await notifySupportedSourceTabsOfFilterChange()
+            await reconcileSubscriptionAlarm({
+              getSettings: async () => savedSettings,
+              alarms: extensionBrowser.alarms
+            })
             sendResponse(
               createRuntimeSuccessResponse("SAVE_SETTINGS", {
                 settings: savedSettings
@@ -138,6 +180,26 @@ export function registerBackgroundRuntime() {
                 })
               })
             )
+            return
+          case "GET_SUBSCRIPTION_STATUS":
+            sendResponse(
+              createRuntimeSuccessResponse("GET_SUBSCRIPTION_STATUS", {
+                settings: await getSettings()
+              })
+            )
+            return
+          case "RUN_SUBSCRIPTION_SCAN_NOW": {
+            const result = await executeSubscriptionScan()
+            sendResponse(
+              createRuntimeSuccessResponse("RUN_SUBSCRIPTION_SCAN_NOW", {
+                roundId: result.notificationRound?.id ?? null
+              })
+            )
+            return
+          }
+          case "DOWNLOAD_SUBSCRIPTION_HITS":
+            await downloadSubscriptionHits({ roundId: runtimeMessage.roundId })
+            sendResponse(createRuntimeSuccessResponse("DOWNLOAD_SUBSCRIPTION_HITS", {}))
             return
           case "SET_SOURCE_ENABLED":
             if (!isValidPopupSourceTogglePayload(message)) {

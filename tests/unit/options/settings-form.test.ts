@@ -100,6 +100,35 @@ describe("options settings form helpers", () => {
     })
   })
 
+  it("omits runtime-owned subscription state from the save payload", () => {
+    const payload = toSettingsPayload({
+      ...createSettingsFormDefaults({
+        lastSchedulerRunAt: "2026-04-13T04:00:00.000Z",
+        subscriptionRuntimeStateById: {
+          "sub-1": {
+            lastScanAt: "2026-04-13T03:00:00.000Z",
+            lastMatchedAt: null,
+            lastError: "",
+            seenFingerprints: ["fp-1"],
+            recentHits: []
+          }
+        },
+        subscriptionNotificationRounds: [
+          {
+            id: "round-1",
+            createdAt: "2026-04-13T04:00:00.000Z",
+            hitIds: ["hit-1"]
+          }
+        ]
+      })
+    })
+
+    expect(payload).not.toHaveProperty("subscriptionsRuntimeStateById")
+    expect(payload).not.toHaveProperty("lastSchedulerRunAt")
+    expect(payload).not.toHaveProperty("subscriptionRuntimeStateById")
+    expect(payload).not.toHaveProperty("subscriptionNotificationRounds")
+  })
+
   it("rejects an empty qBittorrent WebUI address", () => {
     const result = settingsFormSchema.safeParse({
       ...createSettingsFormDefaults(),
@@ -351,6 +380,80 @@ describe("options settings form helpers", () => {
             } as never
           ],
           any: []
+        }
+      ]
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it("parses subscriptions settings with runtime state", () => {
+    const values = createSettingsFormDefaults({
+      subscriptionsEnabled: true,
+      pollingIntervalMinutes: 30,
+      notificationsEnabled: true,
+      notificationDownloadActionEnabled: true,
+      subscriptions: [
+        {
+          id: "sub-1",
+          name: "Bangumi.moe Medalist",
+          enabled: true,
+          sourceIds: ["bangumimoe"],
+          multiSiteModeEnabled: false,
+          titleQuery: "Medalist",
+          subgroupQuery: "爱恋字幕社",
+          advanced: { must: [], any: [] },
+          deliveryMode: "direct-only",
+          createdAt: "2026-04-13T00:00:00.000Z",
+          baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+        }
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": {
+          lastScanAt: null,
+          lastMatchedAt: null,
+          lastError: "",
+          seenFingerprints: [],
+          recentHits: []
+        }
+      }
+    })
+
+    expect(values.subscriptions).toHaveLength(1)
+    expect(values).not.toHaveProperty("lastSchedulerRunAt")
+    expect(values).not.toHaveProperty("subscriptionRuntimeStateById")
+    expect(values).not.toHaveProperty("subscriptionNotificationRounds")
+  })
+
+  it("rejects duplicate subscription ids after trimming", () => {
+    const result = settingsFormSchema.safeParse({
+      ...createSettingsFormDefaults(),
+      subscriptions: [
+        {
+          id: " sub-1 ",
+          name: "First",
+          enabled: true,
+          sourceIds: ["bangumimoe"],
+          multiSiteModeEnabled: false,
+          titleQuery: "Medalist",
+          subgroupQuery: "",
+          advanced: { must: [], any: [] },
+          deliveryMode: "direct-only",
+          createdAt: "2026-04-13T00:00:00.000Z",
+          baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+        },
+        {
+          id: "sub-1",
+          name: "Second",
+          enabled: true,
+          sourceIds: ["kisssub"],
+          multiSiteModeEnabled: false,
+          titleQuery: "Frieren",
+          subgroupQuery: "",
+          advanced: { must: [], any: [] },
+          deliveryMode: "direct-only",
+          createdAt: "2026-04-13T00:00:00.000Z",
+          baselineCreatedAt: "2026-04-13T00:00:00.000Z"
         }
       ]
     })

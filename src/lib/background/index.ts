@@ -10,4 +10,9 @@ export {
 } from "./popup"
 export { retryFailedItems } from "./retry"
 export { testDownloaderConnection } from "./service"
+export {
+  downloadSubscriptionHits,
+  executeSubscriptionScan,
+  reconcileSubscriptionAlarm
+} from "./subscriptions"
 export { fetchTorrentForUpload, getTorrentFilename } from "./torrent-file"

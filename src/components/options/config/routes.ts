@@ -7,7 +7,13 @@ import {
 } from "../../../lib/shared/options-routes"
 export { DEFAULT_OPTIONS_ROUTE } from "../../../lib/shared/options-routes"
 
-export type OptionsRouteId = "general" | "sites" | "filters" | "history" | "overview"
+export type OptionsRouteId =
+  | "general"
+  | "sites"
+  | "filters"
+  | "subscriptions"
+  | "history"
+  | "overview"
 
 export type OptionsRouteMode = "form" | "view"
 
@@ -21,7 +27,14 @@ export type OptionsRouteMeta = {
   mode: OptionsRouteMode
 }
 
-const [GENERAL_ROUTE, SITES_ROUTE, FILTERS_ROUTE, HISTORY_ROUTE, OVERVIEW_ROUTE] = OPTIONS_ROUTE_PATHS
+const [
+  GENERAL_ROUTE,
+  SITES_ROUTE,
+  FILTERS_ROUTE,
+  SUBSCRIPTIONS_ROUTE,
+  HISTORY_ROUTE,
+  OVERVIEW_ROUTE
+] = OPTIONS_ROUTE_PATHS
 
 export const OPTIONS_ROUTES = [
   {
@@ -37,6 +50,11 @@ export const OPTIONS_ROUTES = [
   {
     id: "filters",
     path: FILTERS_ROUTE,
+    mode: "form"
+  },
+  {
+    id: "subscriptions",
+    path: SUBSCRIPTIONS_ROUTE,
     mode: "form"
   },
   {
