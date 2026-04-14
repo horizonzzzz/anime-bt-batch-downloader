@@ -411,6 +411,128 @@ describe("OptionsPage", () => {
     10000
   )
 
+  it(
+    "resets edited subscription runtime state and removes retained notification hits when saving settings",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        loadSettings: vi.fn().mockResolvedValue({
+          ...settings,
+          subscriptionsEnabled: true,
+          subscriptions: [
+            {
+              id: "sub-1",
+              name: "ACG Medalist",
+              enabled: true,
+              sourceIds: ["acgrip"],
+              multiSiteModeEnabled: false,
+              titleQuery: "Medalist",
+              subgroupQuery: "LoliHouse",
+              deliveryMode: "direct-only",
+              advanced: {
+                must: [],
+                any: []
+              },
+              createdAt: "2026-04-13T00:00:00.000Z",
+              baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+            }
+          ],
+          subscriptionRuntimeStateById: {
+            "sub-1": {
+              lastScanAt: "2026-04-14T09:00:00.000Z",
+              lastMatchedAt: "2026-04-14T09:00:00.000Z",
+              lastError: "",
+              seenFingerprints: ["fp-1"],
+              recentHits: [
+                {
+                  id: "hit-1",
+                  subscriptionId: "sub-1",
+                  sourceId: "acgrip",
+                  title: "[LoliHouse] Medalist - 01 [1080p]",
+                  normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+                  subgroup: "LoliHouse",
+                  detailUrl: "https://acg.rip/t/100",
+                  magnetUrl: "magnet:?xt=urn:btih:AAA111",
+                  torrentUrl: "",
+                  discoveredAt: "2026-04-14T08:00:00.000Z",
+                  downloadedAt: null,
+                  downloadStatus: "idle"
+                }
+              ]
+            }
+          },
+          subscriptionNotificationRounds: [
+            {
+              id: "subscription-round:20260414093000000",
+              createdAt: "2026-04-14T09:30:00.000Z",
+              hitIds: ["hit-1"],
+              hits: [
+                {
+                  id: "hit-1",
+                  subscriptionId: "sub-1",
+                  sourceId: "acgrip",
+                  title: "[LoliHouse] Medalist - 01 [1080p]",
+                  normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+                  subgroup: "LoliHouse",
+                  detailUrl: "https://acg.rip/t/100",
+                  magnetUrl: "magnet:?xt=urn:btih:AAA111",
+                  torrentUrl: "",
+                  discoveredAt: "2026-04-14T08:00:00.000Z",
+                  downloadedAt: null,
+                  downloadStatus: "idle"
+                }
+              ]
+            }
+          ]
+        }),
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "订阅" }))
+      await user.click(
+        within(screen.getByTestId("subscription-card-sub-1")).getByRole("button", {
+          name: "编辑"
+        })
+      )
+
+      expect(await screen.findByRole("dialog", { name: "编辑订阅" })).toBeInTheDocument()
+      const titleQueryInput = screen.getByLabelText("标题关键词")
+      await user.clear(titleQueryInput)
+      await user.type(titleQueryInput, "Bang Dream")
+      await user.click(screen.getByRole("button", { name: "保存订阅" }))
+
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subscriptions: expect.arrayContaining([
+              expect.objectContaining({
+                id: "sub-1",
+                titleQuery: "Bang Dream"
+              })
+            ]),
+            subscriptionRuntimeStateById: {
+              "sub-1": {
+                lastScanAt: null,
+                lastMatchedAt: null,
+                lastError: "",
+                seenFingerprints: [],
+                recentHits: []
+              }
+            },
+            subscriptionNotificationRounds: []
+          })
+        )
+      })
+    },
+    10000
+  )
+
   it("formats subscription source summaries in English without Chinese separators", async () => {
     const user = userEvent.setup()
     ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"

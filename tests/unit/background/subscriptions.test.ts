@@ -596,7 +596,143 @@ describe("downloadSubscriptionHits", () => {
     expect(downloader.addUrls).not.toHaveBeenCalled()
     expect(downloader.addTorrentFiles).not.toHaveBeenCalled()
     expect(extractSingleItem).not.toHaveBeenCalled()
-    expect(saveSettings).not.toHaveBeenCalled()
+    expect(saveSettings).toHaveBeenCalledTimes(1)
+  })
+
+  it("skips and clears retained notification hits whose subscriptions are currently disabled", async () => {
+    const now = "2026-04-14T10:15:00.000Z"
+    const savedSettings: { value: Settings | null } = { value: null }
+    const settings = createSettings({
+      subscriptions: [
+        createSubscription({
+          enabled: false
+        })
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": createRuntimeState({
+          recentHits: [
+            createHit({
+              id: "hit-disabled-subscription",
+              sourceId: "acgrip",
+              detailUrl: "https://acg.rip/t/101",
+              magnetUrl: "magnet:?xt=urn:btih:BBB222",
+              torrentUrl: ""
+            })
+          ]
+        })
+      },
+      subscriptionNotificationRounds: [
+        {
+          id: "subscription-round:20260414101500000",
+          createdAt: now,
+          hitIds: ["hit-disabled-subscription"],
+          hits: [
+            createHit({
+              id: "hit-disabled-subscription",
+              sourceId: "acgrip",
+              detailUrl: "https://acg.rip/t/101",
+              magnetUrl: "magnet:?xt=urn:btih:BBB222",
+              torrentUrl: ""
+            })
+          ]
+        }
+      ]
+    })
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: []
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+    const saveSettings = vi.fn(async (patch: Partial<Settings>) => {
+      savedSettings.value = applySettingsPatch(settings, patch as unknown as Partial<Settings>)
+      return savedSettings.value
+    })
+
+    const result = await downloadSubscriptionHits(
+      { roundId: "subscription-round:20260414101500000" },
+      {
+        getSettings: async () => settings,
+        saveSettings,
+        getDownloader: () => downloader,
+        now: () => now
+      }
+    )
+
+    expect(result.totalHits).toBe(1)
+    expect(result.attemptedHits).toBe(0)
+    expect(downloader.authenticate).not.toHaveBeenCalled()
+    expect(downloader.addUrls).not.toHaveBeenCalled()
+    expect(downloader.addTorrentFiles).not.toHaveBeenCalled()
+    expect(saveSettings).toHaveBeenCalledTimes(1)
+    expect(savedSettings.value?.subscriptionNotificationRounds).toEqual([])
+  })
+
+  it("skips and clears retained notification hits whose subscriptions have been removed", async () => {
+    const now = "2026-04-14T10:20:00.000Z"
+    const savedSettings: { value: Settings | null } = { value: null }
+    const settings = createSettings({
+      subscriptions: [],
+      subscriptionRuntimeStateById: {},
+      subscriptionNotificationRounds: [
+        {
+          id: "subscription-round:20260414102000000",
+          createdAt: now,
+          hitIds: ["hit-removed-subscription"],
+          hits: [
+            createHit({
+              id: "hit-removed-subscription",
+              sourceId: "acgrip",
+              detailUrl: "https://acg.rip/t/102",
+              magnetUrl: "magnet:?xt=urn:btih:CCC333",
+              torrentUrl: ""
+            })
+          ]
+        }
+      ]
+    })
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: []
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+    const saveSettings = vi.fn(async (patch: Partial<Settings>) => {
+      savedSettings.value = applySettingsPatch(settings, patch as unknown as Partial<Settings>)
+      return savedSettings.value
+    })
+
+    const result = await downloadSubscriptionHits(
+      { roundId: "subscription-round:20260414102000000" },
+      {
+        getSettings: async () => settings,
+        saveSettings,
+        getDownloader: () => downloader,
+        now: () => now
+      }
+    )
+
+    expect(result.totalHits).toBe(1)
+    expect(result.attemptedHits).toBe(0)
+    expect(downloader.authenticate).not.toHaveBeenCalled()
+    expect(downloader.addUrls).not.toHaveBeenCalled()
+    expect(downloader.addTorrentFiles).not.toHaveBeenCalled()
+    expect(saveSettings).toHaveBeenCalledTimes(1)
+    expect(savedSettings.value?.subscriptionNotificationRounds).toEqual([])
   })
 })
 

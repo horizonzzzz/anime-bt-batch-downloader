@@ -138,10 +138,38 @@ async function downloadSubscriptionHitsOnce(
 
   const runtimeStateById = cloneSubscriptionRuntimeStates(settings)
   const retainedHits = resolveRoundHits(notificationRound, runtimeStateById)
-  const pendingHits = retainedHits
-    .filter((hit) => resolveSourceEnabled(hit.sourceId, settings))
+  const subscriptionById = new Map(
+    settings.subscriptions.map((subscription) => [subscription.id, subscription] as const)
+  )
+  const activeRetainedHits = retainedHits.filter((hit) =>
+    isSubscriptionHitDownloadable(hit, subscriptionById.get(hit.subscriptionId), settings)
+  )
+  const retainedHitsWerePruned = activeRetainedHits.length !== retainedHits.length
+  const pendingHits = activeRetainedHits
     .filter((hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate")
   if (pendingHits.length === 0) {
+    if (retainedHitsWerePruned) {
+      const savedSettings = await saveSettingsImpl(
+        buildSubscriptionDownloadRuntimePatch(
+          settings,
+          replaceNotificationRoundHits(
+            settings.subscriptionNotificationRounds,
+            notificationRound.id,
+            activeRetainedHits
+          )
+        )
+      )
+
+      return {
+        settings: savedSettings,
+        totalHits: retainedHits.length,
+        attemptedHits: 0,
+        submittedCount: 0,
+        duplicateCount: 0,
+        failedCount: 0
+      }
+    }
+
     return {
       settings,
       totalHits: retainedHits.length,
@@ -152,9 +180,6 @@ async function downloadSubscriptionHitsOnce(
     }
   }
 
-  const subscriptionById = new Map(
-    settings.subscriptions.map((subscription) => [subscription.id, subscription] as const)
-  )
   const seenHashes = new Set<string>()
   const seenUrls = new Set<string>()
   const preparedHits: PreparedSubscriptionHit[] = []
@@ -180,7 +205,7 @@ async function downloadSubscriptionHitsOnce(
     }
 
     if (classified.status === "duplicate") {
-      updateHitStatus(runtimeStateById, retainedHits, hit.id, {
+      updateHitStatus(runtimeStateById, activeRetainedHits, hit.id, {
         downloadStatus: "duplicate",
         downloadedAt: attemptedAt
       })
@@ -188,7 +213,7 @@ async function downloadSubscriptionHitsOnce(
       continue
     }
 
-    updateHitStatus(runtimeStateById, retainedHits, hit.id, {
+    updateHitStatus(runtimeStateById, activeRetainedHits, hit.id, {
       downloadStatus: "failed",
       downloadedAt: null
     })
@@ -210,10 +235,10 @@ async function downloadSubscriptionHitsOnce(
       submittedCount += submissionResult.submittedCount
       failedCount += submissionResult.failedCount
       applySubmissionStatuses(runtimeStateById, submissionResult.statuses)
-      applySubmissionStatusesToRetainedHits(retainedHits, submissionResult.statuses)
+      applySubmissionStatusesToRetainedHits(activeRetainedHits, submissionResult.statuses)
     } catch {
       for (const preparedHit of preparedHits) {
-        updateHitStatus(runtimeStateById, retainedHits, preparedHit.hitId, {
+        updateHitStatus(runtimeStateById, activeRetainedHits, preparedHit.hitId, {
           downloadStatus: "failed",
           downloadedAt: null
         })
@@ -226,11 +251,10 @@ async function downloadSubscriptionHitsOnce(
   const savedSettings = await saveSettingsImpl(
     buildSubscriptionDownloadRuntimePatch(
       nextSettings,
-      updateNotificationRoundHits(
+      replaceNotificationRoundHits(
         settings.subscriptionNotificationRounds,
         notificationRound.id,
-        runtimeStateById,
-        retainedHits
+        activeRetainedHits
       )
     )
   )
@@ -370,6 +394,14 @@ function resolveRoundHits(
     .filter((hit): hit is SubscriptionHitRecord => hit !== undefined)
 
   return retainedRoundHits.length ? retainedRoundHits : fallbackHits
+}
+
+function isSubscriptionHitDownloadable(
+  hit: SubscriptionHitRecord,
+  subscription: SubscriptionEntry | undefined,
+  settings: Settings
+): boolean {
+  return Boolean(subscription?.enabled) && resolveSourceEnabled(hit.sourceId, settings)
 }
 
 async function prepareSubscriptionHit(
@@ -626,35 +658,26 @@ function buildSubscriptionDownloadRuntimePatch(
   }
 }
 
-function updateNotificationRoundHits(
+function replaceNotificationRoundHits(
   rounds: Settings["subscriptionNotificationRounds"],
   roundId: string,
-  runtimeStateById: Map<string, SubscriptionRuntimeState>,
   retainedHits: SubscriptionHitRecord[]
 ): Settings["subscriptionNotificationRounds"] {
-  const hitsById = new Map<string, SubscriptionHitRecord>()
-  const retainedHitsById = new Map(retainedHits.map((hit) => [hit.id, hit] as const))
-
-  for (const state of runtimeStateById.values()) {
-    for (const hit of state.recentHits) {
-      hitsById.set(hit.id, hit)
-    }
-  }
-
-  return rounds.map((round) => {
+  return rounds.flatMap((round) => {
     if (round.id !== roundId) {
-      return round
+      return [round]
     }
 
-    const baseHits = Array.isArray(round.hits) && round.hits.length
-      ? round.hits
-      : round.hitIds
-          .map((hitId) => hitsById.get(hitId))
-          .filter((hit): hit is SubscriptionHitRecord => hit !== undefined)
-
-    return {
-      ...round,
-      hits: baseHits.map((hit) => retainedHitsById.get(hit.id) ?? hitsById.get(hit.id) ?? hit)
+    if (retainedHits.length === 0) {
+      return []
     }
+
+    return [
+      {
+        ...round,
+        hitIds: retainedHits.map((hit) => hit.id),
+        hits: retainedHits.map((hit) => ({ ...hit }))
+      }
+    ]
   })
 }
