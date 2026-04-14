@@ -42,6 +42,7 @@ import {
   type SubscriptionWorkbenchCondition,
   type SubscriptionWorkbenchDraft
 } from "./subscription-workbench"
+import { resolveSubscriptionDeliveryMode } from "../../../../lib/subscriptions/delivery-mode"
 
 type SubscriptionEditorDialogProps = {
   open: boolean
@@ -212,7 +213,10 @@ export function SubscriptionEditorDialog({
               onValueChange={(value: string) =>
                 setDraft((current) => ({
                   ...current,
-                  deliveryMode: value as SubscriptionWorkbenchDraft["deliveryMode"]
+                  deliveryMode: resolveSubscriptionDeliveryMode(
+                    current.sourceIds,
+                    value as SubscriptionWorkbenchDraft["deliveryMode"]
+                  )
                 }))
               }>
               <SelectTrigger aria-label={i18n.t("options.subscriptions.dialog.deliveryModeLabel")}>
@@ -351,11 +355,16 @@ function SourceSelectionSection({
             checked={draft.multiSiteModeEnabled}
             aria-label={i18n.t("options.subscriptions.dialog.multiSiteModeTitle")}
             onCheckedChange={(checked) =>
-              onDraftChange((current) => ({
-                ...current,
-                multiSiteModeEnabled: checked,
-                sourceIds: checked ? current.sourceIds : [current.sourceIds[0] ?? "acgrip"]
-              }))
+              onDraftChange((current) => {
+                const sourceIds = checked ? current.sourceIds : [current.sourceIds[0] ?? "acgrip"]
+
+                return {
+                  ...current,
+                  multiSiteModeEnabled: checked,
+                  sourceIds,
+                  deliveryMode: resolveSubscriptionDeliveryMode(sourceIds, current.deliveryMode)
+                }
+              })
             }
           />
         </label>
@@ -381,14 +390,22 @@ function SourceSelectionSection({
                 aria-pressed={selected}
                 onClick={() => {
                   onError("")
-                  onDraftChange((current) => ({
-                    ...current,
-                    sourceIds: toggleSubscriptionSourceSelection(
+                  onDraftChange((current) => {
+                    const sourceIds = toggleSubscriptionSourceSelection(
                       current.sourceIds,
                       option.value,
                       current.multiSiteModeEnabled
                     )
-                  }))
+
+                    return {
+                      ...current,
+                      sourceIds,
+                      deliveryMode: resolveSubscriptionDeliveryMode(
+                        sourceIds,
+                        current.deliveryMode
+                      )
+                    }
+                  })
                 }}
                 className={[
                   "rounded-full border px-3 py-1.5 text-sm transition-colors",

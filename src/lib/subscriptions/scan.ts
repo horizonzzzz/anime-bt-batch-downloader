@@ -9,7 +9,6 @@ import { resolveSourceEnabled } from "../settings"
 import { createSubscriptionFingerprint } from "./fingerprint"
 import { matchesSubscriptionCandidate } from "./match"
 import {
-  collectNotificationRoundHitIds,
   createSubscriptionNotificationRound,
   retainSubscriptionNotificationRounds
 } from "./notifications"
@@ -106,7 +105,7 @@ export async function scanSubscriptions(
     newHits.length > 0
       ? createSubscriptionNotificationRound({
           createdAt: now,
-          hitIds: collectNotificationRoundHitIds(newHits)
+          hits: newHits
         })
       : null
 

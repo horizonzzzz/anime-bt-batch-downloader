@@ -7,6 +7,10 @@ import type {
   SubscriptionHitRecord,
   SubscriptionRuntimeState
 } from "../../../../lib/shared/types"
+import {
+  getDefaultSubscriptionDeliveryMode,
+  resolveSubscriptionDeliveryMode
+} from "../../../../lib/subscriptions/delivery-mode"
 import { duplicateSubscription } from "../../../../lib/subscriptions/storage"
 
 export type SubscriptionWorkbenchDraft = SubscriptionEntry
@@ -113,7 +117,7 @@ export function createSubscriptionDraft(
         must: [],
         any: []
       },
-      deliveryMode: "direct-only",
+      deliveryMode: getDefaultSubscriptionDeliveryMode([DEFAULT_SOURCE_ID]),
       createdAt: now,
       baselineCreatedAt: now
     }
@@ -126,6 +130,10 @@ export function createSubscriptionDraft(
     sourceIds: editableSourceIds.length ? editableSourceIds : [DEFAULT_SOURCE_ID],
     multiSiteModeEnabled:
       subscription.multiSiteModeEnabled && editableSourceIds.length > 1,
+    deliveryMode: resolveSubscriptionDeliveryMode(
+      editableSourceIds.length ? editableSourceIds : [DEFAULT_SOURCE_ID],
+      subscription.deliveryMode
+    ),
     titleQuery: subscription.titleQuery,
     subgroupQuery: subscription.subgroupQuery,
     advanced: {
@@ -179,6 +187,7 @@ export function normalizeSubscriptionDraft(
     name: draft.name.trim(),
     sourceIds,
     multiSiteModeEnabled: draft.multiSiteModeEnabled && sourceIds.length > 1,
+    deliveryMode: resolveSubscriptionDeliveryMode(sourceIds, draft.deliveryMode),
     titleQuery: draft.titleQuery.trim(),
     subgroupQuery: draft.subgroupQuery.trim(),
     advanced: {
@@ -269,7 +278,11 @@ export function summarizeSubscriptionRecentHits(recentHits: SubscriptionHitRecor
     return i18n.t("options.subscriptions.runtime.noRecentHits")
   }
 
-  const [latestHit] = recentHits
+  const latestHit = recentHits[recentHits.length - 1]
+  if (!latestHit) {
+    return i18n.t("options.subscriptions.runtime.noRecentHits")
+  }
+
   if (recentHits.length === 1) {
     return i18n.t("options.subscriptions.runtime.latestHitSingle", [latestHit.title])
   }

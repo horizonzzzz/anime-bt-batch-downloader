@@ -1,5 +1,6 @@
 import type {
   SubscriptionHitRecord,
+  SubscriptionNotificationHit,
   SubscriptionNotificationRound
 } from "../shared/types"
 
@@ -29,12 +30,15 @@ export function parseSubscriptionNotificationRoundId(id: string): string | null 
 
 export function createSubscriptionNotificationRound(input: {
   createdAt: string
-  hitIds: string[]
+  hits: SubscriptionHitRecord[]
 }): SubscriptionNotificationRound {
+  const normalizedHits = normalizeNotificationRoundHits(input.hits)
+
   return {
     id: createSubscriptionNotificationRoundId(input.createdAt),
     createdAt: String(input.createdAt ?? "").trim(),
-    hitIds: normalizeHitIds(input.hitIds)
+    hitIds: normalizeHitIds(normalizedHits.map((hit) => hit.id)),
+    hits: normalizedHits
   }
 }
 
@@ -79,6 +83,22 @@ export function collectNotificationRoundHitIds(
   hits: SubscriptionHitRecord[]
 ): string[] {
   return normalizeHitIds(hits.map((hit) => hit.id))
+}
+
+export function normalizeNotificationRoundHits(
+  hits: SubscriptionNotificationHit[]
+): SubscriptionNotificationHit[] {
+  if (!Array.isArray(hits)) {
+    return []
+  }
+
+  return Array.from(
+    new Map(
+      hits
+        .filter((hit) => hit && typeof hit === "object" && String(hit.id ?? "").trim().length > 0)
+        .map((hit) => [String(hit.id).trim(), { ...hit }])
+    ).values()
+  )
 }
 
 function normalizeHitIds(hitIds: string[]): string[] {

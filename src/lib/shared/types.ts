@@ -64,10 +64,13 @@ export type SubscriptionRuntimeState = {
   recentHits: SubscriptionHitRecord[]
 }
 
+export type SubscriptionNotificationHit = SubscriptionHitRecord
+
 export type SubscriptionNotificationRound = {
   id: string
   createdAt: string
   hitIds: string[]
+  hits?: SubscriptionNotificationHit[]
 }
 
 export type BatchEventStage =

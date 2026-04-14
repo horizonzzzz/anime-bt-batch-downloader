@@ -72,7 +72,7 @@ function normalizeRecentHits(value: unknown, ownerSubscriptionId?: string): Subs
   )
 }
 
-function normalizeSubscriptionHitRecord(value: unknown): SubscriptionHitRecord | null {
+export function normalizeSubscriptionHitRecord(value: unknown): SubscriptionHitRecord | null {
   if (!value || typeof value !== "object") {
     return null
   }

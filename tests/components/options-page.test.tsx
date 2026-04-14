@@ -372,6 +372,45 @@ describe("OptionsPage", () => {
     10000
   )
 
+  it(
+    "coerces Bangumi.moe subscriptions to allow detail extraction when saving",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "订阅" }))
+      await user.click(screen.getAllByRole("button", { name: "新增订阅" })[0])
+
+      expect(await screen.findByRole("dialog", { name: "新增订阅" })).toBeInTheDocument()
+      await user.type(screen.getByLabelText("订阅名称"), "Bangumi Medalist")
+      await user.type(screen.getByLabelText("标题关键词"), "Medalist")
+      await user.click(screen.getByTestId("subscription-source-tag-bangumimoe"))
+      await user.click(screen.getByRole("button", { name: "保存订阅" }))
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subscriptions: expect.arrayContaining([
+              expect.objectContaining({
+                name: "Bangumi Medalist",
+                sourceIds: ["bangumimoe"],
+                deliveryMode: "allow-detail-extraction"
+              })
+            ])
+          })
+        )
+      })
+    },
+    10000
+  )
+
   it("formats subscription source summaries in English without Chinese separators", async () => {
     const user = userEvent.setup()
     ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"

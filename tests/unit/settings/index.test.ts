@@ -438,7 +438,8 @@ describe("sanitizeSettings", () => {
     ).toEqual([
       expect.objectContaining({
         id: "sub-1",
-        name: "First"
+        name: "First",
+        deliveryMode: "allow-detail-extraction"
       })
     ])
   })
@@ -692,7 +693,23 @@ describe("sanitizeSettings", () => {
           {
             id: " round-1 ",
             createdAt: "2026-04-13T03:00:00.000Z",
-            hitIds: [" hit-1 ", "", " hit-2 "]
+            hitIds: [" hit-1 ", "", " hit-2 "],
+            hits: [
+              {
+                id: " hit-1 ",
+                subscriptionId: " sub-1 ",
+                sourceId: "bangumimoe",
+                title: " Title 1 ",
+                normalizedTitle: " title-1 ",
+                subgroup: " 爱恋字幕社 ",
+                detailUrl: " https://bangumi.moe/torrent/1 ",
+                magnetUrl: "",
+                torrentUrl: "",
+                discoveredAt: "2026-04-13T00:00:00.000Z",
+                downloadedAt: null,
+                downloadStatus: "idle"
+              }
+            ]
           }
         ]
       } as never)
@@ -710,13 +727,29 @@ describe("sanitizeSettings", () => {
           sourceIds: ["bangumimoe"],
           titleQuery: "Medalist",
           subgroupQuery: "爱恋字幕社",
-          deliveryMode: "direct-only"
+          deliveryMode: "allow-detail-extraction"
         }
       ],
       subscriptionNotificationRounds: [
         {
           id: "round-1",
-          hitIds: ["hit-1", "hit-2"]
+          hitIds: ["hit-1", "hit-2"],
+          hits: [
+            {
+              id: "hit-1",
+              subscriptionId: "sub-1",
+              sourceId: "bangumimoe",
+              title: "Title 1",
+              normalizedTitle: "title-1",
+              subgroup: "爱恋字幕社",
+              detailUrl: "https://bangumi.moe/torrent/1",
+              magnetUrl: "",
+              torrentUrl: "",
+              discoveredAt: "2026-04-13T00:00:00.000Z",
+              downloadedAt: null,
+              downloadStatus: "idle"
+            }
+          ]
         }
       ]
     })
@@ -764,6 +797,7 @@ describe("sanitizeSettings", () => {
       }
     } as never)
 
+    expect(sanitized.subscriptions[0]?.deliveryMode).toBe("allow-detail-extraction")
     expect(sanitized.subscriptionRuntimeStateById["sub-1"]?.seenFingerprints).toHaveLength(200)
     expect(sanitized.subscriptionRuntimeStateById["sub-1"]?.recentHits).toHaveLength(20)
     expect(

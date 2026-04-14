@@ -14,6 +14,7 @@ import type {
   Settings,
   SubscriptionEntry,
   SubscriptionHitRecord,
+  SubscriptionNotificationRound,
   SubscriptionRuntimeState
 } from "../shared/types"
 import { getSettings, resolveSourceEnabled, saveSettings } from "../settings"
@@ -42,6 +43,10 @@ type SubscriptionRuntimeSettingsPatch = Pick<
 >
 
 type SubscriptionDownloadRuntimeSettingsPatch = Pick<Settings, "subscriptionRuntimeStateById">
+type SubscriptionDownloadNotificationPatch = Pick<
+  Settings,
+  "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
+>
 
 export type ExecuteSubscriptionScanDependencies = ScanSubscriptionsDependencies & {
   getSettings?: () => Promise<Settings>
@@ -63,7 +68,7 @@ export type DownloadSubscriptionHitsRequest = {
 
 export type DownloadSubscriptionHitsDependencies = {
   getSettings?: () => Promise<Settings>
-  saveSettings?: (settings: SubscriptionDownloadRuntimeSettingsPatch) => Promise<Settings>
+  saveSettings?: (settings: SubscriptionDownloadNotificationPatch) => Promise<Settings>
   getDownloader?: (settings: Settings) => DownloaderAdapter
   fetchTorrentForUpload?: (torrentUrl: string) => Promise<DownloaderTorrentFile>
   extractSingleItem?: (item: BatchItem, settings: Settings) => Promise<ExtractionResult>
@@ -132,7 +137,7 @@ async function downloadSubscriptionHitsOnce(
   }
 
   const runtimeStateById = cloneSubscriptionRuntimeStates(settings)
-  const retainedHits = resolveRoundHits(notificationRound.hitIds, runtimeStateById)
+  const retainedHits = resolveRoundHits(notificationRound, runtimeStateById)
   const pendingHits = retainedHits
     .filter((hit) => resolveSourceEnabled(hit.sourceId, settings))
     .filter((hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate")
@@ -175,7 +180,7 @@ async function downloadSubscriptionHitsOnce(
     }
 
     if (classified.status === "duplicate") {
-      updateRuntimeStateHit(runtimeStateById, hit.id, {
+      updateHitStatus(runtimeStateById, retainedHits, hit.id, {
         downloadStatus: "duplicate",
         downloadedAt: attemptedAt
       })
@@ -183,7 +188,7 @@ async function downloadSubscriptionHitsOnce(
       continue
     }
 
-    updateRuntimeStateHit(runtimeStateById, hit.id, {
+    updateHitStatus(runtimeStateById, retainedHits, hit.id, {
       downloadStatus: "failed",
       downloadedAt: null
     })
@@ -205,9 +210,10 @@ async function downloadSubscriptionHitsOnce(
       submittedCount += submissionResult.submittedCount
       failedCount += submissionResult.failedCount
       applySubmissionStatuses(runtimeStateById, submissionResult.statuses)
+      applySubmissionStatusesToRetainedHits(retainedHits, submissionResult.statuses)
     } catch {
       for (const preparedHit of preparedHits) {
-        updateRuntimeStateHit(runtimeStateById, preparedHit.hitId, {
+        updateHitStatus(runtimeStateById, retainedHits, preparedHit.hitId, {
           downloadStatus: "failed",
           downloadedAt: null
         })
@@ -217,7 +223,17 @@ async function downloadSubscriptionHitsOnce(
   }
 
   const nextSettings = buildSettingsWithRuntimeStates(settings, runtimeStateById)
-  const savedSettings = await saveSettingsImpl(buildSubscriptionDownloadRuntimePatch(nextSettings))
+  const savedSettings = await saveSettingsImpl(
+    buildSubscriptionDownloadRuntimePatch(
+      nextSettings,
+      updateNotificationRoundHits(
+        settings.subscriptionNotificationRounds,
+        notificationRound.id,
+        runtimeStateById,
+        retainedHits
+      )
+    )
+  )
 
   return {
     settings: savedSettings,
@@ -268,7 +284,7 @@ async function executeSubscriptionScanOnce(
 }
 
 async function defaultSaveSettings(
-  settings: SubscriptionRuntimeSettingsPatch | SubscriptionDownloadRuntimeSettingsPatch
+  settings: SubscriptionRuntimeSettingsPatch | SubscriptionDownloadNotificationPatch
 ): Promise<Settings> {
   return saveSettings(settings)
 }
@@ -335,7 +351,7 @@ function cloneSubscriptionRuntimeStates(
 }
 
 function resolveRoundHits(
-  hitIds: string[],
+  round: SubscriptionNotificationRound,
   runtimeStateById: Map<string, SubscriptionRuntimeState>
 ): SubscriptionHitRecord[] {
   const hitsById = new Map<string, SubscriptionHitRecord>()
@@ -346,9 +362,14 @@ function resolveRoundHits(
     }
   }
 
-  return hitIds
+  const retainedRoundHits = Array.isArray(round.hits) && round.hits.length > 0
+    ? round.hits.map((hit) => hitsById.get(hit.id) ?? hit)
+    : []
+  const fallbackHits = round.hitIds
     .map((hitId) => hitsById.get(hitId))
     .filter((hit): hit is SubscriptionHitRecord => hit !== undefined)
+
+  return retainedRoundHits.length ? retainedRoundHits : fallbackHits
 }
 
 async function prepareSubscriptionHit(
@@ -509,6 +530,15 @@ function applySubmissionStatuses(
   }
 }
 
+function applySubmissionStatusesToRetainedHits(
+  retainedHits: SubscriptionHitRecord[],
+  statuses: SubmissionStatusByHitId
+): void {
+  for (const [hitId, status] of Object.entries(statuses)) {
+    updateRetainedHitStatus(retainedHits, hitId, status)
+  }
+}
+
 function updateRuntimeStateHit(
   runtimeStateById: Map<string, SubscriptionRuntimeState>,
   hitId: string,
@@ -539,6 +569,30 @@ function updateRuntimeStateHit(
   }
 }
 
+function updateRetainedHitStatus(
+  retainedHits: SubscriptionHitRecord[],
+  hitId: string,
+  patch: Pick<SubscriptionHitRecord, "downloadStatus" | "downloadedAt">
+): void {
+  const hit = retainedHits.find((entry) => entry.id === hitId)
+  if (!hit) {
+    return
+  }
+
+  hit.downloadStatus = patch.downloadStatus
+  hit.downloadedAt = patch.downloadedAt
+}
+
+function updateHitStatus(
+  runtimeStateById: Map<string, SubscriptionRuntimeState>,
+  retainedHits: SubscriptionHitRecord[],
+  hitId: string,
+  patch: Pick<SubscriptionHitRecord, "downloadStatus" | "downloadedAt">
+): void {
+  updateRuntimeStateHit(runtimeStateById, hitId, patch)
+  updateRetainedHitStatus(retainedHits, hitId, patch)
+}
+
 function buildSettingsWithRuntimeStates(
   settings: Settings,
   runtimeStateById: Map<string, SubscriptionRuntimeState>
@@ -563,9 +617,44 @@ function buildSubscriptionScanRuntimePatch(
 }
 
 function buildSubscriptionDownloadRuntimePatch(
-  settings: Pick<Settings, "subscriptionRuntimeStateById">
-): SubscriptionDownloadRuntimeSettingsPatch {
+  settings: Pick<Settings, "subscriptionRuntimeStateById">,
+  subscriptionNotificationRounds: Settings["subscriptionNotificationRounds"]
+): SubscriptionDownloadNotificationPatch {
   return {
-    subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById
+    subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById,
+    subscriptionNotificationRounds
   }
+}
+
+function updateNotificationRoundHits(
+  rounds: Settings["subscriptionNotificationRounds"],
+  roundId: string,
+  runtimeStateById: Map<string, SubscriptionRuntimeState>,
+  retainedHits: SubscriptionHitRecord[]
+): Settings["subscriptionNotificationRounds"] {
+  const hitsById = new Map<string, SubscriptionHitRecord>()
+  const retainedHitsById = new Map(retainedHits.map((hit) => [hit.id, hit] as const))
+
+  for (const state of runtimeStateById.values()) {
+    for (const hit of state.recentHits) {
+      hitsById.set(hit.id, hit)
+    }
+  }
+
+  return rounds.map((round) => {
+    if (round.id !== roundId) {
+      return round
+    }
+
+    const baseHits = Array.isArray(round.hits) && round.hits.length
+      ? round.hits
+      : round.hitIds
+          .map((hitId) => hitsById.get(hitId))
+          .filter((hit): hit is SubscriptionHitRecord => hit !== undefined)
+
+    return {
+      ...round,
+      hits: baseHits.map((hit) => retainedHitsById.get(hit.id) ?? hitsById.get(hit.id) ?? hit)
+    }
+  })
 }

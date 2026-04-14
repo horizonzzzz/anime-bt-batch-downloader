@@ -1,5 +1,9 @@
 import { normalizeSourceDeliveryModes } from "../sources/delivery"
-import { normalizeSubscriptionRuntimeState } from "../subscriptions/runtime-state"
+import { resolveSubscriptionDeliveryMode } from "../subscriptions/delivery-mode"
+import {
+  normalizeSubscriptionHitRecord,
+  normalizeSubscriptionRuntimeState
+} from "../subscriptions/runtime-state"
 import type {
   DownloaderId,
   FilterCondition,
@@ -241,7 +245,7 @@ function normalizeSubscription(raw: unknown, fallbackIndex: number): Subscriptio
       must: normalizeFilterConditions((record.advanced as { must?: unknown } | undefined)?.must),
       any: normalizeFilterConditions((record.advanced as { any?: unknown } | undefined)?.any)
     },
-    deliveryMode,
+    deliveryMode: resolveSubscriptionDeliveryMode(sourceIds, deliveryMode),
     createdAt,
     baselineCreatedAt
   }
@@ -310,16 +314,28 @@ function normalizeSubscriptionNotificationRound(
   if (!id || !createdAt) {
     return null
   }
+  const hits = normalizeSubscriptionNotificationHits(record.hits)
 
   return {
     id,
     createdAt,
+    hits,
     hitIds: Array.isArray(record.hitIds)
       ? record.hitIds
           .map((value) => String(value ?? "").trim())
           .filter((value) => value.length > 0)
-      : []
+      : hits.map((hit) => hit.id)
   }
+}
+
+function normalizeSubscriptionNotificationHits(raw: unknown): SubscriptionRuntimeState["recentHits"] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  return raw
+    .map((entry) => normalizeSubscriptionHitRecord(entry))
+    .filter((entry): entry is SubscriptionRuntimeState["recentHits"][number] => entry !== null)
 }
 
 function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | null {

@@ -228,6 +228,19 @@ describe("downloadSubscriptionHits", () => {
 
     expect(saveSettings).toHaveBeenCalledTimes(1)
     expect(savedPatch.value).toEqual({
+      subscriptionNotificationRounds: [
+        expect.objectContaining({
+          id: "subscription-round:20260414093000000",
+          hitIds: ["hit-direct"],
+          hits: [
+            expect.objectContaining({
+              id: "hit-direct",
+              downloadStatus: "submitted",
+              downloadedAt: now
+            })
+          ]
+        })
+      ],
       subscriptionRuntimeStateById: expect.objectContaining({
         "sub-1": expect.objectContaining({
           recentHits: [
@@ -671,8 +684,14 @@ describe("executeSubscriptionScan", () => {
     expect(savedSettings.value?.subscriptionNotificationRounds[0]?.hitIds).toEqual(
       savedSettings.value?.subscriptionRuntimeStateById["sub-1"]?.recentHits.map((hit) => hit.id)
     )
+    expect(savedSettings.value?.subscriptionNotificationRounds[0]?.hits).toEqual(
+      savedSettings.value?.subscriptionRuntimeStateById["sub-1"]?.recentHits
+    )
     expect(result.notificationRound?.hitIds).toEqual(
       savedSettings.value?.subscriptionNotificationRounds[0]?.hitIds
+    )
+    expect(result.notificationRound?.hits).toEqual(
+      savedSettings.value?.subscriptionNotificationRounds[0]?.hits
     )
     expect(createNotification).toHaveBeenCalledTimes(1)
     expect(createNotification.mock.calls[0]?.[0]).toBe(result.notificationRound?.id)
@@ -907,5 +926,95 @@ describe("executeSubscriptionScan", () => {
     expect(saveSettings).toHaveBeenCalledTimes(1)
     expect(savedSettings.value?.subscriptionNotificationRounds).toHaveLength(1)
     expect(createNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it("downloads retained notification-round hits from persisted round payload after runtime hits roll off", async () => {
+    const now = "2026-04-14T14:00:00.000Z"
+    const persisted: { current: Settings } = {
+      current: createSettings({
+        subscriptions: [
+          createSubscription({
+            sourceIds: ["bangumimoe"]
+          })
+        ],
+        subscriptionRuntimeStateById: {
+          "sub-1": createRuntimeState({
+            recentHits: []
+          })
+        },
+        subscriptionNotificationRounds: [
+          {
+            id: "subscription-round:20260414140000000",
+            createdAt: now,
+            hitIds: ["hit-persisted"],
+            hits: [
+              createHit({
+                id: "hit-persisted",
+                sourceId: "bangumimoe",
+                detailUrl: "https://bangumi.moe/torrent/100",
+                magnetUrl: "magnet:?xt=urn:btih:AAA111",
+                torrentUrl: ""
+              })
+            ]
+          }
+        ]
+      })
+    }
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [
+          {
+            url: "magnet:?xt=urn:btih:AAA111",
+            status: "submitted" as const
+          }
+        ]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+    const saveSettings = vi.fn(async (patch: Partial<Settings>) => {
+      persisted.current = applySettingsPatch(persisted.current, patch)
+      return persisted.current
+    })
+
+    const firstResult = await downloadSubscriptionHits(
+      { roundId: "subscription-round:20260414140000000" },
+      {
+        getSettings: async () => persisted.current,
+        saveSettings,
+        getDownloader: () => downloader,
+        now: () => now
+      }
+    )
+
+    const secondResult = await downloadSubscriptionHits(
+      { roundId: "subscription-round:20260414140000000" },
+      {
+        getSettings: async () => persisted.current,
+        saveSettings,
+        getDownloader: () => downloader,
+        now: () => now
+      }
+    )
+
+    expect(firstResult.attemptedHits).toBe(1)
+    expect(downloader.addUrls).toHaveBeenCalledTimes(1)
+    expect(
+      persisted.current.subscriptionNotificationRounds[0]?.hits?.[0]
+    ).toEqual(
+      expect.objectContaining({
+        id: "hit-persisted",
+        downloadStatus: "submitted",
+        downloadedAt: now
+      })
+    )
+    expect(secondResult.attemptedHits).toBe(0)
+    expect(downloader.addUrls).toHaveBeenCalledTimes(1)
   })
 })
