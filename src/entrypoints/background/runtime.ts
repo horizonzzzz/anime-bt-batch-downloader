@@ -10,6 +10,7 @@ import {
   setSourceEnabledForPopup
 } from "../../lib/background"
 import { getDownloaderAdapter } from "../../lib/downloader"
+import { ensureDownloaderPermission } from "../../lib/downloader/permissions"
 import {
   clearHistory,
   deleteHistoryRecord,
@@ -40,6 +41,7 @@ const batchDownloadManager = createBatchDownloadManager({
   saveSettings,
   extractSingleItem,
   sendBatchEvent,
+  ensureDownloaderPermission,
   getDownloader: (settings) => getDownloaderAdapter(settings.currentDownloaderId)
 })
 
@@ -210,6 +212,7 @@ export function registerBackgroundRuntime() {
                   getHistoryRecord,
                   updateHistoryRecord,
                   getDownloader: (settings) => getDownloaderAdapter(settings.currentDownloaderId),
+                  ensureDownloaderPermission,
                   fetchTorrentForUpload
                 }
               )
