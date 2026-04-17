@@ -1,10 +1,19 @@
 import { normalizeSourceDeliveryModes } from "../sources/delivery"
+import { resolveSubscriptionDeliveryMode } from "../subscriptions/delivery-mode"
+import {
+  normalizeSubscriptionHitRecord,
+  normalizeSubscriptionRuntimeState
+} from "../subscriptions/runtime-state"
 import type {
   DownloaderId,
   FilterCondition,
   FilterEntry,
   Settings,
-  SourceId
+  SourceId,
+  SubscriptionDeliveryMode,
+  SubscriptionEntry,
+  SubscriptionNotificationRound,
+  SubscriptionRuntimeState
 } from "../shared/types"
 import { DEFAULT_SETTINGS } from "./defaults"
 import { normalizeEnabledSources } from "./source-enablement"
@@ -18,8 +27,18 @@ const VALID_SOURCE_IDS: SourceId[] = [
   "bangumimoe"
 ]
 const VALID_FILTER_CONDITION_FIELDS: Array<FilterCondition["field"]> = ["title", "subgroup"]
+const VALID_SUBSCRIPTION_DELIVERY_MODES: SubscriptionDeliveryMode[] = [
+  "direct-only",
+  "allow-detail-extraction"
+]
+const DEFAULT_SUBSCRIPTION_DELIVERY_MODE: SubscriptionDeliveryMode = "direct-only"
+const MIN_SUBSCRIPTION_POLLING_INTERVAL_MINUTES = 5
+const MAX_SUBSCRIPTION_POLLING_INTERVAL_MINUTES = 120
 
 export function sanitizeSettings(raw: RawSettings): Settings {
+  const subscriptions = normalizeSubscriptions(raw.subscriptions ?? DEFAULT_SETTINGS.subscriptions)
+  const validSubscriptionIds = new Set(subscriptions.map((subscription) => subscription.id))
+
   return {
     currentDownloaderId: normalizeDownloaderId(
       raw.currentDownloaderId ?? DEFAULT_SETTINGS.currentDownloaderId
@@ -38,8 +57,54 @@ export function sanitizeSettings(raw: RawSettings): Settings {
       raw.sourceDeliveryModes ?? DEFAULT_SETTINGS.sourceDeliveryModes
     ),
     enabledSources: normalizeEnabledSources(raw.enabledSources ?? DEFAULT_SETTINGS.enabledSources),
-    filters: normalizeFilters(raw.filters ?? DEFAULT_SETTINGS.filters)
+    filters: normalizeFilters(raw.filters ?? DEFAULT_SETTINGS.filters),
+    subscriptionsEnabled: normalizeBoolean(
+      raw.subscriptionsEnabled,
+      DEFAULT_SETTINGS.subscriptionsEnabled
+    ),
+    pollingIntervalMinutes: clampInteger(
+      raw.pollingIntervalMinutes,
+      MIN_SUBSCRIPTION_POLLING_INTERVAL_MINUTES,
+      MAX_SUBSCRIPTION_POLLING_INTERVAL_MINUTES,
+      DEFAULT_SETTINGS.pollingIntervalMinutes
+    ),
+    notificationsEnabled: normalizeBoolean(
+      raw.notificationsEnabled,
+      DEFAULT_SETTINGS.notificationsEnabled
+    ),
+    notificationDownloadActionEnabled: normalizeBoolean(
+      raw.notificationDownloadActionEnabled,
+      DEFAULT_SETTINGS.notificationDownloadActionEnabled
+    ),
+    lastSchedulerRunAt: normalizeNullableString(
+      raw.lastSchedulerRunAt,
+      DEFAULT_SETTINGS.lastSchedulerRunAt
+    ),
+    subscriptions,
+    subscriptionRuntimeStateById: normalizeSubscriptionRuntimeStateById(
+      raw.subscriptionRuntimeStateById ?? DEFAULT_SETTINGS.subscriptionRuntimeStateById,
+      validSubscriptionIds
+    ),
+    subscriptionNotificationRounds: normalizeSubscriptionNotificationRounds(
+      raw.subscriptionNotificationRounds ?? DEFAULT_SETTINGS.subscriptionNotificationRounds
+    )
   }
+}
+
+function normalizeBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") {
+    return value
+  }
+
+  if (value === 1 || value === "1" || value === "true") {
+    return true
+  }
+
+  if (value === 0 || value === "0" || value === "false") {
+    return false
+  }
+
+  return fallback
 }
 
 function normalizeDownloaderId(value: unknown): DownloaderId {
@@ -82,6 +147,15 @@ export function normalizeSavePath(path: unknown): string {
   return String(path ?? "").trim()
 }
 
+function normalizeNullableString(value: unknown, fallback: string | null): string | null {
+  if (value == null) {
+    return fallback
+  }
+
+  const normalized = String(value).trim()
+  return normalized || fallback
+}
+
 function clampInteger(value: unknown, min: number, max: number, fallback: number): number {
   const numeric = Number.parseInt(String(value), 10)
   if (Number.isNaN(numeric)) {
@@ -114,6 +188,156 @@ function normalizeFilters(raw: unknown): FilterEntry[] {
     .filter((entry): entry is FilterEntry => entry !== null)
 }
 
+function normalizeSubscriptions(raw: unknown): SubscriptionEntry[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  const seenIds = new Set<string>()
+
+  return raw
+    .map((entry, index) => normalizeSubscription(entry, index))
+    .filter((entry): entry is SubscriptionEntry => entry !== null)
+    .filter((entry) => {
+      if (seenIds.has(entry.id)) {
+        return false
+      }
+
+      seenIds.add(entry.id)
+      return true
+    })
+}
+
+function normalizeSubscription(raw: unknown, fallbackIndex: number): SubscriptionEntry | null {
+  if (!raw || typeof raw !== "object") {
+    return null
+  }
+
+  const record = raw as Record<string, unknown>
+  const id = String(record.id ?? "").trim() || `subscription-${fallbackIndex}`
+  const name = String(record.name ?? "").trim()
+  const createdAt = String(record.createdAt ?? "").trim()
+  const baselineCreatedAt = String(record.baselineCreatedAt ?? "").trim()
+
+  if (!name || !createdAt || !baselineCreatedAt) {
+    return null
+  }
+
+  const sourceIds = normalizeSubscriptionSourceIds(record.sourceIds)
+  if (!sourceIds.length) {
+    return null
+  }
+  const deliveryMode = VALID_SUBSCRIPTION_DELIVERY_MODES.includes(
+    record.deliveryMode as SubscriptionDeliveryMode
+  )
+    ? (record.deliveryMode as SubscriptionDeliveryMode)
+    : DEFAULT_SUBSCRIPTION_DELIVERY_MODE
+
+  return {
+    id,
+    name,
+    enabled: normalizeBoolean(record.enabled, true),
+    sourceIds,
+    multiSiteModeEnabled: normalizeBoolean(record.multiSiteModeEnabled, false),
+    titleQuery: String(record.titleQuery ?? "").trim(),
+    subgroupQuery: String(record.subgroupQuery ?? "").trim(),
+    advanced: {
+      must: normalizeFilterConditions((record.advanced as { must?: unknown } | undefined)?.must),
+      any: normalizeFilterConditions((record.advanced as { any?: unknown } | undefined)?.any)
+    },
+    deliveryMode: resolveSubscriptionDeliveryMode(sourceIds, deliveryMode),
+    createdAt,
+    baselineCreatedAt
+  }
+}
+
+function normalizeSubscriptionSourceIds(raw: unknown): SourceId[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  return Array.from(
+    new Set(
+      raw
+        .map((entry) => String(entry ?? "").trim().toLowerCase() as SourceId)
+        .filter((entry): entry is SourceId => VALID_SOURCE_IDS.includes(entry))
+    )
+  )
+}
+
+function normalizeSubscriptionRuntimeStateById(
+  raw: unknown,
+  validSubscriptionIds: ReadonlySet<string>
+): Record<string, SubscriptionRuntimeState> {
+  if (!raw || typeof raw !== "object") {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>)
+      .map(([subscriptionId, value]) => {
+        const normalizedId = String(subscriptionId).trim()
+        if (!normalizedId || !validSubscriptionIds.has(normalizedId)) {
+          return null
+        }
+
+        const normalizedState = normalizeSubscriptionRuntimeState(
+          value as Partial<SubscriptionRuntimeState> | undefined,
+          normalizedId
+        )
+        return [normalizedId, normalizedState] as const
+      })
+      .filter((entry): entry is readonly [string, SubscriptionRuntimeState] => entry !== null)
+  )
+}
+
+function normalizeSubscriptionNotificationRounds(raw: unknown): SubscriptionNotificationRound[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  return raw
+    .map((entry) => normalizeSubscriptionNotificationRound(entry))
+    .filter((entry): entry is SubscriptionNotificationRound => entry !== null)
+}
+
+function normalizeSubscriptionNotificationRound(
+  raw: unknown
+): SubscriptionNotificationRound | null {
+  if (!raw || typeof raw !== "object") {
+    return null
+  }
+
+  const record = raw as Record<string, unknown>
+  const id = String(record.id ?? "").trim()
+  const createdAt = String(record.createdAt ?? "").trim()
+  if (!id || !createdAt) {
+    return null
+  }
+  const hits = normalizeSubscriptionNotificationHits(record.hits)
+
+  return {
+    id,
+    createdAt,
+    hits,
+    hitIds: Array.isArray(record.hitIds)
+      ? record.hitIds
+          .map((value) => String(value ?? "").trim())
+          .filter((value) => value.length > 0)
+      : hits.map((hit) => hit.id)
+  }
+}
+
+function normalizeSubscriptionNotificationHits(raw: unknown): SubscriptionRuntimeState["recentHits"] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  return raw
+    .map((entry) => normalizeSubscriptionHitRecord(entry))
+    .filter((entry): entry is SubscriptionRuntimeState["recentHits"][number] => entry !== null)
+}
+
 function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | null {
   if (!raw || typeof raw !== "object") {
     return null
@@ -134,7 +358,7 @@ function normalizeFilter(raw: unknown, fallbackIndex: number): FilterEntry | nul
   return {
     id: String(record.id ?? "").trim() || `filter-${fallbackIndex}`,
     name,
-    enabled: record.enabled !== false,
+    enabled: normalizeBoolean(record.enabled, true),
     sourceIds: normalizeExplicitSourceIds(record.sourceIds),
     must,
     any

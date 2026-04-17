@@ -22,6 +22,69 @@ export type FilterEntry = {
   any: FilterCondition[]
 }
 
+export type SubscriptionDeliveryMode = "direct-only" | "allow-detail-extraction"
+
+export type SubscriptionEntry = {
+  id: string
+  name: string
+  enabled: boolean
+  sourceIds: SourceId[]
+  multiSiteModeEnabled: boolean
+  titleQuery: string
+  subgroupQuery: string
+  advanced: {
+    must: FilterCondition[]
+    any: FilterCondition[]
+  }
+  deliveryMode: SubscriptionDeliveryMode
+  createdAt: string
+  baselineCreatedAt: string
+}
+
+export type EditableSubscriptionDefinition = Pick<
+  SubscriptionEntry,
+  | "id"
+  | "enabled"
+  | "sourceIds"
+  | "multiSiteModeEnabled"
+  | "titleQuery"
+  | "subgroupQuery"
+  | "advanced"
+  | "deliveryMode"
+>
+
+export type SubscriptionHitRecord = {
+  id: string
+  subscriptionId: string
+  sourceId: SourceId
+  title: string
+  normalizedTitle: string
+  subgroup: string
+  detailUrl: string
+  magnetUrl: string
+  torrentUrl: string
+  discoveredAt: string
+  downloadedAt: string | null
+  downloadStatus: "idle" | "submitted" | "duplicate" | "failed"
+}
+
+export type SubscriptionRuntimeState = {
+  lastScanAt: string | null
+  lastMatchedAt: string | null
+  lastError: string
+  seenFingerprints: string[]
+  recentHits: SubscriptionHitRecord[]
+}
+
+export type SubscriptionNotificationHit = SubscriptionHitRecord
+
+export type SubscriptionNotificationRound = {
+  id: string
+  createdAt: string
+  hitIds: string[]
+  hits?: SubscriptionNotificationHit[]
+}
+
 export type BatchEventStage =
   | "started"
   | "progress"
@@ -86,6 +149,14 @@ export type Settings = {
   sourceDeliveryModes: Partial<Record<SourceId, DeliveryMode>>
   enabledSources: Partial<Record<SourceId, boolean>>
   filters: FilterEntry[]
+  subscriptionsEnabled: boolean
+  pollingIntervalMinutes: number
+  notificationsEnabled: boolean
+  notificationDownloadActionEnabled: boolean
+  lastSchedulerRunAt: string | null
+  subscriptions: SubscriptionEntry[]
+  subscriptionRuntimeStateById: Record<string, SubscriptionRuntimeState>
+  subscriptionNotificationRounds: SubscriptionNotificationRound[]
 }
 
 export type TestDownloaderConnectionResult = {

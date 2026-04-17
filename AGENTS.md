@@ -19,6 +19,9 @@ The extension injects selection UI into supported list pages, reuses direct magn
     - rendered as a simplified filter workspace backed by persisted `filters`
     - each filter stores `sourceIds[]` as a required site scope plus two levels of text conditions: `must[]` for conditions that all need to match, and optional `any[]` for conditions where at least one must match
     - page interactions write through the shared settings form, and the quick test bench exercises the same include-only filter engine used by the runtime
+  - `Subscriptions`
+    - rendered as a first-class workspace backed by persisted subscription definitions plus scheduler, polling, notification, and recent-hit state in settings
+    - supports grouped multi-source scans for subscription-capable sites, runtime status visibility, and notification-round retention for recent matched hits
   - `Batch History`
   - `Source Overview`
 - Supported popup surface responsibilities:
@@ -35,6 +38,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `options.html#/general`
   - `options.html#/sites`
   - `options.html#/filters`
+  - `options.html#/subscriptions`
   - `options.html#/history`
   - `options.html#/overview`
 - Supported downloader targets: `qBittorrent WebUI` and `Transmission RPC`
@@ -98,8 +102,8 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `src/components/content-ui/`
   Contents-only Tailwind/shadcn-style primitives for the injected batch panel and selection checkbox visuals. Keep these isolated from `src/components/ui/` so third-party page injection stays on its own sizing, reset contract, and `data-*` test-anchor surface.
 - `src/components/options/`
-  Source of truth for the options workspace shell, hash-route config, form hooks/schema, shared options-only form fragments under `src/components/options/form/`, and the `general` / `sites` / `overview` page implementations.
-  Filtering rules UI lives under `src/components/options/pages/filters/` and persists simplified `filters` data through the shared settings form; drawers, cards, and the quick test bench all reflect the real include-only filter model and feed the backend filter engine.
+  Source of truth for the options workspace shell, hash-route config, form hooks/schema, shared options-only form fragments under `src/components/options/form/`, and the `general` / `sites` / `filters` / `subscriptions` / `overview` page implementations.
+  Filtering rules UI lives under `src/components/options/pages/filters/` and persists simplified `filters` data through the shared settings form; drawers, cards, and the quick test bench all reflect the real include-only filter model and feed the backend filter engine. Subscription UI lives under `src/components/options/pages/subscriptions/` and renders persisted subscription settings alongside the background-provided runtime snapshot for scheduler runs, recent hits, and notification rounds.
 - `src/components/ui/`
   Tailwind-first primitive components used by the options workspace, including buttons, inputs, cards, badges, alerts, switches, and radio groups.
 - `src/styles/`
@@ -110,11 +114,13 @@ The extension injects selection UI into supported list pages, reuses direct magn
   Canonical release notes for tagged versions. Each GitHub Release page should reuse the matching version section from this file. New release entries must summarize the changes from the previous version tag up to the new release commit.
 - `src/lib/`
   Domain-organized shared logic:
-  - `src/lib/background/` for batch orchestration, job-state helpers, downloader host-permission checks, and background-only services
+  - `src/lib/background/` for batch orchestration, subscription execution/download services, job-state helpers, downloader host-permission checks, and background-only services
   - `src/lib/content/` for source-page matching helpers and content-side selection/filter derivation
   - `src/lib/downloader/` for downloader adapter contracts, supported-downloader registry/meta, and downloader-facing shared types
   - `src/lib/downloader/qb/` for qBittorrent WebUI client helpers and submission APIs
+  - `src/lib/download-preparation.ts` for domain-neutral magnet/torrent preparation, normalization, and delivery-mode classification shared by background, subscriptions, and source adapters
   - `src/lib/settings/` for defaults, nested downloader settings merge/sanitization, storage access, and source enablement helpers
+  - `src/lib/subscriptions/` for subscription definitions, runtime snapshot/manager coordination, retained-notification download workflows, grouped source scans, scheduler/alarm helpers, notification payloads, and recent-hit retention
   - `src/lib/shared/` for the WXT browser helper, cross-runtime messages, shared types, and Tailwind utility helpers
 - `.github/workflows/release.yml`
   Tagged-release automation that validates versions, packages the extension, extracts the matching `CHANGELOG.md` section, renames the packaged archive, and publishes the GitHub Release.
@@ -131,7 +137,13 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `src/lib/background/retry.ts`
   Orchestration logic for retrying failed entries, extracting failed entries from history records and resubmitting them with the current configured downloader while updating retry audit metadata on the history record.
 - `src/entrypoints/background/runtime.ts`
-  Background runtime registration helpers, including icon updates, runtime message listeners, and shared bootstrap helpers used by the WXT background entrypoint.
+  Background runtime registration helpers, including icon updates, runtime message listeners, subscription-aware settings saves plus alarm reconciliation, alarm-triggered aggregated scans, and notification click-through download handling.
+- `src/lib/background/subscriptions.ts`
+  Background bridge for subscriptions, limited to serialized mutation queueing, subscription-aware settings-save persistence, dependency wiring, and browser notification delivery around the subscription manager.
+- `src/lib/subscriptions/manager.ts`
+  Subscription orchestration surface that operates on the current `Settings`-backed runtime snapshot for scans, retained-hit downloads, and post-edit runtime reconciliation while delegating focused workflows to smaller subscription modules.
+- `src/lib/subscriptions/download-notification.ts`
+  Subscription-domain retained-notification download workflow, including retained-hit preparation, downloader submission, runtime-state mutation, and retained-round updates.
 - `src/lib/background/popup.ts`
   Popup-specific background helpers for building popup view state, normalizing options routes, opening options tabs, persisting source enable/disable toggles from the popup, and syncing the current active tab after popup source toggles.
 - `src/lib/shared/popup.ts`
@@ -156,15 +168,34 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 4. `src/lib/background/manager.ts`
    Validates the request, creates the batch job, coordinates concurrent preparation, and drives final submission.
 5. `src/lib/background/preparation.ts`
-   Normalizes selected items, classifies prepared links, and deduplicates extracted results before submission.
-6. `src/lib/sources/extraction.ts`
+   Normalizes and de-duplicates selected source items before the batch manager prepares or extracts them.
+6. `src/lib/download-preparation.ts`
+   Owns source-agnostic prepared-link normalization, delivery-mode classification, and duplicate detection shared across batch and subscription workflows.
+7. `src/lib/sources/extraction.ts`
    Delegates per-item detail-page extraction to the matched source adapter in `src/lib/sources/`.
-7. `src/lib/downloader/`
+8. `src/lib/downloader/`
    Resolves the active downloader adapter and exposes the shared downloader contract used by background services.
-8. `src/lib/downloader/qb/`
+9. `src/lib/downloader/qb/`
    Implements the qBittorrent adapter, including authentication, URL submission, torrent upload, and connection testing.
-9. `src/lib/background/job-state.ts`
+10. `src/lib/background/job-state.ts`
    Tracks per-job stats, accumulates results, and produces the completion summary payload sent back to the content script.
+
+### Background Subscription Flow
+
+1. `src/entrypoints/background/runtime.ts`
+   Reconciles the scheduler alarm on startup/install/settings saves, routes subscription-aware settings persistence, responds to subscription runtime messages, and reacts to subscription notification clicks.
+2. `src/lib/background/subscriptions.ts`
+   Serializes subscription mutations, owns subscription-aware save reconciliation for `Settings`, wires browser-side dependencies, and delegates scan/download work to `src/lib/subscriptions/manager.ts`.
+3. `src/lib/subscriptions/manager.ts`
+   Coordinates subscription scan execution and runtime snapshot reconciliation against the current in-memory `Settings` snapshot, delegating retained-download work to focused helpers.
+4. `src/lib/subscriptions/download-notification.ts`
+   Prepares retained notification hits, submits them through the active downloader, and rewrites runtime state plus retained notification rounds.
+5. `src/lib/subscriptions/scan.ts`
+   Groups enabled subscriptions by source, runs one scan per source, updates runtime state, and creates retained notification rounds from newly discovered hits.
+6. `src/lib/subscriptions/source-scan.ts`
+   Opens background list tabs only for subscription-capable sources, fetches list-page candidates, and normalizes/deduplicates scan results before matching.
+7. `src/lib/subscriptions/scheduler.ts` and `src/lib/subscriptions/notifications.ts`
+   Own the alarm cadence plus notification id/payload construction and round retention for recent hits.
 
 ### Popup Runtime Flow
 
@@ -182,9 +213,9 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 ### Runtime Ownership
 
 - `src/lib/background/`
-  Background-only orchestration, job state, and service helpers.
+  Background-only orchestration, job state, and service helpers for both batch downloads and subscriptions.
 - `src/entrypoints/background/runtime.ts`
-  Background runtime registration for the WXT entrypoint and tab/icon lifecycle hooks.
+  Background runtime registration for the WXT entrypoint, tab/icon lifecycle hooks, subscription alarm listeners, and notification click actions.
 - `src/lib/background/popup.ts`
   Popup-only background services for popup state assembly, source enablement writes, and options-page route navigation.
 - `src/lib/content/`
@@ -193,6 +224,10 @@ Use this section as the shortest runtime-oriented guide to the current code layo
   Source registry, site adapters, site metadata, and source delivery-mode capabilities.
 - `src/lib/settings/`
   Default settings, sanitization, storage access, and source enablement resolution.
+- `src/lib/download-preparation.ts`
+  Domain-neutral magnet/torrent preparation helpers, delivery-mode classification, and duplicate detection shared by background, subscriptions, and source adapters.
+- `src/lib/subscriptions/`
+  Subscription definitions, runtime snapshot persistence/helpers, manager-level coordination, retained-notification download workflows, grouped scans, scheduler helpers, notifications, and recent-hit retention.
 - `src/lib/downloader/`
   Downloader adapter registry, supported-downloader metadata, and downloader-facing shared types.
 - `src/lib/downloader/qb/`
@@ -212,7 +247,9 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 - Source-specific parsing, page matching, and capability defaults belong in `src/lib/sources/`.
 - Source host aliases and runtime host matching belong in `src/lib/sources/matching.ts`; keep the WXT content-script entrypoint aligned with these shared wildcard patterns, and use tests to prevent drift.
 - Batch orchestration belongs in `src/lib/background/`; source adapters should not take over job-level concerns.
+- Source-agnostic magnet/torrent preparation, delivery-mode classification, and duplicate detection belong in `src/lib/download-preparation.ts`; neither `src/lib/background/` nor `src/lib/subscriptions/` should own those shared rules.
 - `src/lib/settings/` may normalize or persist settings, but qB/network behavior belongs outside it.
+- Subscription matching, grouped scans, runtime-state retention, retained-hit download coordination, scheduler cadence, and notification-round retention belong in `src/lib/subscriptions/`; `src/lib/background/subscriptions.ts` should stay limited to queueing, subscription-aware save wiring, persistence handoff, and browser-side effects.
 - Filters are stored in `Settings.filters`, but matching logic must remain in `src/lib/filter-rules/`; do not scatter rule judgments across options components or source adapters.
 - `src/lib/content/` may help mount and scan pages, but downloader submission must stay out of content-side helpers.
 - During development, prefer splitting code by responsibility instead of letting a single file keep growing; when a file starts carrying multiple concerns or becomes hard to hold in context, extract focused modules before adding more logic.

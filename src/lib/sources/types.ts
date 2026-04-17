@@ -1,5 +1,19 @@
 import type { BatchItem, DeliveryMode, ExtractionResult, Settings, SourceId } from "../shared/types"
 
+export type SourceSubscriptionScanCandidate = {
+  sourceId: SourceId
+  title: string
+  detailUrl: string
+  magnetUrl?: string
+  torrentUrl?: string
+  subgroup?: string
+}
+
+export type SourceSubscriptionListScanSupport = {
+  listPageUrl: string
+  fetchCandidates: (tabId: number) => Promise<SourceSubscriptionScanCandidate[]>
+}
+
 export type SourceAdapter = {
   id: SourceId
   displayName: string
@@ -10,4 +24,5 @@ export type SourceAdapter = {
   getDetailAnchors: (root: ParentNode, pageUrl: URL) => HTMLAnchorElement[]
   getBatchItemFromAnchor: (anchor: HTMLAnchorElement, pageUrl: URL) => BatchItem | null
   extractSingleItem: (item: BatchItem, settings: Settings) => Promise<ExtractionResult>
+  subscriptionListScan?: SourceSubscriptionListScanSupport
 }

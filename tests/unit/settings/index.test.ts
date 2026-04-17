@@ -268,6 +268,182 @@ describe("sanitizeSettings", () => {
     ).toEqual([])
   })
 
+  it("normalizes filter enabled flags through the shared boolean path", () => {
+    expect(
+      sanitizeSettings({
+        filters: [
+          {
+            id: "filter-disabled",
+            name: "字符串 false",
+            enabled: "false",
+            must: [
+              {
+                id: "condition-title",
+                field: "title",
+                operator: "contains",
+                value: "1080"
+              }
+            ],
+            any: []
+          }
+        ]
+      }).filters
+    ).toEqual([
+      {
+        id: "filter-disabled",
+        name: "字符串 false",
+        enabled: false,
+        sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
+        must: [
+          {
+            id: "condition-title",
+            field: "title",
+            operator: "contains",
+            value: "1080"
+          }
+        ],
+        any: []
+      }
+    ])
+  })
+
+  it("drops subscriptions without any valid source ids instead of broadening them to all sites", () => {
+    expect(
+      sanitizeSettings({
+        subscriptions: [
+          {
+            id: "sub-invalid",
+            name: "Invalid scope",
+            enabled: true,
+            sourceIds: ["invalid-source"],
+            multiSiteModeEnabled: false,
+            titleQuery: "Medalist",
+            subgroupQuery: "",
+            advanced: {
+              must: [],
+              any: []
+            },
+            deliveryMode: "invalid-mode",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          }
+        ]
+      } as never).subscriptions
+    ).toEqual([])
+  })
+
+  it("prunes runtime state entries for subscriptions dropped during sanitization", () => {
+    expect(
+      sanitizeSettings({
+        subscriptions: [
+          {
+            id: "sub-invalid",
+            name: "Invalid scope",
+            enabled: true,
+            sourceIds: ["invalid-source"],
+            multiSiteModeEnabled: false,
+            titleQuery: "Medalist",
+            subgroupQuery: "",
+            advanced: {
+              must: [],
+              any: []
+            },
+            deliveryMode: "direct-only",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          },
+          {
+            id: "sub-valid",
+            name: "Valid scope",
+            enabled: true,
+            sourceIds: ["bangumimoe"],
+            multiSiteModeEnabled: false,
+            titleQuery: "Medalist",
+            subgroupQuery: "",
+            advanced: {
+              must: [],
+              any: []
+            },
+            deliveryMode: "direct-only",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          }
+        ],
+        subscriptionRuntimeStateById: {
+          "sub-invalid": {
+            lastScanAt: "2026-04-13T01:00:00.000Z",
+            lastMatchedAt: null,
+            lastError: "",
+            seenFingerprints: ["fp-invalid"],
+            recentHits: []
+          },
+          "sub-valid": {
+            lastScanAt: "2026-04-13T02:00:00.000Z",
+            lastMatchedAt: null,
+            lastError: "",
+            seenFingerprints: ["fp-valid"],
+            recentHits: []
+          }
+        }
+      } as never).subscriptionRuntimeStateById
+    ).toEqual({
+      "sub-valid": {
+        lastScanAt: "2026-04-13T02:00:00.000Z",
+        lastMatchedAt: null,
+        lastError: "",
+        seenFingerprints: ["fp-valid"],
+        recentHits: []
+      }
+    })
+  })
+
+  it("drops duplicate subscriptions after ids are trimmed", () => {
+    expect(
+      sanitizeSettings({
+        subscriptions: [
+          {
+            id: " sub-1 ",
+            name: "First",
+            enabled: true,
+            sourceIds: ["bangumimoe"],
+            multiSiteModeEnabled: false,
+            titleQuery: "Medalist",
+            subgroupQuery: "",
+            advanced: {
+              must: [],
+              any: []
+            },
+            deliveryMode: "direct-only",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          },
+          {
+            id: "sub-1",
+            name: "Second",
+            enabled: true,
+            sourceIds: ["kisssub"],
+            multiSiteModeEnabled: false,
+            titleQuery: "Frieren",
+            subgroupQuery: "",
+            advanced: {
+              must: [],
+              any: []
+            },
+            deliveryMode: "direct-only",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          }
+        ]
+      } as never).subscriptions
+    ).toEqual([
+      expect.objectContaining({
+        id: "sub-1",
+        name: "First",
+        deliveryMode: "allow-detail-extraction"
+      })
+    ])
+  })
+
   it("drops legacy source conditions from any clauses instead of migrating them", () => {
     expect(
       sanitizeSettings({
@@ -441,5 +617,266 @@ describe("sanitizeSettings", () => {
         ]
       } as never).filters
     ).toEqual([])
+  })
+
+  it("normalizes subscription settings, runtime state, and notification rounds", () => {
+    expect(
+      sanitizeSettings({
+        subscriptionsEnabled: 1,
+        pollingIntervalMinutes: 999,
+        notificationsEnabled: false,
+        notificationDownloadActionEnabled: "true",
+        lastSchedulerRunAt: "2026-04-13T01:23:45.000Z",
+      subscriptions: [
+        {
+          id: " sub-1 ",
+          name: " Bangumi.moe Medalist ",
+          enabled: "false",
+          sourceIds: ["bangumimoe", "invalid-source"],
+          multiSiteModeEnabled: false,
+          titleQuery: " Medalist ",
+            subgroupQuery: " 爱恋字幕社 ",
+            advanced: {
+              must: [
+                {
+                  id: " condition-1 ",
+                  field: "title",
+                  operator: "contains",
+                  value: " Medalist "
+                }
+              ],
+              any: []
+            },
+            deliveryMode: "direct-only",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          }
+        ],
+        subscriptionRuntimeStateById: {
+          "sub-1": {
+            lastScanAt: "2026-04-13T02:00:00.000Z",
+            lastMatchedAt: null,
+            lastError: " timeout ",
+            seenFingerprints: Array.from({ length: 205 }, (_, index) => ` fp-${index} `),
+            recentHits: Array.from({ length: 25 }, (_, index) => ({
+              id: ` hit-${index} `,
+              subscriptionId: " sub-1 ",
+              sourceId: "bangumimoe",
+              title: ` Title ${index} `,
+              normalizedTitle: ` title-${index} `,
+              subgroup: " 爱恋字幕社 ",
+              detailUrl: ` https://bangumi.moe/torrent/${index} `,
+              magnetUrl: "",
+              torrentUrl: "",
+              discoveredAt: "2026-04-13T00:00:00.000Z",
+              downloadedAt: null,
+              downloadStatus: "idle"
+            })).concat([
+              {
+                id: "hit-other",
+                subscriptionId: "sub-other",
+                sourceId: "bangumimoe",
+                title: "Other",
+                normalizedTitle: "other",
+                subgroup: "",
+                detailUrl: "https://bangumi.moe/torrent/other",
+                magnetUrl: "",
+                torrentUrl: "",
+                discoveredAt: "2026-04-13T00:00:00.000Z",
+                downloadedAt: null,
+                downloadStatus: "idle"
+              }
+            ])
+          }
+        },
+        subscriptionNotificationRounds: [
+          {
+            id: " round-1 ",
+            createdAt: "2026-04-13T03:00:00.000Z",
+            hitIds: [" hit-1 ", "", " hit-2 "],
+            hits: [
+              {
+                id: " hit-1 ",
+                subscriptionId: " sub-1 ",
+                sourceId: "bangumimoe",
+                title: " Title 1 ",
+                normalizedTitle: " title-1 ",
+                subgroup: " 爱恋字幕社 ",
+                detailUrl: " https://bangumi.moe/torrent/1 ",
+                magnetUrl: "",
+                torrentUrl: "",
+                discoveredAt: "2026-04-13T00:00:00.000Z",
+                downloadedAt: null,
+                downloadStatus: "idle"
+              }
+            ]
+          }
+        ]
+      } as never)
+    ).toMatchObject({
+      subscriptionsEnabled: true,
+      pollingIntervalMinutes: 120,
+      notificationsEnabled: false,
+      notificationDownloadActionEnabled: true,
+      lastSchedulerRunAt: "2026-04-13T01:23:45.000Z",
+      subscriptions: [
+        {
+          id: "sub-1",
+          name: "Bangumi.moe Medalist",
+          enabled: false,
+          sourceIds: ["bangumimoe"],
+          titleQuery: "Medalist",
+          subgroupQuery: "爱恋字幕社",
+          deliveryMode: "allow-detail-extraction"
+        }
+      ],
+      subscriptionNotificationRounds: [
+        {
+          id: "round-1",
+          hitIds: ["hit-1", "hit-2"],
+          hits: [
+            {
+              id: "hit-1",
+              subscriptionId: "sub-1",
+              sourceId: "bangumimoe",
+              title: "Title 1",
+              normalizedTitle: "title-1",
+              subgroup: "爱恋字幕社",
+              detailUrl: "https://bangumi.moe/torrent/1",
+              magnetUrl: "",
+              torrentUrl: "",
+              discoveredAt: "2026-04-13T00:00:00.000Z",
+              downloadedAt: null,
+              downloadStatus: "idle"
+            }
+          ]
+        }
+      ]
+    })
+
+    const sanitized = sanitizeSettings({
+      subscriptions: [
+        {
+          id: "sub-1",
+          name: "Valid scope",
+          enabled: true,
+          sourceIds: ["bangumimoe"],
+          multiSiteModeEnabled: false,
+          titleQuery: "Medalist",
+          subgroupQuery: "",
+          advanced: {
+            must: [],
+            any: []
+          },
+          deliveryMode: "direct-only",
+          createdAt: "2026-04-13T00:00:00.000Z",
+          baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+        }
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": {
+          lastScanAt: null,
+          lastMatchedAt: null,
+          lastError: "",
+          seenFingerprints: Array.from({ length: 205 }, (_, index) => `fp-${index}`),
+          recentHits: Array.from({ length: 25 }, (_, index) => ({
+            id: `hit-${index}`,
+            subscriptionId: "sub-1",
+            sourceId: "bangumimoe",
+            title: `Title ${index}`,
+            normalizedTitle: `title-${index}`,
+            subgroup: "",
+            detailUrl: `https://bangumi.moe/torrent/${index}`,
+            magnetUrl: "",
+            torrentUrl: "",
+            discoveredAt: "2026-04-13T00:00:00.000Z",
+            downloadedAt: null,
+            downloadStatus: "idle"
+          }))
+        }
+      }
+    } as never)
+
+    expect(sanitized.subscriptions[0]?.deliveryMode).toBe("allow-detail-extraction")
+    expect(sanitized.subscriptionRuntimeStateById["sub-1"]?.seenFingerprints).toHaveLength(200)
+    expect(sanitized.subscriptionRuntimeStateById["sub-1"]?.recentHits).toHaveLength(20)
+    expect(
+      sanitizeSettings({
+        subscriptions: [
+          {
+            id: "sub-1",
+            name: "Valid scope",
+            enabled: true,
+            sourceIds: ["bangumimoe"],
+            multiSiteModeEnabled: false,
+            titleQuery: "Medalist",
+            subgroupQuery: "",
+            advanced: {
+              must: [],
+              any: []
+            },
+            deliveryMode: "direct-only",
+            createdAt: "2026-04-13T00:00:00.000Z",
+            baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+          }
+        ],
+        subscriptionRuntimeStateById: {
+          "sub-1": {
+            lastScanAt: null,
+            lastMatchedAt: null,
+            lastError: "",
+            seenFingerprints: ["fp-1", "fp-2", "fp-1"],
+            recentHits: []
+          }
+        }
+      } as never).subscriptionRuntimeStateById["sub-1"]?.seenFingerprints
+    ).toEqual(["fp-2", "fp-1"])
+
+    const sanitizedMalformedHit = sanitizeSettings({
+      subscriptions: [
+        {
+          id: "sub-1",
+          name: "Valid scope",
+          enabled: true,
+          sourceIds: ["bangumimoe"],
+          multiSiteModeEnabled: false,
+          titleQuery: "Medalist",
+          subgroupQuery: "",
+          advanced: {
+            must: [],
+            any: []
+          },
+          deliveryMode: "direct-only",
+          createdAt: "2026-04-13T00:00:00.000Z",
+          baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+        }
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": {
+          lastScanAt: null,
+          lastMatchedAt: null,
+          lastError: "",
+          seenFingerprints: [],
+          recentHits: [
+            {
+              id: "hit-bad",
+              subscriptionId: "sub-1",
+              sourceId: "bangumimoe",
+              title: "Bad Hit",
+              normalizedTitle: "bad-hit",
+              subgroup: "",
+              detailUrl: "https://bangumi.moe/torrent/bad",
+              magnetUrl: "",
+              torrentUrl: "",
+              discoveredAt: "   ",
+              downloadedAt: null,
+              downloadStatus: "idle"
+            }
+          ]
+        }
+      }
+    } as never)
+
+    expect(sanitizedMalformedHit.subscriptionRuntimeStateById["sub-1"]?.recentHits).toEqual([])
   })
 })

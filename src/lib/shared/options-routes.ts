@@ -2,11 +2,19 @@ export const OPTIONS_ROUTE_PATHS = [
   "/general",
   "/sites",
   "/filters",
+  "/subscriptions",
   "/history",
   "/overview"
 ] as const
 
-export const [GENERAL_ROUTE, SITES_ROUTE, FILTERS_ROUTE, HISTORY_ROUTE, OVERVIEW_ROUTE] =
+export const [
+  GENERAL_ROUTE,
+  SITES_ROUTE,
+  FILTERS_ROUTE,
+  SUBSCRIPTIONS_ROUTE,
+  HISTORY_ROUTE,
+  OVERVIEW_ROUTE
+] =
   OPTIONS_ROUTE_PATHS
 
 export type OptionsRoutePath = (typeof OPTIONS_ROUTE_PATHS)[number]

@@ -83,6 +83,12 @@ describe("package metadata", () => {
     expect(wxtConfig).toContain('optional_host_permissions: ["http://*/*", "https://*/*"]')
   })
 
+  it("declares the background runtime permissions required by subscription polling and notifications", () => {
+    const wxtConfig = readText("wxt.config.ts")
+
+    expect(wxtConfig).toContain('permissions: ["storage", "tabs", "scripting", "alarms", "notifications"]')
+  })
+
   it("uses the WXT root command for development instead of the invalid 'wxt dev' form", () => {
     const packageJson = readPackageJson()
 

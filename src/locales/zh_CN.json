@@ -105,6 +105,19 @@
       "filterNameRequired": "请输入筛选器名称",
       "filterSourceRequired": "至少选择一个适用站点",
       "filterMustConditionRequired": "至少填写一个必须满足条件",
+      "subscriptionIdRequired": "订阅 ID 不能为空",
+      "subscriptionNameRequired": "请输入订阅名称",
+      "subscriptionSourceRequired": "至少选择一个订阅站点",
+      "subscriptionCreatedAtRequired": "订阅创建时间不能为空",
+      "subscriptionBaselineCreatedAtRequired": "订阅基线时间不能为空",
+      "subscriptionHitIdRequired": "订阅命中记录 ID 不能为空",
+      "subscriptionHitTitleRequired": "订阅命中记录标题不能为空",
+      "subscriptionHitDetailUrlRequired": "订阅命中记录详情地址不能为空",
+      "subscriptionHitDiscoveredAtRequired": "订阅命中记录发现时间不能为空",
+      "subscriptionNotificationRoundIdRequired": "通知轮次 ID 不能为空",
+      "subscriptionNotificationRoundCreatedAtRequired": "通知轮次创建时间不能为空",
+      "subscriptionNotificationRoundHitIdRequired": "通知轮次命中记录 ID 不能为空",
+      "subscriptionIdUnique": "订阅 ID 不能重复",
       "minValue": "最小值为 $1",
       "maxValue": "最大值为 $1",
       "qbBaseUrlRequired": "请输入 qBittorrent WebUI 地址",
@@ -151,6 +164,12 @@
         "title": "过滤规则",
         "description": "只保留命中筛选器的资源，让批量提交更贴近真实使用场景。",
         "footerLabel": "正在编辑过滤规则"
+      },
+      "subscriptions": {
+        "label": "订阅",
+        "title": "订阅",
+        "description": "管理支持站点的后台轮询订阅和通知行为。",
+        "footerLabel": "正在编辑订阅"
       },
       "history": {
         "label": "批次历史",
@@ -460,6 +479,115 @@
         "blocked": "拦截",
         "blockedSummary": "未命中任何启用中的筛选器，该资源会被拦截。"
       }
+    },
+    "subscriptions": {
+      "title": "订阅工作台",
+      "description": "在与其他设置相同的表单工作区里统一管理后台轮询、通知默认项和可复用订阅查询。",
+      "add": "新增订阅",
+      "edit": "编辑",
+      "duplicate": "复制",
+      "configuredCount": "已配置 $1 条订阅",
+      "enabledCount": "已启用 $1 条",
+      "scannedCount": "已有扫描记录 $1 条",
+      "errorCount": "最近报错 $1 条",
+      "recentHitCount": "最近命中 $1 条",
+      "listTitle": "订阅列表",
+      "listDescription": "每条订阅保存一组可复用的查询条件，并展示最近一次载入到页面的运行状态。",
+      "emptyTitle": "还没有订阅规则",
+      "emptyDescription": "新增一条订阅，让后台轮询知道该关注哪些资源。",
+      "deleteTitle": "删除订阅",
+      "deleteDescriptionNamed": "确定删除订阅“$1”吗？",
+      "deleteDescription": "确定删除这条订阅吗？",
+      "enableSwitchSuffix": "启用开关",
+      "cardDescription": "这里编辑的是可保存的查询配置；扫描结果和最近命中来自本次载入时的运行时快照。",
+      "badge": {
+        "enabled": "已启用",
+        "disabled": "已停用",
+        "singleSite": "单站点",
+        "multiSite": "多站点"
+      },
+      "global": {
+        "enabledTitle": "启用后台订阅轮询",
+        "enabledDescription": "开关调度器本身，不会删除已经保存的订阅条目。",
+        "pollingIntervalLabel": "轮询间隔（分钟）",
+        "pollingIntervalHint": "支持 5 到 120 分钟，保存设置后按最新值生效。",
+        "notificationsEnabledTitle": "启用通知",
+        "notificationsEnabledDescription": "后台轮询发现新的命中记录时显示浏览器通知。",
+        "notificationDownloadActionTitle": "点击通知后直接处理命中",
+        "notificationDownloadActionDescription": "开启后，点击通知会直接触发当前下载器流程来处理该轮命中。",
+        "runtimeTitle": "运行状态",
+        "lastSchedulerRunAt": "上次调度运行",
+        "notificationActionStateLabel": "通知点击行为",
+        "supportedSourcesLabel": "当前后台扫描支持",
+        "supportedSourcesValue": "ACG.RIP、Bangumi.moe",
+        "notificationActionState": {
+          "enabled": "点击通知后会直接进入下载流程。",
+          "manualOnly": "通知仅用于提醒，不会自动处理命中。",
+          "notificationsOff": "通知当前已关闭。"
+        }
+      },
+      "card": {
+        "sourceScope": "站点范围",
+        "deliveryMode": "获取方式",
+        "titleQuery": "标题关键词",
+        "subgroupQuery": "字幕组关键词",
+        "mustConditions": "高级必须条件",
+        "anyConditions": "高级任一条件",
+        "unsetTitleQuery": "未设置。",
+        "unsetSubgroupQuery": "未设置。",
+        "lastScanAt": "最近扫描",
+        "lastMatchedAt": "最近命中",
+        "lastError": "最近错误",
+        "recentHits": "最近命中摘要"
+      },
+      "deliveryMode": {
+        "directOnly": "仅复用直链结果",
+        "allowDetailExtraction": "允许回退到详情页提取"
+      },
+      "dialog": {
+        "addTitle": "新增订阅",
+        "editTitle": "编辑订阅",
+        "description": "编辑订阅名称、站点范围和查询条件",
+        "close": "关闭订阅面板",
+        "nameLabel": "订阅名称",
+        "namePlaceholder": "例如：ACG Medalist",
+        "titleQueryLabel": "标题关键词",
+        "titleQueryPlaceholder": "例如：Medalist",
+        "subgroupQueryLabel": "字幕组关键词",
+        "subgroupQueryPlaceholder": "例如：LoliHouse",
+        "multiSiteModeTitle": "允许多站点匹配",
+        "multiSiteModeDescription": "默认单站点模式。只有当同一组查询需要跨多个站点轮询时再开启。",
+        "sourceTitle": "来源站点",
+        "sourceDescription": "选择这条订阅应该扫描哪些站点。",
+        "sourceCount": "已选 $1 个站点",
+        "sourceHint": "当前只有 ACG.RIP 和 Bangumi.moe 支持后台列表扫描，至少保留一个站点。",
+        "deliveryModeLabel": "获取方式",
+        "mustDescription": "可选的高级必须条件，全部命中才算通过。",
+        "mustEmpty": "还没有高级必须条件。",
+        "addMust": "添加必须条件",
+        "anyDescription": "可选的高级任一条件，命中其中一条即可。",
+        "anyEmpty": "还没有高级任一条件。",
+        "addAny": "添加任一条件",
+        "currentSummary": "当前摘要",
+        "sourceSummary": "站点范围：$1",
+        "titleQuerySummary": "标题关键词：$1",
+        "subgroupQuerySummary": "字幕组关键词：$1",
+        "mustSummary": "必须满足：$1",
+        "anySummary": "满足任一：$1",
+        "enableTitle": "启用订阅",
+        "enableDescription": "停用后保留配置，但调度器会跳过这条订阅。",
+        "save": "保存订阅",
+        "queryRequired": "至少填写标题关键词、字幕组关键词或一条高级条件",
+        "conditionValueRequired": "每条高级条件都需要填写内容"
+      },
+      "runtime": {
+        "never": "从未运行",
+        "unknownTime": "时间未知",
+        "noRecentError": "最近没有错误。",
+        "noRecentHits": "还没有最近命中。",
+        "latestHitSingle": "最近命中：$1",
+        "latestHitMany": "最近命中：$1，共 $2 条"
+      }
     }
   },
   "content": {
@@ -501,6 +629,13 @@
       "invalidUrl": "下载器地址无效：$1",
       "required": "扩展缺少访问 $1（$2）的权限。请先在“下载器与基础设置”里点击“测试连接”授权后再重试。",
       "denied": "扩展未获得访问 $1（$2）的权限。请在浏览器弹窗中允许该地址访问后重试。"
+    }
+  },
+  "subscriptions": {
+    "notification": {
+      "title": "Anime BT Batch Downloader",
+      "messageOne": "有 1 条新的订阅命中可处理。",
+      "messageMany": "有 $1 条新的订阅命中可处理。"
     }
   }
 }

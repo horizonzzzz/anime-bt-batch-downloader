@@ -23,7 +23,7 @@ export default defineConfig({
     description: "__MSG_extensionDescription__",
     default_locale: "zh_CN",
     minimum_chrome_version: "114",
-    permissions: ["storage", "tabs", "scripting"],
+    permissions: ["storage", "tabs", "scripting", "alarms", "notifications"],
     host_permissions: CONTENT_SCRIPT_MATCH_PATTERNS,
     optional_host_permissions: ["http://*/*", "https://*/*"],
     icons: {

@@ -40,8 +40,23 @@ const settings = {
     acgrip: true,
     bangumimoe: true
   },
-  filters: []
+  filters: [],
+  subscriptionsEnabled: false,
+  pollingIntervalMinutes: 30,
+  notificationsEnabled: true,
+  notificationDownloadActionEnabled: true,
+  lastSchedulerRunAt: "2026-04-14T09:30:00.000Z",
+  subscriptions: [],
+  subscriptionRuntimeStateById: {},
+  subscriptionNotificationRounds: []
 }
+
+const {
+  lastSchedulerRunAt: _lastSchedulerRunAt,
+  subscriptionRuntimeStateById: _subscriptionRuntimeStateById,
+  subscriptionNotificationRounds: _subscriptionNotificationRounds,
+  ...editableSettings
+} = settings
 
 function createOptionsApi(overrides: Partial<OptionsApi> = {}): OptionsApi {
   return {
@@ -135,10 +150,11 @@ describe("OptionsPage", () => {
     expect(screen.getAllByText("Anime BT Batch")).toHaveLength(1)
 
     const sidebarNav = screen.getByTestId("options-sidebar-groups")
-    expect(within(sidebarNav).getAllByRole("button")).toHaveLength(5)
+    expect(within(sidebarNav).getAllByRole("button")).toHaveLength(6)
     expect(screen.getByRole("button", { name: "下载器与基础设置" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "站点配置" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "过滤规则" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "订阅" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "批次历史" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "源站概览" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "下载器与基础设置" })).toBeInTheDocument()
@@ -232,6 +248,14 @@ describe("OptionsPage", () => {
     expect(screen.getByText("还没有筛选器")).toBeInTheDocument()
 
     secondRender.unmount()
+    window.location.hash = "#/subscriptions"
+    const thirdRender = render(<OptionsPage api={api} />)
+
+    expect(await screen.findByRole("heading", { name: "订阅" })).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name: "新增订阅" }).length).toBeGreaterThan(0)
+    expect(screen.getByText("还没有订阅规则")).toBeInTheDocument()
+
+    thirdRender.unmount()
     window.location.hash = "#/overview"
     render(<OptionsPage api={api} />)
 
@@ -294,6 +318,257 @@ describe("OptionsPage", () => {
     },
     10000
   )
+
+  it(
+    "creates a subscription from the subscriptions workspace and includes it in the saved payload",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "订阅" }))
+
+      expect(screen.getByText("上次调度运行")).toBeInTheDocument()
+      expect(screen.getByText("2026-04-14 17:30")).toBeInTheDocument()
+
+      await user.click(screen.getAllByRole("button", { name: "新增订阅" })[0])
+
+      expect(await screen.findByRole("dialog", { name: "新增订阅" })).toBeInTheDocument()
+      expect(screen.queryByTestId("subscription-source-tag-kisssub")).not.toBeInTheDocument()
+      expect(screen.queryByTestId("subscription-source-tag-dongmanhuayuan")).not.toBeInTheDocument()
+      await user.type(screen.getByLabelText("订阅名称"), "ACG Medalist")
+      await user.type(screen.getByLabelText("标题关键词"), "Medalist")
+      await user.type(screen.getByLabelText("字幕组关键词"), "LoliHouse")
+      await user.click(screen.getByRole("button", { name: "保存订阅" }))
+
+      expect(screen.getByRole("heading", { name: "ACG Medalist" })).toBeInTheDocument()
+      const subscriptionCard = screen.getByTestId(/subscription-card-/)
+      expect(within(subscriptionCard).getByText("标题关键词")).toBeInTheDocument()
+      expect(within(subscriptionCard).getByText("Medalist")).toBeInTheDocument()
+      expect(within(subscriptionCard).getByText("字幕组关键词")).toBeInTheDocument()
+      expect(within(subscriptionCard).getByText("LoliHouse")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subscriptions: expect.arrayContaining([
+              expect.objectContaining({
+                name: "ACG Medalist",
+                enabled: true,
+                sourceIds: ["acgrip"],
+                multiSiteModeEnabled: false,
+                titleQuery: "Medalist",
+                subgroupQuery: "LoliHouse",
+                deliveryMode: "direct-only",
+                advanced: {
+                  must: [],
+                  any: []
+                },
+                createdAt: expect.any(String),
+                baselineCreatedAt: expect.any(String)
+              })
+            ])
+          })
+        )
+      })
+
+      const savedPayload = vi.mocked(api.saveSettings).mock.calls.at(-1)?.[0]
+      expect(savedPayload).toBeDefined()
+      expect(savedPayload).not.toHaveProperty("lastSchedulerRunAt")
+      expect(savedPayload).not.toHaveProperty("subscriptionRuntimeStateById")
+      expect(savedPayload).not.toHaveProperty("subscriptionNotificationRounds")
+    },
+    10000
+  )
+
+  it(
+    "coerces Bangumi.moe subscriptions to allow detail extraction when saving",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "订阅" }))
+      await user.click(screen.getAllByRole("button", { name: "新增订阅" })[0])
+
+      expect(await screen.findByRole("dialog", { name: "新增订阅" })).toBeInTheDocument()
+      await user.type(screen.getByLabelText("订阅名称"), "Bangumi Medalist")
+      await user.type(screen.getByLabelText("标题关键词"), "Medalist")
+      await user.click(screen.getByTestId("subscription-source-tag-bangumimoe"))
+      await user.click(screen.getByRole("button", { name: "保存订阅" }))
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subscriptions: expect.arrayContaining([
+              expect.objectContaining({
+                name: "Bangumi Medalist",
+                sourceIds: ["bangumimoe"],
+                deliveryMode: "allow-detail-extraction"
+              })
+            ])
+          })
+        )
+      })
+    },
+    10000
+  )
+
+  it(
+    "delegates edited subscription runtime reconciliation to the save API without sending runtime fields",
+    async () => {
+      const user = userEvent.setup()
+      const api = createOptionsApi({
+        loadSettings: vi.fn().mockResolvedValue({
+          ...settings,
+          subscriptionsEnabled: true,
+          subscriptions: [
+            {
+              id: "sub-1",
+              name: "ACG Medalist",
+              enabled: true,
+              sourceIds: ["acgrip"],
+              multiSiteModeEnabled: false,
+              titleQuery: "Medalist",
+              subgroupQuery: "LoliHouse",
+              deliveryMode: "direct-only",
+              advanced: {
+                must: [],
+                any: []
+              },
+              createdAt: "2026-04-13T00:00:00.000Z",
+              baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+            }
+          ],
+          subscriptionRuntimeStateById: {
+            "sub-1": {
+              lastScanAt: "2026-04-14T09:00:00.000Z",
+              lastMatchedAt: "2026-04-14T09:00:00.000Z",
+              lastError: "",
+              seenFingerprints: ["fp-1"],
+              recentHits: [
+                {
+                  id: "hit-1",
+                  subscriptionId: "sub-1",
+                  sourceId: "acgrip",
+                  title: "[LoliHouse] Medalist - 01 [1080p]",
+                  normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+                  subgroup: "LoliHouse",
+                  detailUrl: "https://acg.rip/t/100",
+                  magnetUrl: "magnet:?xt=urn:btih:AAA111",
+                  torrentUrl: "",
+                  discoveredAt: "2026-04-14T08:00:00.000Z",
+                  downloadedAt: null,
+                  downloadStatus: "idle"
+                }
+              ]
+            }
+          },
+          subscriptionNotificationRounds: [
+            {
+              id: "subscription-round:20260414093000000",
+              createdAt: "2026-04-14T09:30:00.000Z",
+              hitIds: ["hit-1"],
+              hits: [
+                {
+                  id: "hit-1",
+                  subscriptionId: "sub-1",
+                  sourceId: "acgrip",
+                  title: "[LoliHouse] Medalist - 01 [1080p]",
+                  normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+                  subgroup: "LoliHouse",
+                  detailUrl: "https://acg.rip/t/100",
+                  magnetUrl: "magnet:?xt=urn:btih:AAA111",
+                  torrentUrl: "",
+                  discoveredAt: "2026-04-14T08:00:00.000Z",
+                  downloadedAt: null,
+                  downloadStatus: "idle"
+                }
+              ]
+            }
+          ]
+        }),
+        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+      })
+
+      render(<OptionsPage api={api} />)
+
+      expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+      await user.click(screen.getByRole("button", { name: "订阅" }))
+      await user.click(
+        within(screen.getByTestId("subscription-card-sub-1")).getByRole("button", {
+          name: "编辑"
+        })
+      )
+
+      expect(await screen.findByRole("dialog", { name: "编辑订阅" })).toBeInTheDocument()
+      const titleQueryInput = screen.getByLabelText("标题关键词")
+      await user.clear(titleQueryInput)
+      await user.type(titleQueryInput, "Bang Dream")
+      await user.click(screen.getByRole("button", { name: "保存订阅" }))
+
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subscriptions: expect.arrayContaining([
+              expect.objectContaining({
+                id: "sub-1",
+                titleQuery: "Bang Dream"
+              })
+            ])
+          })
+        )
+      })
+
+      const savedPayload = vi.mocked(api.saveSettings).mock.calls.at(-1)?.[0]
+      expect(savedPayload).toBeDefined()
+      expect(savedPayload).not.toHaveProperty("subscriptionRuntimeStateById")
+      expect(savedPayload).not.toHaveProperty("subscriptionNotificationRounds")
+    },
+    10000
+  )
+
+  it("formats subscription source summaries in English without Chinese separators", async () => {
+    const user = userEvent.setup()
+    ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"
+    const api = createOptionsApi({
+      saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+    })
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Subscriptions" }))
+    await user.click(screen.getAllByRole("button", { name: "Add subscription" })[0])
+
+    expect(await screen.findByRole("dialog", { name: "Add subscription" })).toBeInTheDocument()
+    await user.type(screen.getByLabelText("Subscription name"), "ACG + Bangumi")
+    await user.type(screen.getByLabelText("Title query"), "Medalist")
+    await user.click(screen.getByRole("switch", { name: "Allow multiple sites" }))
+    await user.click(screen.getByTestId("subscription-source-tag-bangumimoe"))
+    await user.click(screen.getByRole("button", { name: "Save subscription" }))
+
+    const subscriptionCard = screen.getByTestId(/subscription-card-/)
+    expect(within(subscriptionCard).getByText("ACG.RIP and Bangumi.moe")).toBeInTheDocument()
+    expect(within(subscriptionCard).queryByText("ACG.RIP、Bangumi.moe")).not.toBeInTheDocument()
+  })
 
   it("adds the 爱恋 1080 简中 preset rule directly and allows duplicates", async () => {
     const user = userEvent.setup()
@@ -683,7 +958,7 @@ describe("OptionsPage", () => {
 
       await user.click(screen.getByRole("button", { name: "测试连接" }))
 
-      expect(api.testConnection).toHaveBeenCalledWith(settings)
+      expect(api.testConnection).toHaveBeenCalledWith(editableSettings)
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "测试连接" })).toBeDisabled()
         expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
@@ -724,7 +999,7 @@ describe("OptionsPage", () => {
       expect(permissionsRequestMock).toHaveBeenCalledWith({
         origins: ["http://127.0.0.1/*"]
       })
-      expect(api.testConnection).toHaveBeenCalledWith(settings)
+      expect(api.testConnection).toHaveBeenCalledWith(editableSettings)
     },
     10000
   )
@@ -781,12 +1056,12 @@ describe("OptionsPage", () => {
 
       await waitFor(() => {
         expect(api.testConnection).toHaveBeenCalledWith({
-          ...settings,
+          ...editableSettings,
           currentDownloaderId: "qbittorrent",
           downloaders: {
-            ...settings.downloaders,
+            ...editableSettings.downloaders,
             transmission: {
-              ...settings.downloaders.transmission,
+              ...editableSettings.downloaders.transmission,
               baseUrl: ""
             }
           }
@@ -822,12 +1097,12 @@ describe("OptionsPage", () => {
 
       await waitFor(() => {
         expect(api.saveSettings).toHaveBeenCalledWith({
-          ...settings,
+          ...editableSettings,
           currentDownloaderId: "qbittorrent",
           downloaders: {
-            ...settings.downloaders,
+            ...editableSettings.downloaders,
             transmission: {
-              ...settings.downloaders.transmission,
+              ...editableSettings.downloaders.transmission,
               baseUrl: ""
             }
           }

@@ -1,4 +1,4 @@
-import { extractDetailHash, normalizeTitle } from "../background/preparation"
+import { extractDetailHash, normalizeTitle } from "../download-preparation"
 import { getBrowser } from "../shared/browser"
 import { DEFAULT_SOURCE_DELIVERY_MODES, getSupportedDeliveryModes } from "./delivery"
 import { matchesSourceHost } from "./matching"

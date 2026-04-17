@@ -105,6 +105,19 @@
       "filterNameRequired": "Enter a filter name",
       "filterSourceRequired": "Select at least one source site",
       "filterMustConditionRequired": "Add at least one required condition",
+      "subscriptionIdRequired": "Subscription ID is required",
+      "subscriptionNameRequired": "Enter a subscription name",
+      "subscriptionSourceRequired": "Select at least one subscription source site",
+      "subscriptionCreatedAtRequired": "Subscription created time is required",
+      "subscriptionBaselineCreatedAtRequired": "Subscription baseline time is required",
+      "subscriptionHitIdRequired": "Subscription hit ID is required",
+      "subscriptionHitTitleRequired": "Subscription hit title is required",
+      "subscriptionHitDetailUrlRequired": "Subscription hit detail URL is required",
+      "subscriptionHitDiscoveredAtRequired": "Subscription hit discovery time is required",
+      "subscriptionNotificationRoundIdRequired": "Notification round ID is required",
+      "subscriptionNotificationRoundCreatedAtRequired": "Notification round created time is required",
+      "subscriptionNotificationRoundHitIdRequired": "Notification round hit ID is required",
+      "subscriptionIdUnique": "Subscription IDs must be unique",
       "minValue": "Minimum value is $1",
       "maxValue": "Maximum value is $1",
       "qbBaseUrlRequired": "Enter the qBittorrent WebUI URL",
@@ -151,6 +164,12 @@
         "title": "Filters",
         "description": "Keep only items that match your filters so batch submission stays aligned with real usage.",
         "footerLabel": "Editing filters"
+      },
+      "subscriptions": {
+        "label": "Subscriptions",
+        "title": "Subscriptions",
+        "description": "Manage background polling subscriptions and notification behavior for supported sites.",
+        "footerLabel": "Editing subscriptions"
       },
       "history": {
         "label": "History",
@@ -460,6 +479,115 @@
         "blocked": "Block",
         "blockedSummary": "No enabled filter matched, so this resource would be blocked."
       }
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "description": "Configure reusable subscription queries, global polling defaults, and notification behavior in the same form workspace used by the rest of the options page.",
+      "add": "Add subscription",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "configuredCount": "$1 subscriptions configured",
+      "enabledCount": "$1 enabled",
+      "scannedCount": "$1 with scan history",
+      "errorCount": "$1 with recent errors",
+      "recentHitCount": "$1 recent hits",
+      "listTitle": "Subscription list",
+      "listDescription": "Each subscription keeps one reusable query and runtime status snapshot.",
+      "emptyTitle": "No subscriptions yet",
+      "emptyDescription": "Create a subscription so background polling has something to watch.",
+      "deleteTitle": "Delete subscription",
+      "deleteDescriptionNamed": "Delete the subscription \"$1\"?",
+      "deleteDescription": "Delete this subscription?",
+      "enableSwitchSuffix": "enable switch",
+      "cardDescription": "Editable query settings live here; scan results and recent hits come from the latest loaded runtime state.",
+      "badge": {
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "singleSite": "Single site",
+        "multiSite": "Multi-site"
+      },
+      "global": {
+        "enabledTitle": "Enable background subscriptions",
+        "enabledDescription": "Turn the scheduler on or off without deleting any saved subscription entries.",
+        "pollingIntervalLabel": "Polling interval (minutes)",
+        "pollingIntervalHint": "The scheduler runs between 5 and 120 minutes and uses the saved value after the next settings save.",
+        "notificationsEnabledTitle": "Enable notifications",
+        "notificationsEnabledDescription": "Show browser notifications when a polling round discovers new hits.",
+        "notificationDownloadActionTitle": "Notification click downloads hits",
+        "notificationDownloadActionDescription": "If enabled, clicking a notification triggers the current downloader flow for that round.",
+        "runtimeTitle": "Runtime status",
+        "lastSchedulerRunAt": "Last scheduler run",
+        "notificationActionStateLabel": "Notification click action",
+        "supportedSourcesLabel": "Background scan support",
+        "supportedSourcesValue": "ACG.RIP, Bangumi.moe",
+        "notificationActionState": {
+          "enabled": "Clicking a notification starts the download flow.",
+          "manualOnly": "Notifications stay informational only.",
+          "notificationsOff": "Notifications are currently disabled."
+        }
+      },
+      "card": {
+        "sourceScope": "Source scope",
+        "deliveryMode": "Delivery mode",
+        "titleQuery": "Title query",
+        "subgroupQuery": "Subgroup query",
+        "mustConditions": "Advanced must conditions",
+        "anyConditions": "Advanced any conditions",
+        "unsetTitleQuery": "Not set.",
+        "unsetSubgroupQuery": "Not set.",
+        "lastScanAt": "Latest scan",
+        "lastMatchedAt": "Latest match",
+        "lastError": "Recent error",
+        "recentHits": "Recent hits"
+      },
+      "deliveryMode": {
+        "directOnly": "Reuse direct links only",
+        "allowDetailExtraction": "Allow detail-page extraction fallback"
+      },
+      "dialog": {
+        "addTitle": "Add subscription",
+        "editTitle": "Edit subscription",
+        "description": "Edit the subscription name, source scope, and query conditions",
+        "close": "Close subscription panel",
+        "nameLabel": "Subscription name",
+        "namePlaceholder": "For example: ACG Medalist",
+        "titleQueryLabel": "Title query",
+        "titleQueryPlaceholder": "For example: Medalist",
+        "subgroupQueryLabel": "Subgroup query",
+        "subgroupQueryPlaceholder": "For example: LoliHouse",
+        "multiSiteModeTitle": "Allow multiple sites",
+        "multiSiteModeDescription": "Disabled by default. Turn this on when the same query should track more than one source site.",
+        "sourceTitle": "Source scope",
+        "sourceDescription": "Choose which supported sites this subscription should scan.",
+        "sourceCount": "$1 site(s) selected",
+        "sourceHint": "ACG.RIP and Bangumi.moe currently support background list scanning. At least one site must remain selected.",
+        "deliveryModeLabel": "Delivery mode",
+        "mustDescription": "Optional advanced conditions that must all match.",
+        "mustEmpty": "No advanced must conditions yet.",
+        "addMust": "Add must condition",
+        "anyDescription": "Optional advanced conditions where matching any one is enough.",
+        "anyEmpty": "No advanced any conditions yet.",
+        "addAny": "Add any condition",
+        "currentSummary": "Current summary",
+        "sourceSummary": "Source scope: $1",
+        "titleQuerySummary": "Title query: $1",
+        "subgroupQuerySummary": "Subgroup query: $1",
+        "mustSummary": "Must match: $1",
+        "anySummary": "Match any: $1",
+        "enableTitle": "Enable subscription",
+        "enableDescription": "Disabled subscriptions keep their saved configuration, but the scheduler skips them.",
+        "save": "Save subscription",
+        "queryRequired": "Enter a title query, a subgroup query, or at least one advanced condition",
+        "conditionValueRequired": "Every advanced condition needs a value"
+      },
+      "runtime": {
+        "never": "Never",
+        "unknownTime": "Unknown time",
+        "noRecentError": "No recent errors.",
+        "noRecentHits": "No recent hits yet.",
+        "latestHitSingle": "Latest hit: $1",
+        "latestHitMany": "Latest hit: $1, plus $2 hit(s) total"
+      }
     }
   },
   "content": {
@@ -501,6 +629,13 @@
       "invalidUrl": "Invalid downloader URL: $1",
       "required": "The extension is missing permission to access $1 at $2. Open Downloader & Basic Settings, click Test Connection, then try again.",
       "denied": "The extension was not granted permission to access $1 at $2. Allow that host in the browser prompt and try again."
+    }
+  },
+  "subscriptions": {
+    "notification": {
+      "title": "Anime BT Batch Downloader",
+      "messageOne": "1 new subscription hit is ready.",
+      "messageMany": "$1 new subscription hits are ready."
     }
   }
 }

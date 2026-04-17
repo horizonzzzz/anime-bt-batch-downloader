@@ -3,19 +3,21 @@ import { i18n } from "../i18n"
 import { getBrowser } from "../shared/browser"
 import type { Settings } from "../shared/types"
 
+type DownloaderPermissionSettings = Pick<Settings, "currentDownloaderId" | "downloaders">
+
 type PermissionsApi = {
   contains: (permissions: { origins: string[] }) => Promise<boolean>
   request: (permissions: { origins: string[] }) => Promise<boolean>
 }
 
-function getCurrentDownloaderBaseUrl(settings: Settings): string {
+function getCurrentDownloaderBaseUrl(settings: DownloaderPermissionSettings): string {
   return settings.currentDownloaderId === "transmission"
     ? settings.downloaders.transmission.baseUrl
     : settings.downloaders.qbittorrent.baseUrl
 }
 
 function getPermissionErrorMessage(
-  settings: Settings,
+  settings: DownloaderPermissionSettings,
   translationKey: "required" | "denied"
 ): string {
   const downloaderName = getDownloaderMeta(settings.currentDownloaderId).displayName
@@ -24,7 +26,7 @@ function getPermissionErrorMessage(
   return i18n.t(`downloader.permissions.${translationKey}`, [downloaderName, baseUrl])
 }
 
-export function getDownloaderPermissionOrigins(settings: Settings): string[] {
+export function getDownloaderPermissionOrigins(settings: DownloaderPermissionSettings): string[] {
   const baseUrl = getCurrentDownloaderBaseUrl(settings)
 
   let parsedUrl: URL
@@ -42,7 +44,7 @@ export function getDownloaderPermissionOrigins(settings: Settings): string[] {
 }
 
 export async function ensureDownloaderPermission(
-  settings: Settings,
+  settings: DownloaderPermissionSettings,
   options?: {
     interactive?: boolean
     permissionsApi?: PermissionsApi
@@ -67,7 +69,7 @@ export async function ensureDownloaderPermission(
 }
 
 export async function requestDownloaderPermission(
-  settings: Settings,
+  settings: DownloaderPermissionSettings,
   permissionsApi?: PermissionsApi
 ): Promise<void> {
   await ensureDownloaderPermission(settings, {

@@ -44,6 +44,9 @@ export type RuntimeRequest =
   | { type: "SET_SOURCE_ENABLED"; sourceId: SourceId; enabled: boolean }
   | { type: "OPEN_OPTIONS_PAGE"; route?: PopupOptionsRoute }
   | { type: "START_BATCH_DOWNLOAD"; items?: BatchItem[]; savePath?: string }
+  | { type: "GET_SUBSCRIPTION_STATUS" }
+  | { type: "RUN_SUBSCRIPTION_SCAN_NOW" }
+  | { type: "DOWNLOAD_SUBSCRIPTION_HITS"; roundId: string }
 
 export type RuntimeRequestType = RuntimeRequest["type"]
 
@@ -105,6 +108,20 @@ export type RetryFailedItemsSuccessResponse = {
   failedCount: number
 }
 
+export type GetSubscriptionStatusSuccessResponse = {
+  ok: true
+  settings: Settings
+}
+
+export type RunSubscriptionScanNowSuccessResponse = {
+  ok: true
+  roundId: string | null
+}
+
+export type DownloadSubscriptionHitsSuccessResponse = {
+  ok: true
+}
+
 export type RuntimeSuccessResponseMap = {
   GET_HISTORY: GetHistorySuccessResponse
   CLEAR_HISTORY: ClearHistorySuccessResponse
@@ -117,6 +134,9 @@ export type RuntimeSuccessResponseMap = {
   SET_SOURCE_ENABLED: SetSourceEnabledSuccessResponse
   OPEN_OPTIONS_PAGE: OpenOptionsPageSuccessResponse
   START_BATCH_DOWNLOAD: StartBatchDownloadSuccessResponse
+  GET_SUBSCRIPTION_STATUS: GetSubscriptionStatusSuccessResponse
+  RUN_SUBSCRIPTION_SCAN_NOW: RunSubscriptionScanNowSuccessResponse
+  DOWNLOAD_SUBSCRIPTION_HITS: DownloadSubscriptionHitsSuccessResponse
 }
 
 export type RuntimeSuccessResponseFor<TType extends RuntimeRequestType> =
@@ -137,6 +157,9 @@ export type GetPopupStateResponse = RuntimeResponseFor<"GET_POPUP_STATE">
 export type SetSourceEnabledResponse = RuntimeResponseFor<"SET_SOURCE_ENABLED">
 export type OpenOptionsPageResponse = RuntimeResponseFor<"OPEN_OPTIONS_PAGE">
 export type StartBatchDownloadResponse = RuntimeResponseFor<"START_BATCH_DOWNLOAD">
+export type GetSubscriptionStatusResponse = RuntimeResponseFor<"GET_SUBSCRIPTION_STATUS">
+export type RunSubscriptionScanNowResponse = RuntimeResponseFor<"RUN_SUBSCRIPTION_SCAN_NOW">
+export type DownloadSubscriptionHitsResponse = RuntimeResponseFor<"DOWNLOAD_SUBSCRIPTION_HITS">
 export type RuntimeResponse = RuntimeResponseFor<RuntimeRequestType>
 
 export function createRuntimeSuccessResponse<TType extends RuntimeRequestType>(
