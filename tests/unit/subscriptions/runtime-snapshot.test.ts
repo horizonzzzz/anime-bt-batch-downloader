@@ -1,18 +1,14 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, expectTypeOf, it } from "vitest"
 
 import type {
-  Settings,
   SubscriptionEntry,
   SubscriptionHitRecord,
+  SubscriptionNotificationRound,
   SubscriptionRuntimeState
 } from "../../../src/lib/shared/types"
+import type { SubscriptionRuntimeSnapshot } from "../../../src/lib/subscriptions/contracts"
 import { DEFAULT_SETTINGS } from "../../../src/lib/settings/defaults"
 import { reconcileSubscriptionRuntimeSnapshot } from "../../../src/lib/subscriptions/runtime-snapshot"
-
-type RuntimeSnapshot = Pick<
-  Settings,
-  "lastSchedulerRunAt" | "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
->
 
 function createSubscription(
   overrides: Partial<SubscriptionEntry> = {}
@@ -69,7 +65,9 @@ function createRuntimeState(
   }
 }
 
-function createSnapshot(overrides: Partial<RuntimeSnapshot> = {}): RuntimeSnapshot {
+function createSnapshot(
+  overrides: Partial<SubscriptionRuntimeSnapshot> = {}
+): SubscriptionRuntimeSnapshot {
   return {
     lastSchedulerRunAt: "2026-04-14T09:30:00.000Z",
     subscriptionRuntimeStateById: {},
@@ -77,6 +75,24 @@ function createSnapshot(overrides: Partial<RuntimeSnapshot> = {}): RuntimeSnapsh
     ...overrides
   }
 }
+
+describe("SubscriptionRuntimeSnapshot", () => {
+  it("keeps scheduler, runtime state, and notification rounds together", () => {
+    expectTypeOf<SubscriptionRuntimeSnapshot>().toEqualTypeOf<{
+      lastSchedulerRunAt: string | null
+      subscriptionRuntimeStateById: Record<string, SubscriptionRuntimeState>
+      subscriptionNotificationRounds: SubscriptionNotificationRound[]
+    }>()
+
+    const snapshot: SubscriptionRuntimeSnapshot = {
+      lastSchedulerRunAt: null,
+      subscriptionRuntimeStateById: {},
+      subscriptionNotificationRounds: []
+    }
+
+    expect(snapshot.subscriptionNotificationRounds).toEqual([])
+  })
+})
 
 describe("reconcileSubscriptionRuntimeSnapshot", () => {
   it("resets runtime state and removes retained notification hits when subscription behavior changes", () => {
@@ -215,5 +231,65 @@ describe("reconcileSubscriptionRuntimeSnapshot", () => {
       }
     )
     expect(reconciled.subscriptionNotificationRounds).toEqual([])
+  })
+
+  it("prunes only removed-subscription hits from mixed rounds while preserving unrelated hit order", () => {
+    const removedHit = createHit({
+      id: "hit-remove",
+      subscriptionId: "sub-1"
+    })
+    const keepHitA = createHit({
+      id: "hit-keep-a",
+      subscriptionId: "sub-2"
+    })
+    const keepHitB = createHit({
+      id: "hit-keep-b",
+      subscriptionId: "sub-2"
+    })
+    const snapshot = createSnapshot({
+      subscriptionRuntimeStateById: {
+        "sub-1": createRuntimeState({
+          recentHits: [removedHit]
+        }),
+        "sub-2": createRuntimeState({
+          recentHits: [keepHitA, keepHitB]
+        })
+      },
+      subscriptionNotificationRounds: [
+        {
+          id: "subscription-round:20260414103000000",
+          createdAt: "2026-04-14T10:30:00.000Z",
+          hitIds: ["hit-remove", "hit-keep-a", "hit-keep-b"],
+          hits: [removedHit, keepHitA, keepHitB]
+        }
+      ]
+    })
+
+    const reconciled = reconcileSubscriptionRuntimeSnapshot(
+      snapshot,
+      [createSubscription({ id: "sub-1" }), createSubscription({ id: "sub-2" })],
+      [createSubscription({ id: "sub-2" })]
+    )
+
+    expect(reconciled.subscriptionNotificationRounds).toEqual([
+      expect.objectContaining({
+        id: "subscription-round:20260414103000000",
+        hitIds: ["hit-keep-a", "hit-keep-b"],
+        hits: [
+          expect.objectContaining({ id: "hit-keep-a" }),
+          expect.objectContaining({ id: "hit-keep-b" })
+        ]
+      })
+    ])
+    const retainedHits = reconciled.subscriptionNotificationRounds[0]?.hits ?? []
+    expect(snapshot.subscriptionNotificationRounds).toEqual([
+      {
+        id: "subscription-round:20260414103000000",
+        createdAt: "2026-04-14T10:30:00.000Z",
+        hitIds: ["hit-remove", "hit-keep-a", "hit-keep-b"],
+        hits: [removedHit, keepHitA, keepHitB]
+      }
+    ])
+    expect(retainedHits).toEqual([keepHitA, keepHitB])
   })
 })

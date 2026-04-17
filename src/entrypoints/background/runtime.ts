@@ -8,6 +8,7 @@ import {
   notifyActiveTabOfSourceEnabledChange,
   openOptionsPageForRoute,
   reconcileSubscriptionAlarm,
+  saveSettingsWithSubscriptionReconcile,
   retryFailedItems,
   testDownloaderConnection,
   setSourceEnabledForPopup
@@ -152,7 +153,13 @@ export function registerBackgroundRuntime() {
             )
             return
           case "SAVE_SETTINGS":
-            const savedSettings = await saveSettings(runtimeMessage.settings ?? {})
+            const savedSettings = await saveSettingsWithSubscriptionReconcile(
+              runtimeMessage.settings ?? {},
+              {
+                getSettings,
+                saveSettings
+              }
+            )
             await notifySupportedSourceTabsOfFilterChange()
             await reconcileSubscriptionAlarm({
               getSettings: async () => savedSettings,

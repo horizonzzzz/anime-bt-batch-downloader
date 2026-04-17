@@ -10,9 +10,11 @@ import type {
 } from "../../../src/lib/shared/types"
 import {
   downloadSubscriptionHits,
-  executeSubscriptionScan
+  executeSubscriptionScan,
+  saveSettingsWithSubscriptionReconcile
 } from "../../../src/lib/background/subscriptions"
 import { createSubscriptionFingerprint } from "../../../src/lib/subscriptions"
+import type { SubscriptionRuntimeSettingsPatch } from "../../../src/lib/subscriptions/runtime-repository"
 import type { SubscriptionCandidate } from "../../../src/lib/subscriptions/types"
 import {
   SUBSCRIPTION_ALARM_NAME,
@@ -160,7 +162,151 @@ describe("subscription scheduler reconciliation", () => {
   })
 })
 
+describe("saveSettingsWithSubscriptionReconcile", () => {
+  it("reconciles edited subscriptions before persisting the save payload", async () => {
+    const currentSettings = createSettings({
+      currentDownloaderId: "transmission",
+      subscriptions: [createSubscription()],
+      subscriptionRuntimeStateById: {
+        "sub-1": createRuntimeState({
+          seenFingerprints: ["fp-1"],
+          recentHits: [createHit({ id: "hit-1" })]
+        })
+      },
+      subscriptionNotificationRounds: [
+        {
+          id: "subscription-round:20260414093000000",
+          createdAt: "2026-04-14T09:30:00.000Z",
+          hitIds: ["hit-1"],
+          hits: [createHit({ id: "hit-1" })]
+        }
+      ]
+    })
+    const saveSettings = vi.fn(async (patch: Partial<Settings>) =>
+      applySettingsPatch(currentSettings, patch)
+    )
+
+    const savedSettings = await saveSettingsWithSubscriptionReconcile(
+      {
+        subscriptions: [
+          createSubscription({
+            titleQuery: "bang dream"
+          })
+        ]
+      },
+      {
+        getSettings: async () => currentSettings,
+        saveSettings
+      }
+    )
+
+    expect(saveSettings).toHaveBeenCalledWith({
+      subscriptions: [
+        expect.objectContaining({
+          id: "sub-1",
+          titleQuery: "bang dream"
+        })
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": {
+          lastScanAt: null,
+          lastMatchedAt: null,
+          lastError: "",
+          seenFingerprints: [],
+          recentHits: []
+        }
+      },
+      subscriptionNotificationRounds: []
+    })
+    expect(savedSettings.currentDownloaderId).toBe("transmission")
+    expect(savedSettings.subscriptionRuntimeStateById["sub-1"]).toEqual({
+      lastScanAt: null,
+      lastMatchedAt: null,
+      lastError: "",
+      seenFingerprints: [],
+      recentHits: []
+    })
+    expect(savedSettings.subscriptionNotificationRounds).toEqual([])
+  })
+})
+
 describe("downloadSubscriptionHits", () => {
+  it("uses the runtime repository boundary for loading and saving notification download runtime state", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+    const settings = createSettings({
+      subscriptions: [
+        createSubscription({
+          sourceIds: ["bangumimoe"]
+        })
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": createRuntimeState({
+          recentHits: [
+            createHit({
+              id: "hit-direct",
+              sourceId: "bangumimoe",
+              detailUrl: "https://bangumi.moe/torrent/100",
+              magnetUrl: "magnet:?xt=urn:btih:AAA111",
+              torrentUrl: ""
+            })
+          ]
+        })
+      },
+      subscriptionNotificationRounds: [
+        {
+          id: "subscription-round:20260414093000000",
+          createdAt: now,
+          hitIds: ["hit-direct"]
+        }
+      ]
+    })
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [
+          {
+            url: "magnet:?xt=urn:btih:AAA111",
+            status: "submitted" as const
+          }
+        ]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+    const runtimeRepository = {
+      load: vi.fn(async () => ({
+        settings,
+        runtimeSnapshot: {
+          lastSchedulerRunAt: settings.lastSchedulerRunAt,
+          subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById,
+          subscriptionNotificationRounds: settings.subscriptionNotificationRounds
+        }
+      })),
+      save: vi.fn(async (runtimeSnapshot: SubscriptionRuntimeSettingsPatch) =>
+        applySettingsPatch(settings, runtimeSnapshot)
+      )
+    }
+
+    await downloadSubscriptionHits(
+      {
+        roundId: "subscription-round:20260414093000000"
+      },
+      {
+        runtimeRepository,
+        getDownloader: () => downloader,
+        now: () => now
+      }
+    )
+
+    expect(runtimeRepository.load).toHaveBeenCalledTimes(1)
+    expect(runtimeRepository.save).toHaveBeenCalledTimes(1)
+  })
+
   it("persists only subscription runtime fields after notification-hit downloads", async () => {
     const now = "2026-04-14T09:30:00.000Z"
     const savedPatch: { value: Record<string, unknown> | null } = { value: null }
@@ -214,7 +360,7 @@ describe("downloadSubscriptionHits", () => {
       return applySettingsPatch(settings, patch as unknown as Partial<Settings>)
     })
 
-    await downloadSubscriptionHits(
+    const result = await downloadSubscriptionHits(
       {
         roundId: "subscription-round:20260414093000000"
       },
@@ -226,8 +372,10 @@ describe("downloadSubscriptionHits", () => {
       }
     )
 
+    expect(result).not.toHaveProperty("runtimePatch")
     expect(saveSettings).toHaveBeenCalledTimes(1)
     expect(savedPatch.value).toEqual({
+      lastSchedulerRunAt: null,
       subscriptionNotificationRounds: [
         expect.objectContaining({
           id: "subscription-round:20260414093000000",
@@ -737,6 +885,47 @@ describe("downloadSubscriptionHits", () => {
 })
 
 describe("executeSubscriptionScan", () => {
+  it("uses the runtime repository boundary for loading and saving scan runtime state", async () => {
+    const now = "2026-04-14T08:00:00.000Z"
+    const baseSettings = createSettings({
+      subscriptions: [createSubscription()],
+      subscriptionRuntimeStateById: {
+        "sub-1": createRuntimeState({
+          seenFingerprints: ["https://acg.rip/t/099.torrent"]
+        })
+      }
+    })
+    const createNotification = vi.fn().mockResolvedValue(undefined)
+    const runtimeRepository = {
+      load: vi.fn(async () => ({
+        settings: baseSettings,
+        runtimeSnapshot: {
+          lastSchedulerRunAt: baseSettings.lastSchedulerRunAt,
+          subscriptionRuntimeStateById: baseSettings.subscriptionRuntimeStateById,
+          subscriptionNotificationRounds: baseSettings.subscriptionNotificationRounds
+        }
+      })),
+      save: vi.fn(
+        async (runtimeSnapshot: SubscriptionRuntimeSettingsPatch) =>
+          createSettings({
+            ...runtimeSnapshot,
+            notificationsEnabled: false
+          })
+      )
+    }
+
+    await executeSubscriptionScan({
+      runtimeRepository,
+      createNotification,
+      now: () => now,
+      scanCandidatesFromSource: vi.fn(async () => [createCandidate()])
+    })
+
+    expect(runtimeRepository.load).toHaveBeenCalledTimes(1)
+    expect(runtimeRepository.save).toHaveBeenCalledTimes(1)
+    expect(createNotification).toHaveBeenCalledTimes(1)
+  })
+
   it("persists only subscription runtime fields after a scan completes", async () => {
     const now = "2026-04-14T08:00:00.000Z"
     const savedPatch: { value: Record<string, unknown> | null } = { value: null }
@@ -754,7 +943,7 @@ describe("executeSubscriptionScan", () => {
       return applySettingsPatch(baseSettings, patch as unknown as Partial<Settings>)
     })
 
-    await executeSubscriptionScan({
+    const result = await executeSubscriptionScan({
       getSettings: async () => baseSettings,
       saveSettings,
       createNotification,
@@ -762,6 +951,7 @@ describe("executeSubscriptionScan", () => {
       scanCandidatesFromSource: vi.fn(async () => [createCandidate()])
     })
 
+    expect(result).not.toHaveProperty("runtimePatch")
     expect(saveSettings).toHaveBeenCalledTimes(1)
     expect(savedPatch.value).toEqual({
       lastSchedulerRunAt: now,
@@ -1152,5 +1342,115 @@ describe("executeSubscriptionScan", () => {
     )
     expect(secondResult.attemptedHits).toBe(0)
     expect(downloader.addUrls).toHaveBeenCalledTimes(1)
+  })
+
+  it("updates one retained hit status without dropping or reordering sibling retained hits", async () => {
+    const now = "2026-04-14T14:30:00.000Z"
+    const persisted: { current: Settings } = {
+      current: createSettings({
+        subscriptions: [
+          createSubscription({
+            sourceIds: ["bangumimoe"]
+          })
+        ],
+        subscriptionRuntimeStateById: {
+          "sub-1": createRuntimeState({
+            recentHits: [
+              createHit({
+                id: "hit-target",
+                sourceId: "bangumimoe",
+                detailUrl: "https://bangumi.moe/torrent/110",
+                magnetUrl: "magnet:?xt=urn:btih:DDD444",
+                torrentUrl: ""
+              }),
+              createHit({
+                id: "hit-sibling",
+                sourceId: "bangumimoe",
+                detailUrl: "https://bangumi.moe/torrent/111",
+                magnetUrl: "magnet:?xt=urn:btih:EEE555",
+                torrentUrl: "",
+                downloadedAt: "2026-04-14T13:00:00.000Z",
+                downloadStatus: "submitted"
+              })
+            ]
+          })
+        },
+        subscriptionNotificationRounds: [
+          {
+            id: "subscription-round:20260414143000000",
+            createdAt: now,
+            hitIds: ["hit-target", "hit-sibling"],
+            hits: [
+              createHit({
+                id: "hit-target",
+                sourceId: "bangumimoe",
+                detailUrl: "https://bangumi.moe/torrent/110",
+                magnetUrl: "magnet:?xt=urn:btih:DDD444",
+                torrentUrl: ""
+              }),
+              createHit({
+                id: "hit-sibling",
+                sourceId: "bangumimoe",
+                detailUrl: "https://bangumi.moe/torrent/111",
+                magnetUrl: "magnet:?xt=urn:btih:EEE555",
+                torrentUrl: "",
+                downloadedAt: "2026-04-14T13:00:00.000Z",
+                downloadStatus: "submitted"
+              })
+            ]
+          }
+        ]
+      })
+    }
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [
+          {
+            url: "magnet:?xt=urn:btih:DDD444",
+            status: "submitted" as const
+          }
+        ]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+    const saveSettings = vi.fn(async (patch: Partial<Settings>) => {
+      persisted.current = applySettingsPatch(persisted.current, patch)
+      return persisted.current
+    })
+
+    await downloadSubscriptionHits(
+      { roundId: "subscription-round:20260414143000000" },
+      {
+        getSettings: async () => persisted.current,
+        saveSettings,
+        getDownloader: () => downloader,
+        now: () => now
+      }
+    )
+
+    const retainedHits = persisted.current.subscriptionNotificationRounds[0]?.hits ?? []
+    expect(retainedHits).toHaveLength(2)
+    expect(retainedHits.map((hit) => hit.id)).toEqual(["hit-target", "hit-sibling"])
+    expect(retainedHits[0]).toEqual(
+      expect.objectContaining({
+        id: "hit-target",
+        downloadStatus: "submitted",
+        downloadedAt: now
+      })
+    )
+    expect(retainedHits[1]).toEqual(
+      expect.objectContaining({
+        id: "hit-sibling",
+        downloadStatus: "submitted",
+        downloadedAt: "2026-04-14T13:00:00.000Z"
+      })
+    )
   })
 })

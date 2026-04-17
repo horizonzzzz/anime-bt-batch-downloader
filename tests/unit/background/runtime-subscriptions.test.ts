@@ -14,11 +14,13 @@ type TabsActivatedListener = Parameters<typeof fakeBrowser.tabs.onActivated.addL
 const {
   downloadSubscriptionHitsMock,
   executeSubscriptionScanMock,
-  getSettingsMock
+  getSettingsMock,
+  saveSettingsWithSubscriptionReconcileMock
 } = vi.hoisted(() => ({
   downloadSubscriptionHitsMock: vi.fn(),
   executeSubscriptionScanMock: vi.fn(),
-  getSettingsMock: vi.fn()
+  getSettingsMock: vi.fn(),
+  saveSettingsWithSubscriptionReconcileMock: vi.fn()
 }))
 
 const onAlarmAddListener = vi.fn()
@@ -41,6 +43,7 @@ vi.mock("../../../src/lib/background", async () => {
     }),
     executeSubscriptionScan: executeSubscriptionScanMock,
     downloadSubscriptionHits: downloadSubscriptionHitsMock,
+    saveSettingsWithSubscriptionReconcile: saveSettingsWithSubscriptionReconcileMock,
     fetchTorrentForUpload: vi.fn(),
     retryFailedItems: vi.fn(),
     testDownloaderConnection: vi.fn()
@@ -144,6 +147,85 @@ describe("background subscription runtime boundary", () => {
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
       roundId: "subscription-round:20260414093000000"
+    })
+  })
+
+  it("keeps SAVE_SETTINGS runtime messages stable while delegating persistence to the subscription-aware helper", async () => {
+    saveSettingsWithSubscriptionReconcileMock.mockResolvedValue({
+      subscriptions: [
+        {
+          id: "sub-1",
+          name: "ACG Medalist"
+        }
+      ],
+      subscriptionRuntimeStateById: {
+        "sub-1": {
+          lastScanAt: null,
+          lastMatchedAt: null,
+          lastError: "",
+          seenFingerprints: [],
+          recentHits: []
+        }
+      },
+      subscriptionNotificationRounds: []
+    })
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "SAVE_SETTINGS",
+        settings: {
+          subscriptions: [
+            {
+              id: "sub-1",
+              name: "ACG Medalist"
+            }
+          ]
+        }
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(saveSettingsWithSubscriptionReconcileMock).toHaveBeenCalledWith(
+      {
+        subscriptions: [
+          {
+            id: "sub-1",
+            name: "ACG Medalist"
+          }
+        ]
+      },
+      expect.objectContaining({
+        getSettings: expect.any(Function),
+        saveSettings: expect.any(Function)
+      })
+    )
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: true,
+      settings: {
+        subscriptions: [
+          {
+            id: "sub-1",
+            name: "ACG Medalist"
+          }
+        ],
+        subscriptionRuntimeStateById: {
+          "sub-1": {
+            lastScanAt: null,
+            lastMatchedAt: null,
+            lastError: "",
+            seenFingerprints: [],
+            recentHits: []
+          }
+        },
+        subscriptionNotificationRounds: []
+      }
     })
   })
 

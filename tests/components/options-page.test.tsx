@@ -428,7 +428,7 @@ describe("OptionsPage", () => {
   )
 
   it(
-    "resets edited subscription runtime state and removes retained notification hits when saving settings",
+    "delegates edited subscription runtime reconciliation to the save API without sending runtime fields",
     async () => {
       const user = userEvent.setup()
       const api = createOptionsApi({
@@ -531,20 +531,15 @@ describe("OptionsPage", () => {
                 id: "sub-1",
                 titleQuery: "Bang Dream"
               })
-            ]),
-            subscriptionRuntimeStateById: {
-              "sub-1": {
-                lastScanAt: null,
-                lastMatchedAt: null,
-                lastError: "",
-                seenFingerprints: [],
-                recentHits: []
-              }
-            },
-            subscriptionNotificationRounds: []
+            ])
           })
         )
       })
+
+      const savedPayload = vi.mocked(api.saveSettings).mock.calls.at(-1)?.[0]
+      expect(savedPayload).toBeDefined()
+      expect(savedPayload).not.toHaveProperty("subscriptionRuntimeStateById")
+      expect(savedPayload).not.toHaveProperty("subscriptionNotificationRounds")
     },
     10000
   )

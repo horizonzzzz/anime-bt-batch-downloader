@@ -13,6 +13,7 @@ export { testDownloaderConnection } from "./service"
 export {
   downloadSubscriptionHits,
   executeSubscriptionScan,
-  reconcileSubscriptionAlarm
+  reconcileSubscriptionAlarm,
+  saveSettingsWithSubscriptionReconcile
 } from "./subscriptions"
 export { fetchTorrentForUpload, getTorrentFilename } from "./torrent-file"

@@ -1,16 +1,26 @@
 import type {
   FilterCondition,
-  Settings,
   SubscriptionEntry,
   SubscriptionNotificationRound,
   SubscriptionRuntimeState
 } from "../shared/types"
+import { produce } from "immer"
+import type {
+  EditableSubscriptionDefinition,
+  SubscriptionRuntimeSnapshot
+} from "./contracts"
 import { createEmptySubscriptionRuntimeState } from "./runtime-state"
 
-export type SubscriptionRuntimeSnapshot = Pick<
-  Settings,
-  "lastSchedulerRunAt" | "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
->
+type NormalizedFilterCondition = Pick<FilterCondition, "field" | "operator" | "value">
+type SubscriptionTrackingDefinition = Omit<
+  EditableSubscriptionDefinition,
+  "id" | "advanced"
+> & {
+  advanced: {
+    must: NormalizedFilterCondition[]
+    any: NormalizedFilterCondition[]
+  }
+}
 
 export function reconcileSubscriptionRuntimeSnapshot(
   snapshot: SubscriptionRuntimeSnapshot,
@@ -99,7 +109,7 @@ function toTrackingDefinition(subscription: SubscriptionEntry) {
       any: subscription.advanced.any.map(normalizeConditionForComparison)
     },
     deliveryMode: subscription.deliveryMode
-  }
+  } satisfies SubscriptionTrackingDefinition
 }
 
 function normalizeConditionForComparison(condition: FilterCondition) {
@@ -124,38 +134,38 @@ function removeSubscriptionHitsFromNotificationRounds(
   rounds: SubscriptionNotificationRound[],
   subscriptionId: string
 ): SubscriptionNotificationRound[] {
-  let changed = false
-  const nextRounds: SubscriptionNotificationRound[] = []
+  return produce(rounds, (draft) => {
+    for (let index = draft.length - 1; index >= 0; index -= 1) {
+      const round = draft[index]
+      if (!round) {
+        continue
+      }
 
-  for (const round of rounds) {
-    const nextHits = Array.isArray(round.hits)
-      ? round.hits.filter((hit) => hit.subscriptionId !== subscriptionId)
-      : undefined
-    const nextHitIds = Array.isArray(round.hits)
-      ? (nextHits ?? []).map((hit) => hit.id)
-      : round.hitIds.filter((hitId) => !isSubscriptionHitIdForSubscription(hitId, subscriptionId))
+      const nextHits = Array.isArray(round.hits)
+        ? round.hits.filter((hit) => hit.subscriptionId !== subscriptionId)
+        : undefined
+      const nextHitIds = Array.isArray(round.hits)
+        ? (nextHits ?? []).map((hit) => hit.id)
+        : round.hitIds.filter((hitId) => !isSubscriptionHitIdForSubscription(hitId, subscriptionId))
 
-    if (
-      nextHitIds.length === round.hitIds.length &&
-      (!Array.isArray(round.hits) || nextHits?.length === round.hits.length)
-    ) {
-      nextRounds.push(round)
-      continue
+      if (
+        nextHitIds.length === round.hitIds.length &&
+        (!Array.isArray(round.hits) || nextHits?.length === round.hits.length)
+      ) {
+        continue
+      }
+
+      if (nextHitIds.length === 0) {
+        draft.splice(index, 1)
+        continue
+      }
+
+      round.hitIds = nextHitIds
+      if (Array.isArray(round.hits)) {
+        round.hits = (nextHits ?? []).map((hit) => ({ ...hit }))
+      }
     }
-
-    changed = true
-    if (nextHitIds.length === 0) {
-      continue
-    }
-
-    nextRounds.push({
-      ...round,
-      hitIds: nextHitIds,
-      ...(Array.isArray(round.hits) ? { hits: nextHits ?? [] } : {})
-    })
-  }
-
-  return changed ? nextRounds : rounds
+  })
 }
 
 function isSubscriptionHitIdForSubscription(hitId: string, subscriptionId: string): boolean {

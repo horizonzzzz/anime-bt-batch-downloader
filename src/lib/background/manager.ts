@@ -1,10 +1,14 @@
 import { decideFilterAction } from "../filter-rules"
 import { getDisabledSources, normalizeSavePath } from "../settings"
+import {
+  classifyExtractionResult,
+  createPreparedExtractionResult
+} from "../download-preparation"
 import type { StartBatchDownloadSuccessResponse } from "../shared/messages"
 import type { BatchItem, ClassifiedBatchResult } from "../shared/types"
 import { createBatchJob, recordBatchResult, summarizeBatchResults } from "./job-state"
 import { getBatchStartedMessage, getBatchSubmittingMessage } from "./messages"
-import { classifyExtractionResult, createPreparedExtractionResult, normalizeBatchItems } from "./preparation"
+import { normalizeBatchItems } from "./preparation"
 import { fetchTorrentForUpload } from "./torrent-file"
 import type { BackgroundBatchDependencies, BatchJob } from "./types"
 import { persistBatchHistory } from "./history-builder"

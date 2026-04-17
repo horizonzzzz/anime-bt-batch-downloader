@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 
 import { FormProvider, useWatch } from "react-hook-form"
 import {
@@ -12,7 +12,6 @@ import {
 
 import { getDownloaderMeta } from "../../lib/downloader"
 import type { Settings, TestDownloaderConnectionResult } from "../../lib/shared/types"
-import { reconcileSubscriptionRuntimeSnapshot } from "../../lib/subscriptions/runtime-snapshot"
 import {
   DEFAULT_OPTIONS_ROUTE,
   getOptionsRoutes,
@@ -40,6 +39,19 @@ export type OptionsApi = {
 
 type OptionsPageProps = {
   api: OptionsApi
+}
+
+function toSubscriptionsRuntimeSnapshot(
+  settings: Pick<
+    Settings,
+    "lastSchedulerRunAt" | "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
+  >
+): SubscriptionsRuntimeSnapshot {
+  return {
+    lastSchedulerRunAt: settings.lastSchedulerRunAt ?? null,
+    subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById ?? {},
+    subscriptionNotificationRounds: settings.subscriptionNotificationRounds ?? []
+  }
 }
 
 type FormShellProps = {
@@ -113,8 +125,6 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
   const navigate = useNavigate()
   const [subscriptionsRuntimeSnapshot, setSubscriptionsRuntimeSnapshot] =
     useState<SubscriptionsRuntimeSnapshot | null>(null)
-  const subscriptionsRuntimeSnapshotRef = useRef<SubscriptionsRuntimeSnapshot | null>(null)
-  const persistedSubscriptionsRef = useRef<Settings["subscriptions"]>([])
   const activeMeta = useMemo(
     () => getOptionsRouteMeta(location.pathname),
     [location.pathname]
@@ -124,75 +134,13 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
     () => ({
       loadSettings: async () => {
         const loaded = await api.loadSettings()
-
-        setSubscriptionsRuntimeSnapshot({
-          lastSchedulerRunAt: loaded.lastSchedulerRunAt ?? null,
-          subscriptionRuntimeStateById: loaded.subscriptionRuntimeStateById ?? {},
-          subscriptionNotificationRounds: loaded.subscriptionNotificationRounds ?? []
-        })
-        subscriptionsRuntimeSnapshotRef.current = {
-          lastSchedulerRunAt: loaded.lastSchedulerRunAt ?? null,
-          subscriptionRuntimeStateById: loaded.subscriptionRuntimeStateById ?? {},
-          subscriptionNotificationRounds: loaded.subscriptionNotificationRounds ?? []
-        }
-        persistedSubscriptionsRef.current = loaded.subscriptions ?? []
+        setSubscriptionsRuntimeSnapshot(toSubscriptionsRuntimeSnapshot(loaded))
 
         return loaded
       },
       saveSettings: async (settings) => {
-        const nextRuntimeSnapshot =
-          subscriptionsRuntimeSnapshotRef.current === null
-            ? null
-            : reconcileSubscriptionRuntimeSnapshot(
-                subscriptionsRuntimeSnapshotRef.current,
-                persistedSubscriptionsRef.current,
-                settings.subscriptions ?? []
-              )
-        const payload =
-          nextRuntimeSnapshot && nextRuntimeSnapshot !== subscriptionsRuntimeSnapshotRef.current
-            ? {
-                ...settings,
-                subscriptionRuntimeStateById: nextRuntimeSnapshot.subscriptionRuntimeStateById,
-                subscriptionNotificationRounds: nextRuntimeSnapshot.subscriptionNotificationRounds
-              }
-            : settings
-        const saved = await api.saveSettings(payload)
-
-        setSubscriptionsRuntimeSnapshot((current) => ({
-          lastSchedulerRunAt:
-            saved.lastSchedulerRunAt ??
-            nextRuntimeSnapshot?.lastSchedulerRunAt ??
-            current?.lastSchedulerRunAt ??
-            null,
-          subscriptionRuntimeStateById:
-            saved.subscriptionRuntimeStateById ??
-            nextRuntimeSnapshot?.subscriptionRuntimeStateById ??
-            current?.subscriptionRuntimeStateById ??
-            {},
-          subscriptionNotificationRounds:
-            saved.subscriptionNotificationRounds ??
-            nextRuntimeSnapshot?.subscriptionNotificationRounds ??
-            current?.subscriptionNotificationRounds ??
-            []
-        }))
-        subscriptionsRuntimeSnapshotRef.current = {
-          lastSchedulerRunAt:
-            saved.lastSchedulerRunAt ??
-            nextRuntimeSnapshot?.lastSchedulerRunAt ??
-            subscriptionsRuntimeSnapshotRef.current?.lastSchedulerRunAt ??
-            null,
-          subscriptionRuntimeStateById:
-            saved.subscriptionRuntimeStateById ??
-            nextRuntimeSnapshot?.subscriptionRuntimeStateById ??
-            subscriptionsRuntimeSnapshotRef.current?.subscriptionRuntimeStateById ??
-            {},
-          subscriptionNotificationRounds:
-            saved.subscriptionNotificationRounds ??
-            nextRuntimeSnapshot?.subscriptionNotificationRounds ??
-            subscriptionsRuntimeSnapshotRef.current?.subscriptionNotificationRounds ??
-            []
-        }
-        persistedSubscriptionsRef.current = saved.subscriptions ?? settings.subscriptions ?? []
+        const saved = await api.saveSettings(settings)
+        setSubscriptionsRuntimeSnapshot(toSubscriptionsRuntimeSnapshot(saved))
 
         return saved
       },

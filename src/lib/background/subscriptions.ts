@@ -1,54 +1,34 @@
-import type {
-  DownloaderAdapter,
-  DownloaderTorrentFile,
-  DownloaderUrlSubmissionResult
-} from "../downloader"
+import type { DownloaderAdapter, DownloaderTorrentFile } from "../downloader"
 import { getDownloaderAdapter } from "../downloader"
-import { fetchTorrentForUpload } from "./torrent-file"
-import { classifyExtractionResult, createPreparedExtractionResult } from "./preparation"
-import { getExtensionUrl } from "../shared/browser"
-import type {
-  BatchItem,
-  ClassifiedBatchResult,
-  ExtractionResult,
-  Settings,
-  SubscriptionEntry,
-  SubscriptionHitRecord,
-  SubscriptionNotificationRound,
-  SubscriptionRuntimeState
-} from "../shared/types"
-import { getSettings, resolveSourceEnabled, saveSettings } from "../settings"
+import { getExtensionUrl, getBrowser } from "../shared/browser"
+import type { BatchItem, ExtractionResult, Settings } from "../shared/types"
+import { getSettings, mergeSettings, sanitizeSettings, saveSettings } from "../settings"
 import { extractSingleItem } from "../sources/extraction"
 import {
   buildSubscriptionRoundNotification,
   ensureSubscriptionAlarm,
-  parseSubscriptionNotificationRoundId,
-  readSubscriptionRuntimeState,
-  scanSubscriptions
+  SubscriptionManager
 } from "../subscriptions"
 import type {
+  DownloadSubscriptionHitsRequest,
+  DownloadSubscriptionHitsResult,
   ScanSubscriptionsDependencies,
   ScanSubscriptionsResult,
   SubscriptionAlarmApi,
   SubscriptionRoundNotificationPayload
 } from "../subscriptions"
-import { getBrowser } from "../shared/browser"
+import {
+  createSettingsSubscriptionRuntimeRepository,
+  type SubscriptionRuntimeRepository,
+  type SubscriptionRuntimeSettingsPatch
+} from "../subscriptions/runtime-repository"
+import { fetchTorrentForUpload } from "./torrent-file"
 import { i18n } from "../i18n"
 
 let queuedSubscriptionMutation: Promise<void> = Promise.resolve()
 
-type SubscriptionRuntimeSettingsPatch = Pick<
-  Settings,
-  "lastSchedulerRunAt" | "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
->
-
-type SubscriptionDownloadRuntimeSettingsPatch = Pick<Settings, "subscriptionRuntimeStateById">
-type SubscriptionDownloadNotificationPatch = Pick<
-  Settings,
-  "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
->
-
 export type ExecuteSubscriptionScanDependencies = ScanSubscriptionsDependencies & {
+  runtimeRepository?: SubscriptionRuntimeRepository
   getSettings?: () => Promise<Settings>
   saveSettings?: (settings: SubscriptionRuntimeSettingsPatch) => Promise<Settings>
   createNotification?: (
@@ -62,26 +42,19 @@ export type ReconcileSubscriptionAlarmDependencies = {
   alarms?: SubscriptionAlarmApi
 }
 
-export type DownloadSubscriptionHitsRequest = {
-  roundId: string
+export type SaveSubscriptionAwareSettingsDependencies = {
+  getSettings?: () => Promise<Settings>
+  saveSettings?: (settings: Partial<Settings>) => Promise<Settings>
 }
 
 export type DownloadSubscriptionHitsDependencies = {
+  runtimeRepository?: SubscriptionRuntimeRepository
   getSettings?: () => Promise<Settings>
-  saveSettings?: (settings: SubscriptionDownloadNotificationPatch) => Promise<Settings>
+  saveSettings?: (settings: SubscriptionRuntimeSettingsPatch) => Promise<Settings>
   getDownloader?: (settings: Settings) => DownloaderAdapter
   fetchTorrentForUpload?: (torrentUrl: string) => Promise<DownloaderTorrentFile>
   extractSingleItem?: (item: BatchItem, settings: Settings) => Promise<ExtractionResult>
   now?: () => string
-}
-
-export type DownloadSubscriptionHitsResult = {
-  settings: Settings
-  totalHits: number
-  attemptedHits: number
-  submittedCount: number
-  duplicateCount: number
-  failedCount: number
 }
 
 export async function executeSubscriptionScan(
@@ -100,6 +73,15 @@ export async function reconcileSubscriptionAlarm(
   await ensureSubscriptionAlarm(settings, alarms)
 }
 
+export async function saveSettingsWithSubscriptionReconcile(
+  settingsPatch: Partial<Settings>,
+  dependencies: SaveSubscriptionAwareSettingsDependencies = {}
+): Promise<Settings> {
+  return enqueueSubscriptionMutation(() =>
+    saveSettingsWithSubscriptionReconcileOnce(settingsPatch, dependencies)
+  )
+}
+
 export async function downloadSubscriptionHits(
   request: DownloadSubscriptionHitsRequest,
   dependencies: DownloadSubscriptionHitsDependencies = {}
@@ -109,191 +91,36 @@ export async function downloadSubscriptionHits(
   )
 }
 
-async function downloadSubscriptionHitsOnce(
-  request: DownloadSubscriptionHitsRequest,
-  dependencies: DownloadSubscriptionHitsDependencies = {}
-): Promise<DownloadSubscriptionHitsResult> {
-  const normalizedRoundId = parseSubscriptionNotificationRoundId(request.roundId)
-  if (!normalizedRoundId) {
-    throw new Error(`Invalid subscription notification round id: ${String(request.roundId ?? "")}`)
-  }
-
-  const getSettingsImpl = dependencies.getSettings ?? getSettings
-  const saveSettingsImpl = dependencies.saveSettings ?? defaultSaveSettings
-  const getDownloaderImpl =
-    dependencies.getDownloader ??
-    ((settings: Settings) => getDownloaderAdapter(settings.currentDownloaderId))
-  const fetchTorrentForUploadImpl =
-    dependencies.fetchTorrentForUpload ?? defaultFetchTorrentForUpload
-  const extractSingleItemImpl = dependencies.extractSingleItem ?? defaultExtractSingleItem
-  const attemptedAt = dependencies.now?.() ?? new Date().toISOString()
-  const settings = await getSettingsImpl()
-  const notificationRound = settings.subscriptionNotificationRounds.find(
-    (round) => round.id === normalizedRoundId
-  )
-
-  if (!notificationRound) {
-    throw new Error(`Subscription notification round not found: ${normalizedRoundId}`)
-  }
-
-  const runtimeStateById = cloneSubscriptionRuntimeStates(settings)
-  const retainedHits = resolveRoundHits(notificationRound, runtimeStateById)
-  const subscriptionById = new Map(
-    settings.subscriptions.map((subscription) => [subscription.id, subscription] as const)
-  )
-  const activeRetainedHits = retainedHits.filter((hit) =>
-    isSubscriptionHitDownloadable(hit, subscriptionById.get(hit.subscriptionId), settings)
-  )
-  const retainedHitsWerePruned = activeRetainedHits.length !== retainedHits.length
-  const pendingHits = activeRetainedHits
-    .filter((hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate")
-  if (pendingHits.length === 0) {
-    if (retainedHitsWerePruned) {
-      const savedSettings = await saveSettingsImpl(
-        buildSubscriptionDownloadRuntimePatch(
-          settings,
-          replaceNotificationRoundHits(
-            settings.subscriptionNotificationRounds,
-            notificationRound.id,
-            activeRetainedHits
-          )
-        )
-      )
-
-      return {
-        settings: savedSettings,
-        totalHits: retainedHits.length,
-        attemptedHits: 0,
-        submittedCount: 0,
-        duplicateCount: 0,
-        failedCount: 0
-      }
-    }
-
-    return {
-      settings,
-      totalHits: retainedHits.length,
-      attemptedHits: 0,
-      submittedCount: 0,
-      duplicateCount: 0,
-      failedCount: 0
-    }
-  }
-
-  const seenHashes = new Set<string>()
-  const seenUrls = new Set<string>()
-  const preparedHits: PreparedSubscriptionHit[] = []
-  let duplicateCount = 0
-  let failedCount = 0
-
-  for (const hit of pendingHits) {
-    const classified = await prepareSubscriptionHit(
-      hit,
-      subscriptionById.get(hit.subscriptionId),
-      settings,
-      seenHashes,
-      seenUrls,
-      extractSingleItemImpl
-    )
-
-    if (classified.status === "ready") {
-      preparedHits.push({
-        hitId: hit.id,
-        classified
-      })
-      continue
-    }
-
-    if (classified.status === "duplicate") {
-      updateHitStatus(runtimeStateById, activeRetainedHits, hit.id, {
-        downloadStatus: "duplicate",
-        downloadedAt: attemptedAt
-      })
-      duplicateCount += 1
-      continue
-    }
-
-    updateHitStatus(runtimeStateById, activeRetainedHits, hit.id, {
-      downloadStatus: "failed",
-      downloadedAt: null
-    })
-    failedCount += 1
-  }
-
-  let submittedCount = 0
-  if (preparedHits.length > 0) {
-    const downloader = getDownloaderImpl(settings)
-    try {
-      await downloader.authenticate(settings)
-      const submissionResult = await submitPreparedHits(
-        preparedHits,
-        settings,
-        downloader,
-        fetchTorrentForUploadImpl,
-        attemptedAt
-      )
-      submittedCount += submissionResult.submittedCount
-      failedCount += submissionResult.failedCount
-      applySubmissionStatuses(runtimeStateById, submissionResult.statuses)
-      applySubmissionStatusesToRetainedHits(activeRetainedHits, submissionResult.statuses)
-    } catch {
-      for (const preparedHit of preparedHits) {
-        updateHitStatus(runtimeStateById, activeRetainedHits, preparedHit.hitId, {
-          downloadStatus: "failed",
-          downloadedAt: null
-        })
-      }
-      failedCount += preparedHits.length
-    }
-  }
-
-  const nextSettings = buildSettingsWithRuntimeStates(settings, runtimeStateById)
-  const savedSettings = await saveSettingsImpl(
-    buildSubscriptionDownloadRuntimePatch(
-      nextSettings,
-      replaceNotificationRoundHits(
-        settings.subscriptionNotificationRounds,
-        notificationRound.id,
-        activeRetainedHits
-      )
-    )
-  )
-
-  return {
-    settings: savedSettings,
-    totalHits: retainedHits.length,
-    attemptedHits: pendingHits.length,
-    submittedCount,
-    duplicateCount,
-    failedCount
-  }
-}
-
 async function executeSubscriptionScanOnce(
   dependencies: ExecuteSubscriptionScanDependencies
 ): Promise<ScanSubscriptionsResult> {
-  const getSettingsImpl = dependencies.getSettings ?? getSettings
-  const saveSettingsImpl = dependencies.saveSettings ?? defaultSaveSettings
+  const runtimeRepository = resolveRuntimeRepository(dependencies)
   const createNotificationImpl =
     dependencies.createNotification ?? createBrowserNotification
-  const settings = await getSettingsImpl()
-  const result = await scanSubscriptions(settings, {
+  const loaded = await runtimeRepository.load()
+  const manager = new SubscriptionManager(loaded.settings, loaded.runtimeSnapshot)
+  const result = await manager.scan({
     now: dependencies.now,
     scanCandidatesFromSource: dependencies.scanCandidatesFromSource
   })
-  const savedSettings = await saveSettingsImpl(buildSubscriptionScanRuntimePatch(result.settings))
+  const savedSettings = await runtimeRepository.save(result.runtimeSnapshot)
+  const { runtimeSnapshot: _runtimeSnapshot, ...scanResult } = result
 
-  if (result.notificationRound && savedSettings.notificationsEnabled) {
+  if (result.notificationRound && result.settings.notificationsEnabled) {
     const hitCount = result.notificationRound.hitIds.length
-    const notification = buildSubscriptionRoundNotification(result.notificationRound, {
-      title: i18n.t("subscriptions.notification.title"),
-      message:
-        hitCount === 1
-          ? i18n.t("subscriptions.notification.messageOne")
-          : i18n.t("subscriptions.notification.messageMany", [hitCount]),
-    }, {
-      iconUrl: getExtensionUrl("icon.png")
-    })
+    const notification = buildSubscriptionRoundNotification(
+      result.notificationRound,
+      {
+        title: i18n.t("subscriptions.notification.title"),
+        message:
+          hitCount === 1
+            ? i18n.t("subscriptions.notification.messageOne")
+            : i18n.t("subscriptions.notification.messageMany", [hitCount])
+      },
+      {
+        iconUrl: getExtensionUrl("icon.png")
+      }
+    )
     try {
       await createNotificationImpl(notification.id, notification.options)
     } catch {
@@ -302,15 +129,98 @@ async function executeSubscriptionScanOnce(
   }
 
   return {
-    ...result,
+    ...scanResult,
     settings: savedSettings
   }
 }
 
-async function defaultSaveSettings(
-  settings: SubscriptionRuntimeSettingsPatch | SubscriptionDownloadNotificationPatch
+async function saveSettingsWithSubscriptionReconcileOnce(
+  settingsPatch: Partial<Settings>,
+  dependencies: SaveSubscriptionAwareSettingsDependencies = {}
+): Promise<Settings> {
+  const saveSettingsImpl = dependencies.saveSettings ?? defaultSaveSettings
+
+  if (!Object.prototype.hasOwnProperty.call(settingsPatch, "subscriptions")) {
+    return saveSettingsImpl(settingsPatch)
+  }
+
+  const getSettingsImpl = dependencies.getSettings ?? getSettings
+  const currentSettings = await getSettingsImpl()
+  const mergedSettings = sanitizeSettings(mergeSettings(currentSettings, settingsPatch))
+  const manager = new SubscriptionManager(currentSettings)
+  const runtimePatch =
+    manager.reconcileAfterEditPatch(
+      currentSettings.subscriptions,
+      mergedSettings.subscriptions
+    ) ?? {}
+
+  return saveSettingsImpl({
+    ...settingsPatch,
+    ...runtimePatch
+  })
+}
+
+async function downloadSubscriptionHitsOnce(
+  request: DownloadSubscriptionHitsRequest,
+  dependencies: DownloadSubscriptionHitsDependencies = {}
+): Promise<DownloadSubscriptionHitsResult> {
+  const runtimeRepository = resolveRuntimeRepository(dependencies)
+  const fetchTorrentForUploadImpl =
+    dependencies.fetchTorrentForUpload ?? defaultFetchTorrentForUpload
+  const extractSingleItemImpl = dependencies.extractSingleItem ?? defaultExtractSingleItem
+  const loaded = await runtimeRepository.load()
+  const settings = loaded.settings
+  const getDownloaderImpl =
+    dependencies.getDownloader ??
+    ((targetSettings: Settings) => getDownloaderAdapter(targetSettings.currentDownloaderId))
+  const manager = new SubscriptionManager(settings, loaded.runtimeSnapshot)
+  const result = await manager.downloadFromNotification(request, {
+    downloader: getDownloaderImpl(settings),
+    fetchTorrentForUpload: fetchTorrentForUploadImpl,
+    extractSingleItem: extractSingleItemImpl,
+    now: dependencies.now
+  })
+
+  if (!result.runtimeSnapshot) {
+    const { runtimeSnapshot: _runtimeSnapshot, ...downloadResult } = result
+    return downloadResult
+  }
+
+  const savedSettings = await runtimeRepository.save(result.runtimeSnapshot)
+  const { runtimeSnapshot: _runtimeSnapshot, ...downloadResult } = result
+
+  return {
+    ...downloadResult,
+    settings: savedSettings
+  }
+}
+
+async function defaultSaveSettings(settings: Partial<Settings>): Promise<Settings> {
+  return saveSettings(settings)
+}
+
+async function defaultSaveSubscriptionRuntimeSettings(
+  settings: SubscriptionRuntimeSettingsPatch
 ): Promise<Settings> {
   return saveSettings(settings)
+}
+
+function resolveRuntimeRepository(
+  dependencies: {
+    runtimeRepository?: SubscriptionRuntimeRepository
+    getSettings?: () => Promise<Settings>
+    saveSettings?: (settings: SubscriptionRuntimeSettingsPatch) => Promise<Settings>
+  }
+): SubscriptionRuntimeRepository {
+  if (dependencies.runtimeRepository) {
+    return dependencies.runtimeRepository
+  }
+
+  return createSettingsSubscriptionRuntimeRepository({
+    getSettings: dependencies.getSettings ?? getSettings,
+    saveSettings:
+      dependencies.saveSettings ?? defaultSaveSubscriptionRuntimeSettings
+  })
 }
 
 async function createBrowserNotification(
@@ -342,342 +252,4 @@ function enqueueSubscriptionMutation<T>(run: () => Promise<T>): Promise<T> {
   )
 
   return execution
-}
-
-type PreparedSubscriptionHit = {
-  hitId: string
-  classified: ClassifiedBatchResult
-}
-
-type SubmissionStatusByHitId = Record<
-  string,
-  {
-    downloadStatus: SubscriptionHitRecord["downloadStatus"]
-    downloadedAt: string | null
-  }
->
-
-function cloneSubscriptionRuntimeStates(
-  settings: Settings
-): Map<string, SubscriptionRuntimeState> {
-  const runtimeStateById = new Map<string, SubscriptionRuntimeState>()
-
-  for (const subscription of settings.subscriptions) {
-    const state = readSubscriptionRuntimeState(settings, subscription.id)
-    runtimeStateById.set(subscription.id, {
-      ...state,
-      seenFingerprints: [...state.seenFingerprints],
-      recentHits: state.recentHits.map((hit) => ({ ...hit }))
-    })
-  }
-
-  return runtimeStateById
-}
-
-function resolveRoundHits(
-  round: SubscriptionNotificationRound,
-  runtimeStateById: Map<string, SubscriptionRuntimeState>
-): SubscriptionHitRecord[] {
-  const hitsById = new Map<string, SubscriptionHitRecord>()
-
-  for (const state of runtimeStateById.values()) {
-    for (const hit of state.recentHits) {
-      hitsById.set(hit.id, hit)
-    }
-  }
-
-  const retainedRoundHits = Array.isArray(round.hits) && round.hits.length > 0
-    ? round.hits.map((hit) => hitsById.get(hit.id) ?? hit)
-    : []
-  const fallbackHits = round.hitIds
-    .map((hitId) => hitsById.get(hitId))
-    .filter((hit): hit is SubscriptionHitRecord => hit !== undefined)
-
-  return retainedRoundHits.length ? retainedRoundHits : fallbackHits
-}
-
-function isSubscriptionHitDownloadable(
-  hit: SubscriptionHitRecord,
-  subscription: SubscriptionEntry | undefined,
-  settings: Settings
-): boolean {
-  return Boolean(subscription?.enabled) && resolveSourceEnabled(hit.sourceId, settings)
-}
-
-async function prepareSubscriptionHit(
-  hit: SubscriptionHitRecord,
-  subscription: SubscriptionEntry | undefined,
-  settings: Settings,
-  seenHashes: Set<string>,
-  seenUrls: Set<string>,
-  extractSingleItemImpl: (
-    item: BatchItem,
-    settings: Settings
-  ) => Promise<ExtractionResult>
-): Promise<ClassifiedBatchResult> {
-  const batchItem: BatchItem = {
-    sourceId: hit.sourceId,
-    detailUrl: hit.detailUrl,
-    title: hit.title,
-    ...(hit.magnetUrl ? { magnetUrl: hit.magnetUrl } : {}),
-    ...(hit.torrentUrl ? { torrentUrl: hit.torrentUrl } : {})
-  }
-  const preparedResult = createPreparedExtractionResult(batchItem)
-  if (preparedResult) {
-    return classifyExtractionResult(hit.sourceId, preparedResult, settings, seenHashes, seenUrls)
-  }
-
-  if (subscription?.deliveryMode !== "allow-detail-extraction") {
-    return {
-      ok: false,
-      title: hit.title,
-      detailUrl: hit.detailUrl,
-      hash: "",
-      magnetUrl: "",
-      torrentUrl: "",
-      failureReason: "No direct download link retained for this hit.",
-      status: "failed",
-      deliveryMode: "",
-      submitUrl: "",
-      message: "No direct download link retained for this hit."
-    }
-  }
-
-  const extractedResult = await extractSingleItemImpl(batchItem, settings)
-  return classifyExtractionResult(hit.sourceId, extractedResult, settings, seenHashes, seenUrls)
-}
-
-async function submitPreparedHits(
-  preparedHits: PreparedSubscriptionHit[],
-  settings: Settings,
-  downloader: DownloaderAdapter,
-  fetchTorrentForUploadImpl: (torrentUrl: string) => Promise<DownloaderTorrentFile>,
-  attemptedAt: string
-): Promise<{
-  submittedCount: number
-  failedCount: number
-  statuses: SubmissionStatusByHitId
-}> {
-  const statuses: SubmissionStatusByHitId = {}
-  let submittedCount = 0
-  let failedCount = 0
-  const urlPreparedHits = preparedHits.filter(
-    (entry) => entry.classified.deliveryMode !== "torrent-file"
-  )
-  const torrentPreparedHits = preparedHits.filter(
-    (entry) => entry.classified.deliveryMode === "torrent-file"
-  )
-
-  if (urlPreparedHits.length > 0) {
-    try {
-      const result = await downloader.addUrls(
-        settings,
-        urlPreparedHits.map((entry) => entry.classified.submitUrl),
-        undefined
-      )
-      const urlResult = applyUrlSubmissionStatuses(urlPreparedHits, result, attemptedAt)
-      submittedCount += urlResult.submittedCount
-      failedCount += urlResult.failedCount
-      Object.assign(statuses, urlResult.statuses)
-    } catch {
-      for (const preparedHit of urlPreparedHits) {
-        statuses[preparedHit.hitId] = {
-          downloadStatus: "failed",
-          downloadedAt: null
-        }
-      }
-      failedCount += urlPreparedHits.length
-    }
-  }
-
-  for (const preparedHit of torrentPreparedHits) {
-    try {
-      const torrent = await fetchTorrentForUploadImpl(preparedHit.classified.submitUrl)
-      await downloader.addTorrentFiles(settings, [torrent], undefined)
-      statuses[preparedHit.hitId] = {
-        downloadStatus: "submitted",
-        downloadedAt: attemptedAt
-      }
-      submittedCount += 1
-    } catch {
-      statuses[preparedHit.hitId] = {
-        downloadStatus: "failed",
-        downloadedAt: null
-      }
-      failedCount += 1
-    }
-  }
-
-  return {
-    submittedCount,
-    failedCount,
-    statuses
-  }
-}
-
-function applyUrlSubmissionStatuses(
-  preparedHits: PreparedSubscriptionHit[],
-  result: DownloaderUrlSubmissionResult,
-  attemptedAt: string
-): {
-  submittedCount: number
-  failedCount: number
-  statuses: SubmissionStatusByHitId
-} {
-  const statuses: SubmissionStatusByHitId = {}
-  let submittedCount = 0
-  let failedCount = 0
-
-  for (const [index, preparedHit] of preparedHits.entries()) {
-    const entry = result.entries[index]
-    if (entry?.status === "submitted") {
-      statuses[preparedHit.hitId] = {
-        downloadStatus: "submitted",
-        downloadedAt: attemptedAt
-      }
-      submittedCount += 1
-      continue
-    }
-
-    statuses[preparedHit.hitId] = {
-      downloadStatus: "failed",
-      downloadedAt: null
-    }
-    failedCount += 1
-  }
-
-  return {
-    submittedCount,
-    failedCount,
-    statuses
-  }
-}
-
-function applySubmissionStatuses(
-  runtimeStateById: Map<string, SubscriptionRuntimeState>,
-  statuses: SubmissionStatusByHitId
-): void {
-  for (const [hitId, status] of Object.entries(statuses)) {
-    updateRuntimeStateHit(runtimeStateById, hitId, status)
-  }
-}
-
-function applySubmissionStatusesToRetainedHits(
-  retainedHits: SubscriptionHitRecord[],
-  statuses: SubmissionStatusByHitId
-): void {
-  for (const [hitId, status] of Object.entries(statuses)) {
-    updateRetainedHitStatus(retainedHits, hitId, status)
-  }
-}
-
-function updateRuntimeStateHit(
-  runtimeStateById: Map<string, SubscriptionRuntimeState>,
-  hitId: string,
-  patch: Pick<SubscriptionHitRecord, "downloadStatus" | "downloadedAt">
-): void {
-  for (const [subscriptionId, state] of runtimeStateById.entries()) {
-    const hitIndex = state.recentHits.findIndex((hit) => hit.id === hitId)
-    if (hitIndex === -1) {
-      continue
-    }
-
-    const existingHit = state.recentHits[hitIndex]
-    if (!existingHit) {
-      return
-    }
-
-    const nextHits = state.recentHits.slice()
-    nextHits[hitIndex] = {
-      ...existingHit,
-      downloadStatus: patch.downloadStatus,
-      downloadedAt: patch.downloadedAt
-    }
-    runtimeStateById.set(subscriptionId, {
-      ...state,
-      recentHits: nextHits
-    })
-    return
-  }
-}
-
-function updateRetainedHitStatus(
-  retainedHits: SubscriptionHitRecord[],
-  hitId: string,
-  patch: Pick<SubscriptionHitRecord, "downloadStatus" | "downloadedAt">
-): void {
-  const hit = retainedHits.find((entry) => entry.id === hitId)
-  if (!hit) {
-    return
-  }
-
-  hit.downloadStatus = patch.downloadStatus
-  hit.downloadedAt = patch.downloadedAt
-}
-
-function updateHitStatus(
-  runtimeStateById: Map<string, SubscriptionRuntimeState>,
-  retainedHits: SubscriptionHitRecord[],
-  hitId: string,
-  patch: Pick<SubscriptionHitRecord, "downloadStatus" | "downloadedAt">
-): void {
-  updateRuntimeStateHit(runtimeStateById, hitId, patch)
-  updateRetainedHitStatus(retainedHits, hitId, patch)
-}
-
-function buildSettingsWithRuntimeStates(
-  settings: Settings,
-  runtimeStateById: Map<string, SubscriptionRuntimeState>
-): Settings {
-  return {
-    ...settings,
-    subscriptionRuntimeStateById: {
-      ...settings.subscriptionRuntimeStateById,
-      ...Object.fromEntries(runtimeStateById.entries())
-    }
-  }
-}
-
-function buildSubscriptionScanRuntimePatch(
-  settings: Settings
-): SubscriptionRuntimeSettingsPatch {
-  return {
-    lastSchedulerRunAt: settings.lastSchedulerRunAt,
-    subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById,
-    subscriptionNotificationRounds: settings.subscriptionNotificationRounds
-  }
-}
-
-function buildSubscriptionDownloadRuntimePatch(
-  settings: Pick<Settings, "subscriptionRuntimeStateById">,
-  subscriptionNotificationRounds: Settings["subscriptionNotificationRounds"]
-): SubscriptionDownloadNotificationPatch {
-  return {
-    subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById,
-    subscriptionNotificationRounds
-  }
-}
-
-function replaceNotificationRoundHits(
-  rounds: Settings["subscriptionNotificationRounds"],
-  roundId: string,
-  retainedHits: SubscriptionHitRecord[]
-): Settings["subscriptionNotificationRounds"] {
-  return rounds.flatMap((round) => {
-    if (round.id !== roundId) {
-      return [round]
-    }
-
-    if (retainedHits.length === 0) {
-      return []
-    }
-
-    return [
-      {
-        ...round,
-        hitIds: retainedHits.map((hit) => hit.id),
-        hits: retainedHits.map((hit) => ({ ...hit }))
-      }
-    ]
-  })
 }

@@ -41,6 +41,18 @@ export type SubscriptionEntry = {
   baselineCreatedAt: string
 }
 
+export type EditableSubscriptionDefinition = Pick<
+  SubscriptionEntry,
+  | "id"
+  | "enabled"
+  | "sourceIds"
+  | "multiSiteModeEnabled"
+  | "titleQuery"
+  | "subgroupQuery"
+  | "advanced"
+  | "deliveryMode"
+>
+
 export type SubscriptionHitRecord = {
   id: string
   subscriptionId: string

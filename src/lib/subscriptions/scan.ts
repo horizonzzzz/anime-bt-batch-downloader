@@ -37,6 +37,11 @@ export type ScanSubscriptionsResult = {
   errors: SubscriptionScanError[]
 }
 
+export type ScanSubscriptionsRuntimePatch = Pick<
+  Settings,
+  "lastSchedulerRunAt" | "subscriptionRuntimeStateById" | "subscriptionNotificationRounds"
+>
+
 export async function scanSubscriptions(
   settings: Settings,
   dependencies: ScanSubscriptionsDependencies = {}
@@ -125,6 +130,16 @@ export async function scanSubscriptions(
     newHits,
     scannedSourceIds,
     errors
+  }
+}
+
+export function buildScanSubscriptionsRuntimePatch(
+  settings: Settings
+): ScanSubscriptionsRuntimePatch {
+  return {
+    lastSchedulerRunAt: settings.lastSchedulerRunAt,
+    subscriptionRuntimeStateById: settings.subscriptionRuntimeStateById,
+    subscriptionNotificationRounds: settings.subscriptionNotificationRounds
   }
 }
 

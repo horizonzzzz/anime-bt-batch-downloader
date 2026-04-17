@@ -23,14 +23,22 @@ export {
   readSubscriptionRuntimeState,
   updateSubscriptionRuntimeState
 } from "./storage"
+export { SubscriptionManager } from "./manager"
 export { scanSubscriptions } from "./scan"
 export { scanSubscriptionCandidatesFromSource } from "./source-scan"
 export { ensureSubscriptionAlarm, SUBSCRIPTION_ALARM_NAME } from "./scheduler"
 export { createEmptySubscriptionRuntimeState } from "./runtime-state"
 export type {
-  DuplicateSubscriptionOptions,
-  SubscriptionRuntimeStatePatch
-} from "./storage"
+  DownloadSubscriptionHitsRequest,
+  DownloadSubscriptionHitsResult,
+  SubscriptionEditRuntimeSettingsPatch,
+  SubscriptionDownloadNotificationPatch,
+  SubscriptionManagerDownloadDependencies,
+  SubscriptionManagerDownloadResult,
+  SubscriptionManagerScanResult,
+  SubscriptionRuntimeSettingsPatch
+} from "./manager"
+export type { DuplicateSubscriptionOptions, SubscriptionRuntimeStatePatch } from "./storage"
 export type {
   ScanSubscriptionsDependencies,
   ScanSubscriptionsResult,
