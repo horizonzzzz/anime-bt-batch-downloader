@@ -10,7 +10,6 @@ export {
 } from "./catalog-repository"
 export {
   buildSubscriptionRoundNotification,
-  collectNotificationRoundHitIds,
   createSubscriptionNotificationRound,
   createSubscriptionNotificationRoundId,
   parseSubscriptionNotificationRoundId,
@@ -23,7 +22,6 @@ export {
   buildSubscriptionRuntimeStatusRow,
   getLastSchedulerRunAt,
   getNotificationRound,
-  listHitsForRound,
   listNotificationRounds,
   listSubscriptionRuntimeRows,
   setLastSchedulerRunAt

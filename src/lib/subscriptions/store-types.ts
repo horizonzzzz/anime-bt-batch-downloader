@@ -6,6 +6,7 @@ export type SubscriptionRuntimeRow = {
   lastMatchedAt: string | null
   lastError: string
   seenFingerprints: string[]
+  recentHits: SubscriptionHitRow[]
 }
 
 export type SubscriptionHitRow = SubscriptionHitRecord
@@ -13,7 +14,7 @@ export type SubscriptionHitRow = SubscriptionHitRecord
 export type NotificationRoundRow = {
   id: string
   createdAt: string
-  hitIds: string[]
+  hits: SubscriptionHitRow[]
 }
 
 export type SubscriptionMetaRow = {

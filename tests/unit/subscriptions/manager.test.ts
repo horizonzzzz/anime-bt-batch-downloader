@@ -96,7 +96,8 @@ describe("SubscriptionManager", () => {
       lastScanAt: "2026-04-14T07:30:00.000Z",
       lastMatchedAt: null,
       lastError: "",
-      seenFingerprints: ["fp-old"]
+      seenFingerprints: ["fp-old"],
+      recentHits: []
     })
 
     const manager = new SubscriptionManager({
@@ -108,25 +109,27 @@ describe("SubscriptionManager", () => {
     })
 
     expect(result.newHits).toHaveLength(1)
-    expect(result.notificationRound?.hitIds).toEqual(result.newHits.map((hit) => hit.id))
+    expect(result.notificationRound?.hits.map((hit) => hit.id)).toEqual(
+      result.newHits.map((hit) => hit.id)
+    )
     expect(await subscriptionDb.subscriptionRuntime.toArray()).toEqual([
       expect.objectContaining({
         subscriptionId: "sub-1",
         lastScanAt: now,
-        lastMatchedAt: now
-      })
-    ])
-    expect(await subscriptionDb.subscriptionHits.toArray()).toEqual([
-      expect.objectContaining({
-        subscriptionId: "sub-1",
-        detailUrl: "https://acg.rip/t/100",
-        downloadStatus: "idle"
+        lastMatchedAt: now,
+        recentHits: [
+          expect.objectContaining({
+            subscriptionId: "sub-1",
+            detailUrl: "https://acg.rip/t/100",
+            downloadStatus: "idle"
+          })
+        ]
       })
     ])
     expect(await listNotificationRounds()).toEqual([
       expect.objectContaining({
         createdAt: now,
-        hitIds: result.newHits.map((hit) => hit.id)
+        hits: result.newHits
       })
     ])
   })
@@ -139,11 +142,18 @@ describe("SubscriptionManager", () => {
         sourceIds: ["bangumimoe"]
       })
     )
-    await subscriptionDb.subscriptionHits.put(createHit())
+    await subscriptionDb.subscriptionRuntime.put({
+      subscriptionId: "sub-1",
+      lastScanAt: now,
+      lastMatchedAt: now,
+      lastError: "",
+      seenFingerprints: ["fp-1"],
+      recentHits: [createHit()]
+    })
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260414093000000",
       createdAt: now,
-      hitIds: ["hit-1"]
+      hits: [createHit()]
     })
 
     const downloader: DownloaderAdapter = {
@@ -190,11 +200,16 @@ describe("SubscriptionManager", () => {
     expect(result.duplicateCount).toBe(0)
     expect(result.failedCount).toBe(0)
     expect(downloader.authenticate).toHaveBeenCalledTimes(1)
-    expect(await subscriptionDb.subscriptionHits.toArray()).toEqual([
+    expect(await subscriptionDb.subscriptionRuntime.toArray()).toEqual([
       expect.objectContaining({
-        id: "hit-1",
-        downloadStatus: "submitted",
-        downloadedAt: now
+        subscriptionId: "sub-1",
+        recentHits: [
+          expect.objectContaining({
+            id: "hit-1",
+            downloadStatus: "submitted",
+            downloadedAt: now
+          })
+        ]
       })
     ])
     await expect(listNotificationRounds()).resolves.toEqual([])

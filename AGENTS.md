@@ -20,7 +20,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
     - each filter stores `sourceIds[]` as a required site scope plus two levels of text conditions: `must[]` for conditions that all need to match, and optional `any[]` for conditions where at least one must match
     - page interactions write through the shared settings form, and the quick test bench exercises the same include-only filter engine used by the runtime
   - `Subscriptions`
-    - rendered as a first-class workspace backed by persisted subscription definitions plus scheduler, polling, notification, and recent-hit state in settings
+    - rendered as a first-class workspace backed by persisted subscription definitions plus Dexie-backed scheduler, polling, notification, and bounded recent-hit runtime state
     - supports grouped multi-source scans for subscription-capable sites, runtime status visibility, and notification-round retention for recent matched hits
   - `Batch History`
   - `Source Overview`
@@ -120,7 +120,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `src/lib/downloader/qb/` for qBittorrent WebUI client helpers and submission APIs
   - `src/lib/download-preparation.ts` for domain-neutral magnet/torrent preparation, normalization, and delivery-mode classification shared by background, subscriptions, and source adapters
   - `src/lib/settings/` for defaults, nested downloader settings merge/sanitization, storage access, and source enablement helpers
-  - `src/lib/subscriptions/` for subscription definitions, runtime snapshot/manager coordination, retained-notification download workflows, grouped source scans, scheduler/alarm helpers, notification payloads, and recent-hit retention
+  - `src/lib/subscriptions/` for subscription definitions, Dexie-backed runtime cache/manager coordination, retained-notification download workflows, grouped source scans, scheduler/alarm helpers, notification payloads, and recent-hit retention
   - `src/lib/shared/` for the WXT browser helper, cross-runtime messages, shared types, and Tailwind utility helpers
 - `.github/workflows/release.yml`
   Tagged-release automation that validates versions, packages the extension, extracts the matching `CHANGELOG.md` section, renames the packaged archive, and publishes the GitHub Release.
@@ -141,7 +141,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
 - `src/lib/background/subscriptions.ts`
   Background bridge for subscriptions, limited to serialized mutation queueing, subscription-aware settings-save persistence, dependency wiring, and browser notification delivery around the subscription manager.
 - `src/lib/subscriptions/manager.ts`
-  Subscription orchestration surface that operates on the current `Settings`-backed runtime snapshot for scans, retained-hit downloads, and post-edit runtime reconciliation while delegating focused workflows to smaller subscription modules.
+  Subscription orchestration surface that operates on the current app settings plus Dexie-backed runtime cache for scans, retained-hit downloads, and post-edit runtime reconciliation while delegating focused workflows to smaller subscription modules.
 - `src/lib/subscriptions/download-notification.ts`
   Subscription-domain retained-notification download workflow, including retained-hit preparation, downloader submission, runtime-state mutation, and retained-round updates.
 - `src/lib/background/popup.ts`
@@ -189,9 +189,9 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 3. `src/lib/subscriptions/manager.ts`
    Coordinates subscription scan execution and runtime snapshot reconciliation against the current in-memory `Settings` snapshot, delegating retained-download work to focused helpers.
 4. `src/lib/subscriptions/download-notification.ts`
-   Prepares retained notification hits, submits them through the active downloader, and rewrites runtime state plus retained notification rounds.
+   Prepares retained notification hits, submits them through the active downloader, and rewrites the bounded runtime recent-hit cache plus retained notification rounds.
 5. `src/lib/subscriptions/scan.ts`
-   Groups enabled subscriptions by source, runs one scan per source, updates runtime state, and creates retained notification rounds from newly discovered hits.
+   Groups enabled subscriptions by source, runs one scan per source, updates each subscription's bounded runtime recent-hit cache, and creates retained notification rounds from newly discovered hits.
 6. `src/lib/subscriptions/source-scan.ts`
    Opens background list tabs only for subscription-capable sources, fetches list-page candidates, and normalizes/deduplicates scan results before matching.
 7. `src/lib/subscriptions/scheduler.ts` and `src/lib/subscriptions/notifications.ts`
@@ -227,7 +227,7 @@ Use this section as the shortest runtime-oriented guide to the current code layo
 - `src/lib/download-preparation.ts`
   Domain-neutral magnet/torrent preparation helpers, delivery-mode classification, and duplicate detection shared by background, subscriptions, and source adapters.
 - `src/lib/subscriptions/`
-  Subscription definitions, runtime snapshot persistence/helpers, manager-level coordination, retained-notification download workflows, grouped scans, scheduler helpers, notifications, and recent-hit retention.
+  Subscription definitions, Dexie-backed runtime cache persistence/helpers, manager-level coordination, retained-notification download workflows, grouped scans, scheduler helpers, notifications, and recent-hit retention.
 - `src/lib/downloader/`
   Downloader adapter registry, supported-downloader metadata, and downloader-facing shared types.
 - `src/lib/downloader/qb/`

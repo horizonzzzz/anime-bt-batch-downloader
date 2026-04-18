@@ -1,3 +1,4 @@
+import Dexie from "dexie"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import type {
@@ -80,28 +81,35 @@ describe("replaceSubscriptionCatalog", () => {
         lastScanAt: "2026-04-17T10:00:00.000Z",
         lastMatchedAt: null,
         lastError: "",
-        seenFingerprints: ["fp-1"]
+        seenFingerprints: ["fp-1"],
+        recentHits: [createHit({ id: "hit-1", subscriptionId: "sub-1" })]
       },
       {
         subscriptionId: "sub-2",
         lastScanAt: "2026-04-17T11:00:00.000Z",
         lastMatchedAt: null,
         lastError: "",
-        seenFingerprints: ["fp-2"]
+        seenFingerprints: ["fp-2"],
+        recentHits: [
+          createHit({
+            id: "hit-2",
+            subscriptionId: "sub-2",
+            detailUrl: "https://acg.rip/t/2"
+          })
+        ]
       }
-    ])
-    await subscriptionDb.subscriptionHits.bulkPut([
-      createHit({ id: "hit-1", subscriptionId: "sub-1" }),
-      createHit({
-        id: "hit-2",
-        subscriptionId: "sub-2",
-        detailUrl: "https://acg.rip/t/2"
-      })
     ])
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260417110000000",
       createdAt: "2026-04-17T11:00:00.000Z",
-      hitIds: ["hit-1", "hit-2"]
+      hits: [
+        createHit({ id: "hit-1", subscriptionId: "sub-1" }),
+        createHit({
+          id: "hit-2",
+          subscriptionId: "sub-2",
+          detailUrl: "https://acg.rip/t/2"
+        })
+      ]
     })
 
     await replaceSubscriptionCatalog([
@@ -120,14 +128,14 @@ describe("replaceSubscriptionCatalog", () => {
     expect(await subscriptionDb.subscriptionRuntime.toArray()).toEqual([
       expect.objectContaining({ subscriptionId: "sub-2" })
     ])
-    expect(await subscriptionDb.subscriptionHits.toArray()).toEqual([
+    expect((await subscriptionDb.subscriptionRuntime.toArray())[0]?.recentHits).toEqual([
       expect.objectContaining({ id: "hit-2", subscriptionId: "sub-2" })
     ])
     expect(await subscriptionDb.notificationRounds.toArray()).toEqual([
       {
         id: "subscription-round:20260417110000000",
         createdAt: "2026-04-17T11:00:00.000Z",
-        hitIds: ["hit-2"]
+        hits: [expect.objectContaining({ id: "hit-2" })]
       }
     ])
   })
@@ -139,13 +147,13 @@ describe("replaceSubscriptionCatalog", () => {
       lastScanAt: "2026-04-17T10:00:00.000Z",
       lastMatchedAt: "2026-04-17T10:05:00.000Z",
       lastError: "",
-      seenFingerprints: ["fp-1"]
+      seenFingerprints: ["fp-1"],
+      recentHits: [createHit()]
     })
-    await subscriptionDb.subscriptionHits.put(createHit())
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260417100000000",
       createdAt: "2026-04-17T10:00:00.000Z",
-      hitIds: ["hit-1"]
+      hits: [createHit()]
     })
 
     await upsertSubscription(createSubscription({ enabled: false }))
@@ -153,20 +161,56 @@ describe("replaceSubscriptionCatalog", () => {
     expect(await subscriptionDb.subscriptionRuntime.get("sub-1")).toEqual(
       expect.objectContaining({
         subscriptionId: "sub-1",
-        seenFingerprints: ["fp-1"]
-      })
-    )
-    expect(await subscriptionDb.subscriptionHits.get("hit-1")).toEqual(
-      expect.objectContaining({
-        id: "hit-1",
-        subscriptionId: "sub-1"
+        seenFingerprints: ["fp-1"],
+        recentHits: [expect.objectContaining({ id: "hit-1" })]
       })
     )
     expect(await subscriptionDb.notificationRounds.toArray()).toEqual([
       expect.objectContaining({
         id: "subscription-round:20260417100000000",
-        hitIds: ["hit-1"]
+        hits: [expect.objectContaining({ id: "hit-1" })]
       })
     ])
+  })
+
+  it("clears legacy subscription data during the destructive schema upgrade", async () => {
+    subscriptionDb.close()
+    await Dexie.delete(subscriptionDb.name)
+
+    const legacyDb = new Dexie(subscriptionDb.name)
+    legacyDb.version(1).stores({
+      subscriptions: "id, enabled, *sourceIds, createdAt",
+      subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
+      subscriptionHits: "id, subscriptionId, discoveredAt, downloadStatus, [subscriptionId+discoveredAt]",
+      notificationRounds: "id, createdAt",
+      subscriptionMeta: "key"
+    })
+    await legacyDb.open()
+    await legacyDb.table("subscriptions").put(createSubscription())
+    await legacyDb.table("subscriptionRuntime").put({
+      subscriptionId: "sub-1",
+      lastScanAt: "2026-04-17T10:00:00.000Z",
+      lastMatchedAt: null,
+      lastError: "",
+      seenFingerprints: ["fp-1"]
+    })
+    await legacyDb.table("subscriptionHits").put(createHit())
+    await legacyDb.table("notificationRounds").put({
+      id: "subscription-round:20260417100000000",
+      createdAt: "2026-04-17T10:00:00.000Z",
+      hitIds: ["hit-1"]
+    })
+    await legacyDb.table("subscriptionMeta").put({
+      key: "lastSchedulerRunAt",
+      value: "2026-04-17T10:00:00.000Z"
+    })
+    legacyDb.close()
+
+    await subscriptionDb.open()
+
+    await expect(subscriptionDb.subscriptions.toArray()).resolves.toEqual([])
+    await expect(subscriptionDb.subscriptionRuntime.toArray()).resolves.toEqual([])
+    await expect(subscriptionDb.notificationRounds.toArray()).resolves.toEqual([])
+    await expect(subscriptionDb.subscriptionMeta.toArray()).resolves.toEqual([])
   })
 })

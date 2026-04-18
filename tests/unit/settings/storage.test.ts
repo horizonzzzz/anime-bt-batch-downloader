@@ -106,7 +106,7 @@ describe("settings storage helpers", () => {
       subscriptionRuntimeStateById: {
         "sub-1": { lastScanAt: "x" }
       },
-      subscriptionNotificationRounds: [{ id: "round-1", createdAt: "x", hitIds: [] }]
+      subscriptionNotificationRounds: [{ id: "round-1", createdAt: "x", hits: [] }]
     } as never)
 
     expect(setSpy).toHaveBeenLastCalledWith({

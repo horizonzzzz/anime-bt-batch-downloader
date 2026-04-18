@@ -71,7 +71,7 @@ export async function executeSubscriptionScan(
     })
 
     if (result.notificationRound && appSettings.notificationsEnabled) {
-      const hitCount = result.notificationRound.hitIds.length
+      const hitCount = result.notificationRound.hits.length
       const notification = buildSubscriptionRoundNotification(
         result.notificationRound,
         {

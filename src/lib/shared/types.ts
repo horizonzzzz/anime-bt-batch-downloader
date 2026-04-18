@@ -81,8 +81,7 @@ export type SubscriptionNotificationHit = SubscriptionHitRecord
 export type SubscriptionNotificationRound = {
   id: string
   createdAt: string
-  hitIds: string[]
-  hits?: SubscriptionNotificationHit[]
+  hits: SubscriptionNotificationHit[]
 }
 
 export type BatchEventStage =

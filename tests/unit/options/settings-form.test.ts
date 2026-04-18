@@ -136,7 +136,7 @@ describe("options settings form helpers", () => {
           {
             id: "round-1",
             createdAt: "2026-04-13T04:00:00.000Z",
-            hitIds: ["hit-1"]
+            hits: []
           }
         ]
       })

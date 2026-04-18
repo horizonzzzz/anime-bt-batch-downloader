@@ -12,7 +12,7 @@ import {
   createSubscriptionNotificationRound,
   retainSubscriptionNotificationRounds
 } from "./notifications"
-import { pushSeenFingerprint } from "./retention"
+import { pushRecentHit, pushSeenFingerprint } from "./retention"
 import { createEmptySubscriptionRuntimeRow } from "./runtime-state"
 import { scanSubscriptionCandidatesFromSource } from "./source-scan"
 import type { NotificationRoundRow, SubscriptionRuntimeRow } from "./store-types"
@@ -56,7 +56,7 @@ export async function scanSubscriptions(
   const errors: SubscriptionScanError[] = []
 
   if (!input.appSettings.subscriptionsEnabled || enabledSubscriptions.length === 0) {
-    await persistScanState(now, runtimeBySubscriptionId, newHits, null)
+    await persistScanState(now, runtimeBySubscriptionId, null)
     return {
       lastSchedulerRunAt: now,
       notificationRound: null,
@@ -111,7 +111,7 @@ export async function scanSubscriptions(
         })
       : null
 
-  await persistScanState(now, runtimeBySubscriptionId, newHits, notificationRound)
+  await persistScanState(now, runtimeBySubscriptionId, notificationRound)
 
   return {
     lastSchedulerRunAt: now,
@@ -139,23 +139,17 @@ async function loadRuntimeRows(
 async function persistScanState(
   lastSchedulerRunAt: string,
   runtimeBySubscriptionId: Map<string, SubscriptionRuntimeRow>,
-  newHits: SubscriptionHitRecord[],
   notificationRound: NotificationRoundRow | null
 ): Promise<void> {
   await subscriptionDb.transaction(
     "rw",
     subscriptionDb.subscriptionRuntime,
-    subscriptionDb.subscriptionHits,
     subscriptionDb.notificationRounds,
     subscriptionDb.subscriptionMeta,
     async () => {
       const runtimeRows = [...runtimeBySubscriptionId.values()]
       if (runtimeRows.length > 0) {
         await subscriptionDb.subscriptionRuntime.bulkPut(runtimeRows)
-      }
-
-      if (newHits.length > 0) {
-        await subscriptionDb.subscriptionHits.bulkPut(newHits)
       }
 
       await subscriptionDb.subscriptionMeta.put({
@@ -233,15 +227,16 @@ function applySubscriptionScanResult(
       continue
     }
 
-    collectedHits.push(
-      createSubscriptionHitRecord(
-        subscription,
-        candidate,
-        fingerprint,
-        matchResult.subgroup,
-        scannedAt
-      )
+    const hit = createSubscriptionHitRecord(
+      subscription,
+      candidate,
+      fingerprint,
+      matchResult.subgroup,
+      scannedAt
     )
+
+    runtime.recentHits = pushRecentHit(runtime.recentHits, hit)
+    collectedHits.push(hit)
   }
 
   return {
@@ -249,7 +244,8 @@ function applySubscriptionScanResult(
     lastScanAt: scannedAt,
     lastMatchedAt,
     lastError: "",
-    seenFingerprints
+    seenFingerprints,
+    recentHits: runtime.recentHits
   }
 }
 

@@ -1,6 +1,4 @@
-import type {
-  SubscriptionHitRecord
-} from "../shared/types"
+import type { SubscriptionHitRecord } from "../shared/types"
 import type { NotificationRoundRow } from "./store-types"
 
 export const SUBSCRIPTION_NOTIFICATION_ROUND_ID_PREFIX = "subscription-round:"
@@ -31,12 +29,10 @@ export function createSubscriptionNotificationRound(input: {
   createdAt: string
   hits: SubscriptionHitRecord[]
 }): NotificationRoundRow {
-  const hitIds = collectNotificationRoundHitIds(input.hits)
-
   return {
     id: createSubscriptionNotificationRoundId(input.createdAt),
     createdAt: String(input.createdAt ?? "").trim(),
-    hitIds
+    hits: normalizeNotificationHits(input.hits)
   }
 }
 
@@ -49,7 +45,8 @@ export function retainSubscriptionNotificationRounds(
           round &&
           typeof round === "object" &&
           parseSubscriptionNotificationRoundId(round.id) !== null &&
-          String(round.createdAt ?? "").trim().length > 0
+          String(round.createdAt ?? "").trim().length > 0 &&
+          Array.isArray(round.hits)
       )
     : []
 
@@ -59,7 +56,7 @@ export function retainSubscriptionNotificationRounds(
 }
 
 export function buildSubscriptionRoundNotification(
-  round: Pick<NotificationRoundRow, "id" | "hitIds">,
+  round: Pick<NotificationRoundRow, "id" | "hits">,
   copy: {
     title: string
     message: string
@@ -79,22 +76,24 @@ export function buildSubscriptionRoundNotification(
   }
 }
 
-export function collectNotificationRoundHitIds(
-  hits: SubscriptionHitRecord[]
-): string[] {
-  return normalizeHitIds(hits.map((hit) => hit.id))
-}
-
-function normalizeHitIds(hitIds: string[]): string[] {
-  if (!Array.isArray(hitIds)) {
+function normalizeNotificationHits(hits: SubscriptionHitRecord[]): SubscriptionHitRecord[] {
+  if (!Array.isArray(hits)) {
     return []
   }
 
-  return Array.from(
-    new Set(
-      hitIds
-        .map((hitId) => String(hitId ?? "").trim())
-        .filter((hitId) => hitId.length > 0)
-    )
-  )
+  const hitsById = new Map<string, SubscriptionHitRecord>()
+
+  for (const hit of hits) {
+    const hitId = String(hit?.id ?? "").trim()
+    if (!hitId) {
+      continue
+    }
+
+    hitsById.set(hitId, {
+      ...hit,
+      id: hitId
+    })
+  }
+
+  return [...hitsById.values()]
 }

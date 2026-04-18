@@ -3,7 +3,6 @@ import Dexie, { type Table } from "dexie"
 import type { SubscriptionEntry } from "../shared/types"
 import type {
   NotificationRoundRow,
-  SubscriptionHitRow,
   SubscriptionMetaRow,
   SubscriptionRuntimeRow
 } from "./store-types"
@@ -11,7 +10,6 @@ import type {
 export class SubscriptionDatabase extends Dexie {
   subscriptions!: Table<SubscriptionEntry, string>
   subscriptionRuntime!: Table<SubscriptionRuntimeRow, string>
-  subscriptionHits!: Table<SubscriptionHitRow, string>
   notificationRounds!: Table<NotificationRoundRow, string>
   subscriptionMeta!: Table<SubscriptionMetaRow, string>
 
@@ -25,6 +23,21 @@ export class SubscriptionDatabase extends Dexie {
       notificationRounds: "id, createdAt",
       subscriptionMeta: "key"
     })
+
+    this.version(2)
+      .stores({
+        subscriptions: "id, enabled, *sourceIds, createdAt",
+        subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
+        subscriptionHits: null,
+        notificationRounds: "id, createdAt",
+        subscriptionMeta: "key"
+      })
+      .upgrade(async (transaction) => {
+        await transaction.table("subscriptions").clear()
+        await transaction.table("subscriptionRuntime").clear()
+        await transaction.table("notificationRounds").clear()
+        await transaction.table("subscriptionMeta").clear()
+      })
   }
 }
 

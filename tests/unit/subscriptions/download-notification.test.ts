@@ -80,16 +80,15 @@ describe("downloadSubscriptionNotificationHits", () => {
         enabled: false
       })
     )
-    await subscriptionDb.subscriptionHits.put(
-      createHit({
-        id: "hit-disabled",
-        subscriptionId: "sub-disabled"
-      })
-    )
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260414093000000",
       createdAt: now,
-      hitIds: ["hit-disabled"]
+      hits: [
+        createHit({
+          id: "hit-disabled",
+          subscriptionId: "sub-disabled"
+        })
+      ]
     })
 
     const downloader: DownloaderAdapter = {
@@ -132,11 +131,18 @@ describe("downloadSubscriptionNotificationHits", () => {
     const now = "2026-04-14T09:30:00.000Z"
 
     await subscriptionDb.subscriptions.put(createSubscription())
-    await subscriptionDb.subscriptionHits.put(createHit())
+    await subscriptionDb.subscriptionRuntime.put({
+      subscriptionId: "sub-1",
+      lastScanAt: now,
+      lastMatchedAt: now,
+      lastError: "",
+      seenFingerprints: ["fp-1"],
+      recentHits: [createHit()]
+    })
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260414093000000",
       createdAt: now,
-      hitIds: ["hit-1"]
+      hits: [createHit()]
     })
 
     const downloader: DownloaderAdapter = {
@@ -177,11 +183,16 @@ describe("downloadSubscriptionNotificationHits", () => {
     )
 
     expect(result.submittedCount).toBe(1)
-    expect(await subscriptionDb.subscriptionHits.toArray()).toEqual([
+    expect(await subscriptionDb.subscriptionRuntime.toArray()).toEqual([
       expect.objectContaining({
-        id: "hit-1",
-        downloadStatus: "submitted",
-        downloadedAt: now
+        subscriptionId: "sub-1",
+        recentHits: [
+          expect.objectContaining({
+            id: "hit-1",
+            downloadStatus: "submitted",
+            downloadedAt: now
+          })
+        ]
       })
     ])
   })

@@ -19,7 +19,7 @@ import { resolveSourceEnabled } from "../settings"
 import { listSubscriptionsByIds } from "./catalog-repository"
 import { subscriptionDb } from "./db"
 import { parseSubscriptionNotificationRoundId } from "./notifications"
-import { getNotificationRound, listHitsForRound } from "./runtime-query"
+import { getNotificationRound } from "./runtime-query"
 
 export type DownloadSubscriptionHitsRequest = {
   roundId: string
@@ -72,7 +72,7 @@ export async function downloadSubscriptionNotificationHits(
     throw new Error(`Subscription notification round not found: ${normalizedRoundId}`)
   }
 
-  const hits = await listHitsForRound(notificationRound.hitIds)
+  const hits = notificationRound.hits.map((hit) => ({ ...hit }))
   const subscriptions = await listSubscriptionsByIds([
     ...new Set(hits.map((hit) => hit.subscriptionId))
   ])
@@ -197,18 +197,15 @@ async function persistDownloadState(
 ): Promise<void> {
   await subscriptionDb.transaction(
     "rw",
-    subscriptionDb.subscriptionHits,
+    subscriptionDb.subscriptionRuntime,
     subscriptionDb.notificationRounds,
     async () => {
-      if (hits.length > 0) {
-        await subscriptionDb.subscriptionHits.bulkPut(hits)
-      }
+      await updateRuntimeRowsForDownloadedHits(hits)
 
-      const retainedHitIds = hits
+      const retainedHits = hits
         .filter((hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate")
-        .map((hit) => hit.id)
 
-      if (retainedHitIds.length === 0) {
+      if (retainedHits.length === 0) {
         await subscriptionDb.notificationRounds.delete(roundId)
         return
       }
@@ -220,10 +217,49 @@ async function persistDownloadState(
 
       await subscriptionDb.notificationRounds.put({
         ...round,
-        hitIds: retainedHitIds
+        hits: retainedHits
       })
     }
   )
+}
+
+async function updateRuntimeRowsForDownloadedHits(
+  hits: SubscriptionHitRecord[]
+): Promise<void> {
+  const subscriptionIds = Array.from(new Set(hits.map((hit) => hit.subscriptionId)))
+  if (subscriptionIds.length === 0) {
+    return
+  }
+
+  const rows = await subscriptionDb.subscriptionRuntime.bulkGet(subscriptionIds)
+  const hitById = new Map(hits.map((hit) => [hit.id, hit] as const))
+  const nextRows = rows.flatMap((row) => {
+    if (!row) {
+      return []
+    }
+
+    let changed = false
+    const recentHits = row.recentHits.map((existingHit) => {
+      const updatedHit = hitById.get(existingHit.id)
+      if (!updatedHit) {
+        return existingHit
+      }
+
+      changed = true
+      return updatedHit
+    })
+
+    return changed
+      ? [{
+          ...row,
+          recentHits
+        }]
+      : []
+  })
+
+  if (nextRows.length > 0) {
+    await subscriptionDb.subscriptionRuntime.bulkPut(nextRows)
+  }
 }
 
 function isSubscriptionHitDownloadable(

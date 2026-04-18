@@ -10,7 +10,6 @@ import {
 } from "../../../src/lib/subscriptions/db"
 import {
   buildSubscriptionDashboardRows,
-  listHitsForRound,
   listNotificationRounds
 } from "../../../src/lib/subscriptions/runtime-query"
 
@@ -84,30 +83,42 @@ describe("subscription runtime query", () => {
       lastScanAt: "2026-04-17T10:00:00.000Z",
       lastMatchedAt: "2026-04-17T10:00:00.000Z",
       lastError: "",
-      seenFingerprints: ["fp-1", "fp-2"]
+      seenFingerprints: ["fp-1", "fp-2"],
+      recentHits: [
+        createHit({ id: "hit-1", subscriptionId: "sub-1" }),
+        createHit({
+          id: "hit-2",
+          subscriptionId: "sub-1",
+          discoveredAt: "2026-04-17T11:00:00.000Z",
+          detailUrl: "https://acg.rip/t/2"
+        })
+      ]
     })
-    await subscriptionDb.subscriptionHits.bulkPut([
-      createHit({ id: "hit-1", subscriptionId: "sub-1" }),
-      createHit({
-        id: "hit-2",
-        subscriptionId: "sub-1",
-        discoveredAt: "2026-04-17T11:00:00.000Z",
-        detailUrl: "https://acg.rip/t/2"
-      }),
-      createHit({
-        id: "hit-3",
-        subscriptionId: "sub-2",
-        discoveredAt: "2026-04-17T09:00:00.000Z",
-        detailUrl: "https://acg.rip/t/3"
-      })
-    ])
+    await subscriptionDb.subscriptionRuntime.put({
+      subscriptionId: "sub-2",
+      lastScanAt: null,
+      lastMatchedAt: null,
+      lastError: "",
+      seenFingerprints: [],
+      recentHits: [
+        createHit({
+          id: "hit-3",
+          subscriptionId: "sub-2",
+          discoveredAt: "2026-04-17T09:00:00.000Z",
+          detailUrl: "https://acg.rip/t/3"
+        })
+      ]
+    })
 
     const rows = await buildSubscriptionDashboardRows()
 
     expect(rows).toHaveLength(2)
     expect(rows[0]).toMatchObject({
       subscription: expect.objectContaining({ id: "sub-2" }),
-      runtime: null,
+      runtime: expect.objectContaining({
+        subscriptionId: "sub-2",
+        lastScanAt: null
+      }),
       recentHits: [expect.objectContaining({ id: "hit-3", subscriptionId: "sub-2" })]
     })
     expect(rows[1]).toMatchObject({
@@ -117,34 +128,34 @@ describe("subscription runtime query", () => {
         lastScanAt: "2026-04-17T10:00:00.000Z"
       })
     })
-    expect(rows[1]?.recentHits.map((hit) => hit.id)).toEqual(["hit-2", "hit-1"])
+    expect(rows[1]?.recentHits.map((hit) => hit.id)).toEqual(["hit-1", "hit-2"])
   })
 
-  it("reads notification round hits through hit ids without embedded hit payloads", async () => {
-    await subscriptionDb.subscriptionHits.bulkPut([
-      createHit({ id: "hit-1", discoveredAt: "2026-04-17T10:00:00.000Z" }),
-      createHit({
-        id: "hit-2",
-        discoveredAt: "2026-04-17T11:00:00.000Z",
-        detailUrl: "https://acg.rip/t/2"
-      })
-    ])
+  it("reads notification rounds with embedded hit payloads", async () => {
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260417110000000",
       createdAt: "2026-04-17T11:00:00.000Z",
-      hitIds: ["hit-2", "hit-1", "missing-hit"]
+      hits: [
+        createHit({
+          id: "hit-2",
+          discoveredAt: "2026-04-17T11:00:00.000Z",
+          detailUrl: "https://acg.rip/t/2"
+        }),
+        createHit({ id: "hit-1", discoveredAt: "2026-04-17T10:00:00.000Z" })
+      ]
     })
 
     const rounds = await listNotificationRounds()
-    const hits = await listHitsForRound(rounds[0]!.hitIds)
 
     expect(rounds).toEqual([
       {
         id: "subscription-round:20260417110000000",
         createdAt: "2026-04-17T11:00:00.000Z",
-        hitIds: ["hit-2", "hit-1", "missing-hit"]
+        hits: [
+          expect.objectContaining({ id: "hit-2" }),
+          expect.objectContaining({ id: "hit-1" })
+        ]
       }
     ])
-    expect(hits.map((hit) => hit.id)).toEqual(["hit-2", "hit-1"])
   })
 })

@@ -8,17 +8,17 @@ describe("retainSubscriptionNotificationRounds", () => {
       {
         id: "subscription-round:20260417130000000",
         createdAt: "2026-04-17T13:00:00.000Z",
-        hitIds: ["hit-3"]
+        hits: [{ id: "hit-3" } as never]
       },
       {
         id: "subscription-round:20260417110000000",
         createdAt: "2026-04-17T11:00:00.000Z",
-        hitIds: ["hit-1"]
+        hits: [{ id: "hit-1" } as never]
       },
       {
         id: "subscription-round:20260417120000000",
         createdAt: "2026-04-17T12:00:00.000Z",
-        hitIds: ["hit-2"]
+        hits: [{ id: "hit-2" } as never]
       }
     ])
 

@@ -35,7 +35,6 @@ export async function replaceSubscriptionCatalog(
     "rw",
     subscriptionDb.subscriptions,
     subscriptionDb.subscriptionRuntime,
-    subscriptionDb.subscriptionHits,
     subscriptionDb.notificationRounds,
     async () => {
       const previousSubscriptions = await subscriptionDb.subscriptions.toArray()
@@ -68,7 +67,6 @@ export async function upsertSubscription(subscription: SubscriptionEntry): Promi
     "rw",
     subscriptionDb.subscriptions,
     subscriptionDb.subscriptionRuntime,
-    subscriptionDb.subscriptionHits,
     subscriptionDb.notificationRounds,
     async () => {
       const previous = await subscriptionDb.subscriptions.get(subscription.id)
@@ -92,7 +90,6 @@ export async function deleteSubscription(subscriptionId: string): Promise<void> 
     "rw",
     subscriptionDb.subscriptions,
     subscriptionDb.subscriptionRuntime,
-    subscriptionDb.subscriptionHits,
     subscriptionDb.notificationRounds,
     async () => {
       await subscriptionDb.subscriptions.delete(normalizedId)
@@ -109,41 +106,33 @@ async function pruneSubscriptionArtifacts(subscriptionIds: string[]): Promise<vo
 
   await subscriptionDb.subscriptionRuntime.bulkDelete(normalizedIds)
 
-  const removedHitIds = await subscriptionDb.subscriptionHits
-    .where("subscriptionId")
-    .anyOf(normalizedIds)
-    .primaryKeys()
-
-  if (removedHitIds.length > 0) {
-    await subscriptionDb.subscriptionHits.bulkDelete(removedHitIds as string[])
-    await pruneNotificationRoundsForDeletedHitIds(new Set(removedHitIds as string[]))
-  }
+  await pruneNotificationRoundsForDeletedSubscriptions(new Set(normalizedIds))
 }
 
-async function pruneNotificationRoundsForDeletedHitIds(
-  deletedHitIds: ReadonlySet<string>
+async function pruneNotificationRoundsForDeletedSubscriptions(
+  deletedSubscriptionIds: ReadonlySet<string>
 ): Promise<void> {
-  if (deletedHitIds.size === 0) {
+  if (deletedSubscriptionIds.size === 0) {
     return
   }
 
   const rounds = await subscriptionDb.notificationRounds.toArray()
 
   for (const round of rounds) {
-    const nextHitIds = round.hitIds.filter((hitId) => !deletedHitIds.has(hitId))
+    const nextHits = round.hits.filter((hit) => !deletedSubscriptionIds.has(hit.subscriptionId))
 
-    if (nextHitIds.length === round.hitIds.length) {
+    if (nextHits.length === round.hits.length) {
       continue
     }
 
-    if (nextHitIds.length === 0) {
+    if (nextHits.length === 0) {
       await subscriptionDb.notificationRounds.delete(round.id)
       continue
     }
 
     await subscriptionDb.notificationRounds.put({
       ...round,
-      hitIds: nextHitIds
+      hits: nextHits
     })
   }
 }

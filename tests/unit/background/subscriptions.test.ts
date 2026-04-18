@@ -90,7 +90,8 @@ describe("background subscriptions bridge", () => {
       lastScanAt: "2026-04-14T07:30:00.000Z",
       lastMatchedAt: null,
       lastError: "",
-      seenFingerprints: ["fp-old"]
+      seenFingerprints: ["fp-old"],
+      recentHits: []
     })
 
     const result = await executeSubscriptionScan({

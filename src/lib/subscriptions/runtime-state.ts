@@ -8,6 +8,7 @@ export function createEmptySubscriptionRuntimeRow(
     lastScanAt: null,
     lastMatchedAt: null,
     lastError: "",
-    seenFingerprints: []
+    seenFingerprints: [],
+    recentHits: []
   }
 }

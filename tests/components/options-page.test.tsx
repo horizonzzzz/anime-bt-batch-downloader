@@ -127,26 +127,43 @@ async function seedSubscriptionFixture() {
     lastScanAt: "2026-04-14T09:00:00.000Z",
     lastMatchedAt: "2026-04-14T09:00:00.000Z",
     lastError: "",
-    seenFingerprints: ["fp-1"]
-  })
-  await subscriptionDb.subscriptionHits.put({
-    id: "hit-1",
-    subscriptionId: "sub-1",
-    sourceId: "acgrip",
-    title: "[LoliHouse] Medalist - 01 [1080p]",
-    normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
-    subgroup: "LoliHouse",
-    detailUrl: "https://acg.rip/t/100",
-    magnetUrl: "magnet:?xt=urn:btih:AAA111",
-    torrentUrl: "",
-    discoveredAt: "2026-04-14T08:00:00.000Z",
-    downloadedAt: null,
-    downloadStatus: "idle"
+    seenFingerprints: ["fp-1"],
+    recentHits: [
+      {
+        id: "hit-1",
+        subscriptionId: "sub-1",
+        sourceId: "acgrip",
+        title: "[LoliHouse] Medalist - 01 [1080p]",
+        normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+        subgroup: "LoliHouse",
+        detailUrl: "https://acg.rip/t/100",
+        magnetUrl: "magnet:?xt=urn:btih:AAA111",
+        torrentUrl: "",
+        discoveredAt: "2026-04-14T08:00:00.000Z",
+        downloadedAt: null,
+        downloadStatus: "idle"
+      }
+    ]
   })
   await subscriptionDb.notificationRounds.put({
     id: "subscription-round:20260414093000000",
     createdAt: "2026-04-14T09:30:00.000Z",
-    hitIds: ["hit-1"]
+    hits: [
+      {
+        id: "hit-1",
+        subscriptionId: "sub-1",
+        sourceId: "acgrip",
+        title: "[LoliHouse] Medalist - 01 [1080p]",
+        normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+        subgroup: "LoliHouse",
+        detailUrl: "https://acg.rip/t/100",
+        magnetUrl: "magnet:?xt=urn:btih:AAA111",
+        torrentUrl: "",
+        discoveredAt: "2026-04-14T08:00:00.000Z",
+        downloadedAt: null,
+        downloadStatus: "idle"
+      }
+    ]
   })
   await setLastSchedulerRunAt("2026-04-14T09:30:00.000Z")
 }
@@ -169,7 +186,6 @@ describe("OptionsPage", () => {
     await resetSubscriptionDb()
     await setLastSchedulerRunAt(null)
     await subscriptionDb.subscriptionRuntime.clear()
-    await subscriptionDb.subscriptionHits.clear()
     await subscriptionDb.notificationRounds.clear()
     window.location.hash = ""
     permissionsContainsMock.mockResolvedValue(true)
