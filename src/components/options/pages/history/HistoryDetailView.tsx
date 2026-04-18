@@ -92,10 +92,7 @@ export function HistoryDetailView({ currentDownloaderId, record, onBack, onRecor
   const siteMeta = getLocalizedSiteConfigMeta(record.sourceId)
   const failures = aggregateFailures(record.items)
   const hasFailures = record.stats.failed > 0
-  const originalDownloaderName = getDownloaderDisplayName(
-    record.originalDownloaderId,
-    i18n.t("options.history.detail.unknownOriginalDownloader")
-  )
+  const originalDownloaderName = getDownloaderMeta(record.originalDownloaderId).displayName
   const lastRetriedDownloaderName = getDownloaderDisplayName(
     record.lastRetriedDownloaderId,
     i18n.t("options.history.detail.notRetried")

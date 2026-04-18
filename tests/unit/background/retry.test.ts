@@ -23,8 +23,7 @@ function createMockRecord(id: string, items: TaskHistoryItem[]): TaskHistoryReco
       duplicated: items.filter(i => i.status === "duplicate").length,
       failed: items.filter(i => i.status === "failed").length
     },
-    items,
-    version: 1
+    items
   }
 }
 

@@ -4,7 +4,6 @@ import {
   saveTaskHistory
 } from "../history/storage"
 import {
-  HISTORY_RECORD_VERSION,
   type FailureInfo,
   type FailureReason,
   type TaskHistoryRecord
@@ -94,8 +93,7 @@ export function buildHistoryRecord(
       failed: job.stats.failed
     },
     items,
-    savePath: job.savePath || undefined,
-    version: HISTORY_RECORD_VERSION
+    savePath: job.savePath || undefined
   }
 }
 

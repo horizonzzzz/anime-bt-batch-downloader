@@ -39,11 +39,11 @@ describe("history storage", () => {
           id: "batch-1",
           name: "Test",
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         }
       ]
       await fakeBrowser.storage.local.set({
@@ -65,11 +65,11 @@ describe("history storage", () => {
           id: "batch-1",
           name: "Test",
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         }
       ]
       await fakeBrowser.storage.local.set({
@@ -91,11 +91,11 @@ describe("history storage", () => {
         id: "batch-2",
         name: "New Test",
         sourceId: "kisssub",
+        originalDownloaderId: "qbittorrent",
         status: "completed",
         createdAt: "2026-01-02T00:00:00Z",
         stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-        items: [],
-        version: 1
+        items: []
       }
 
       await saveTaskHistory(newRecord)
@@ -117,11 +117,11 @@ describe("history storage", () => {
           id: `batch-${i}`,
           name: `Test ${i}`,
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent" as const,
           status: "completed",
           createdAt: `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         })
       )
       await fakeBrowser.storage.local.set({
@@ -135,11 +135,11 @@ describe("history storage", () => {
         id: "batch-new",
         name: "New Test",
         sourceId: "kisssub",
+        originalDownloaderId: "qbittorrent",
         status: "completed",
         createdAt: "2026-02-01T00:00:00Z",
         stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-        items: [],
-        version: 1
+        items: []
       }
 
       await saveTaskHistory(newRecord)
@@ -165,11 +165,11 @@ describe("history storage", () => {
               id: "batch-1",
               name: "Test",
               sourceId: "kisssub",
+              originalDownloaderId: "qbittorrent",
               status: "completed",
               createdAt: "2026-01-01T00:00:00Z",
               stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-              items: [],
-              version: 1
+              items: []
             }
           ],
           maxRecords: DEFAULT_MAX_RECORDS
@@ -200,11 +200,11 @@ describe("history storage", () => {
           id: "batch-1",
           name: "Test",
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         }
       ]
       await fakeBrowser.storage.local.set({
@@ -227,11 +227,11 @@ describe("history storage", () => {
           id: "batch-1",
           name: "Test",
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         }
       ]
       await fakeBrowser.storage.local.set({
@@ -270,11 +270,11 @@ describe("history storage", () => {
         id: "batch-new",
         name: "New",
         sourceId: "kisssub",
+        originalDownloaderId: "qbittorrent",
         status: "completed",
         createdAt: "2026-01-01T00:00:00Z",
         stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-        items: [],
-        version: 1
+        items: []
       }
 
       await updateHistoryRecord(newRecord)
@@ -311,21 +311,21 @@ describe("history storage", () => {
           id: "batch-1",
           name: "Test 1",
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent",
           status: "completed",
           createdAt: "2026-01-01T00:00:00Z",
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         },
         {
           id: "batch-2",
           name: "Test 2",
           sourceId: "kisssub",
+          originalDownloaderId: "qbittorrent",
           status: "completed",
           createdAt: "2026-01-02T00:00:00Z",
           stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-          items: [],
-          version: 1
+          items: []
         }
       ]
       await fakeBrowser.storage.local.set({
@@ -353,11 +353,11 @@ describe("history storage", () => {
               id: "batch-1",
               name: "Test",
               sourceId: "kisssub",
+              originalDownloaderId: "qbittorrent",
               status: "completed",
               createdAt: "2026-01-01T00:00:00Z",
               stats: { total: 1, success: 1, duplicated: 0, failed: 0 },
-              items: [],
-              version: 1
+              items: []
             }
           ],
           maxRecords: DEFAULT_MAX_RECORDS

@@ -14,29 +14,13 @@ export class SubscriptionDatabase extends Dexie {
   subscriptionMeta!: Table<SubscriptionMetaRow, string>
 
   constructor() {
-    super("anime-bt-subscriptions")
+    super("anime-bt-subscription-state")
 
     this.version(1).stores({
       subscriptions: "id, enabled, *sourceIds, createdAt",
       subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
-      subscriptionHits: "id, subscriptionId, discoveredAt, downloadStatus, [subscriptionId+discoveredAt]",
       notificationRounds: "id, createdAt",
       subscriptionMeta: "key"
-    })
-
-    this.version(2)
-      .stores({
-        subscriptions: "id, enabled, *sourceIds, createdAt",
-        subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
-        subscriptionHits: null,
-        notificationRounds: "id, createdAt",
-        subscriptionMeta: "key"
-      })
-      .upgrade(async (transaction) => {
-        await transaction.table("subscriptions").clear()
-        await transaction.table("subscriptionRuntime").clear()
-        await transaction.table("notificationRounds").clear()
-        await transaction.table("subscriptionMeta").clear()
       })
   }
 }

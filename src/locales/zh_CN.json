@@ -348,7 +348,6 @@
         "failed": "失败",
         "originalDownloader": "原始提交下载器",
         "lastRetriedDownloader": "最近重试下载器",
-        "unknownOriginalDownloader": "未知（旧记录）",
         "notRetried": "未重试",
         "failureSummary": "失败原因汇总",
         "failureCount": "$1 条",

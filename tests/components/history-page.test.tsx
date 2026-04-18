@@ -32,7 +32,6 @@ function createMockRecord(id: string, overrides?: Partial<TaskHistoryRecord>): T
     createdAt: "2026-01-01T10:00:00Z",
     stats: { total: 3, success: 2, duplicated: 1, failed: 0 },
     items: [],
-    version: 1,
     ...overrides
   }
 }
@@ -347,36 +346,6 @@ describe("HistoryDetailView", () => {
     expect(screen.getByText("最近重试下载器")).toBeInTheDocument()
     expect(screen.getByText("qBittorrent")).toBeInTheDocument()
     expect(screen.getByText("Transmission")).toBeInTheDocument()
-  })
-
-  it("shows unknown legacy downloader metadata and asks confirmation before retrying a single item", async () => {
-    const user = userEvent.setup()
-    const record = createMockRecord("batch-1", {
-      originalDownloaderId: undefined,
-      status: "partial_failure",
-      stats: { total: 1, success: 0, duplicated: 0, failed: 1 },
-      items: [
-        createMockItem("item-1", {
-          status: "failed",
-          title: "Failed item",
-          failure: {
-            reason: "qb_error",
-            message: "qB rejected",
-            retryable: true,
-            retryCount: 0
-          }
-        })
-      ]
-    })
-
-    renderHistoryDetail(record, "transmission")
-
-    expect(screen.getByText("未知（旧记录）")).toBeInTheDocument()
-    expect(screen.getByText("未重试")).toBeInTheDocument()
-
-    await user.click(screen.getByTitle("重试此条目"))
-
-    expect(screen.getByText("将使用当前配置的下载器 Transmission 重新提交。")).toBeInTheDocument()
   })
 
   it("hides failure summary when no failures", () => {

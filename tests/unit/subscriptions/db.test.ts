@@ -1,4 +1,3 @@
-import Dexie from "dexie"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import type {
@@ -171,46 +170,5 @@ describe("replaceSubscriptionCatalog", () => {
         hits: [expect.objectContaining({ id: "hit-1" })]
       })
     ])
-  })
-
-  it("clears legacy subscription data during the destructive schema upgrade", async () => {
-    subscriptionDb.close()
-    await Dexie.delete(subscriptionDb.name)
-
-    const legacyDb = new Dexie(subscriptionDb.name)
-    legacyDb.version(1).stores({
-      subscriptions: "id, enabled, *sourceIds, createdAt",
-      subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
-      subscriptionHits: "id, subscriptionId, discoveredAt, downloadStatus, [subscriptionId+discoveredAt]",
-      notificationRounds: "id, createdAt",
-      subscriptionMeta: "key"
-    })
-    await legacyDb.open()
-    await legacyDb.table("subscriptions").put(createSubscription())
-    await legacyDb.table("subscriptionRuntime").put({
-      subscriptionId: "sub-1",
-      lastScanAt: "2026-04-17T10:00:00.000Z",
-      lastMatchedAt: null,
-      lastError: "",
-      seenFingerprints: ["fp-1"]
-    })
-    await legacyDb.table("subscriptionHits").put(createHit())
-    await legacyDb.table("notificationRounds").put({
-      id: "subscription-round:20260417100000000",
-      createdAt: "2026-04-17T10:00:00.000Z",
-      hitIds: ["hit-1"]
-    })
-    await legacyDb.table("subscriptionMeta").put({
-      key: "lastSchedulerRunAt",
-      value: "2026-04-17T10:00:00.000Z"
-    })
-    legacyDb.close()
-
-    await subscriptionDb.open()
-
-    await expect(subscriptionDb.subscriptions.toArray()).resolves.toEqual([])
-    await expect(subscriptionDb.subscriptionRuntime.toArray()).resolves.toEqual([])
-    await expect(subscriptionDb.notificationRounds.toArray()).resolves.toEqual([])
-    await expect(subscriptionDb.subscriptionMeta.toArray()).resolves.toEqual([])
   })
 })

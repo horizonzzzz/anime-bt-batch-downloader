@@ -39,7 +39,7 @@ export type TaskHistoryRecord = {
   id: string
   name: string
   sourceId: SourceId
-  originalDownloaderId?: DownloaderId
+  originalDownloaderId: DownloaderId
   lastRetriedDownloaderId?: DownloaderId
   status: TaskHistoryStatus
   createdAt: string
@@ -52,7 +52,6 @@ export type TaskHistoryRecord = {
   }
   items: TaskHistoryItem[]
   savePath?: string
-  version: number
 }
 
 export type HistoryStorage = {
@@ -61,6 +60,5 @@ export type HistoryStorage = {
   lastCleanupAt?: string
 }
 
-export const HISTORY_STORAGE_KEY = "task_history"
+export const HISTORY_STORAGE_KEY = "batch_history"
 export const DEFAULT_MAX_RECORDS = 100
-export const HISTORY_RECORD_VERSION = 1

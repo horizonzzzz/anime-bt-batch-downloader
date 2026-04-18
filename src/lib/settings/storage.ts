@@ -5,7 +5,7 @@ import { mergeSettings } from "./merge"
 import { sanitizeSettings } from "./sanitize"
 
 type RawSettings = Record<string, unknown>
-const APP_SETTINGS_STORAGE_KEY = "app_settings_v1"
+const APP_SETTINGS_STORAGE_KEY = "app_settings"
 
 export async function ensureSettings(): Promise<void> {
   const extensionBrowser = getBrowser()

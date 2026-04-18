@@ -348,7 +348,6 @@
         "failed": "Failed",
         "originalDownloader": "Original downloader",
         "lastRetriedDownloader": "Last retry downloader",
-        "unknownOriginalDownloader": "Unknown (legacy record)",
         "notRetried": "Not retried",
         "failureSummary": "Failure summary",
         "failureCount": "$1 item(s)",
