@@ -12,10 +12,14 @@ import { SelectionCheckbox } from "../../components/selection-checkbox"
 import { i18n } from "../../lib/i18n"
 import {
   BATCH_EVENT,
+  CONTENT_SCRIPT_READY_EVENT,
   FILTERS_UPDATED_EVENT,
+  SCAN_SUBSCRIPTION_LIST_REQUEST,
   SOURCE_ENABLED_CHANGE_EVENT,
   sendRuntimeRequest,
   type ContentRuntimeMessage,
+  type ScanSubscriptionListMessage,
+  type ScanSubscriptionListResultMessage,
   type SourceEnabledChangeMessage
 } from "../../lib/shared/messages"
 import {
@@ -25,6 +29,7 @@ import {
   getEnabledSourceAdapterForLocation,
   getSourceAdapterForLocation
 } from "../../lib/content/page"
+import { getPageSubscriptionScanner } from "../../lib/content/subscription-scan"
 import { buildSelectableBatchItem, type SelectableBatchItem } from "../../lib/content/filter-selection"
 import { getBrowser, getExtensionUrl } from "../../lib/shared/browser"
 import { getLocalizedSiteConfigMeta } from "../../lib/sources/site-meta"
@@ -128,6 +133,7 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
 
       matchedPageSource = matchedSource
       registerRuntimeMessageListener()
+      notifyContentScriptReady(matchedSource.id)
       await synchronizeContentSettings()
     } catch (error) {
       console.error("[Anime BT Batch] Failed to bootstrap content script.", error)
@@ -141,7 +147,7 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
 
     const extensionBrowser = getBrowser()
 
-    const listener = (message: ContentRuntimeMessage) => {
+    const listener = (message: ContentRuntimeMessage | ScanSubscriptionListMessage) => {
       if (!message) {
         return
       }
@@ -158,6 +164,11 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
 
       if (message.type === FILTERS_UPDATED_EVENT) {
         void handleFiltersUpdated()
+        return
+      }
+
+      if (message.type === SCAN_SUBSCRIPTION_LIST_REQUEST) {
+        return handleScanSubscriptionList(message)
       }
     }
 
@@ -167,6 +178,19 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
     })
 
     runtimeListenerRegistered = true
+  }
+
+  function notifyContentScriptReady(sourceId: SourceAdapter["id"]) {
+    // Fire and forget. The background runtime records this as state; the content
+    // script should not block scanner registration or settings hydration on it.
+    void getBrowser()
+      .runtime.sendMessage({
+        type: CONTENT_SCRIPT_READY_EVENT,
+        sourceId
+      })
+      .catch(() => {
+        // Ignore transient background unavailability.
+      })
   }
 
   async function loadSettingsForContentScript(): Promise<AppSettings> {
@@ -370,6 +394,39 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
       await synchronizeContentSettings()
     } catch (error) {
       console.error("[Anime BT Batch] Failed to refresh filter settings.", error)
+    }
+  }
+
+  async function handleScanSubscriptionList(
+    message: ScanSubscriptionListMessage
+  ): Promise<ScanSubscriptionListResultMessage> {
+    if (!matchedPageSource || matchedPageSource.id !== message.sourceId) {
+      return {
+        ok: false,
+        error: "The current page does not match the requested source."
+      }
+    }
+
+    const scanner = getPageSubscriptionScanner(message.sourceId)
+    if (!scanner) {
+      return {
+        ok: false,
+        error: `Subscription scanning is not implemented for source: ${message.sourceId}`
+      }
+    }
+
+    try {
+      const candidates = await scanner.scan()
+      return {
+        ok: true,
+        candidates
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown scan error"
+      return {
+        ok: false,
+        error: errorMessage
+      }
     }
   }
 

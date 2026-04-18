@@ -40,6 +40,12 @@ export {
 export { SubscriptionManager } from "./manager"
 export { scanSubscriptions } from "./scan"
 export { scanSubscriptionCandidatesFromSource } from "./source-scan"
+export {
+  clearContentScriptReadyForTab,
+  markContentScriptReady,
+  resetContentScriptReadyRegistry,
+  waitForContentScriptReadySignal
+} from "./content-ready"
 export { ensureSubscriptionAlarm, SUBSCRIPTION_ALARM_NAME } from "./scheduler"
 export { createEmptySubscriptionRuntimeRow } from "./runtime-state"
 export {

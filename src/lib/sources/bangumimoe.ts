@@ -3,10 +3,9 @@ import { DEFAULT_SOURCE_DELIVERY_MODES, getSupportedDeliveryModes } from "./deli
 import { matchesSourceHost } from "./matching"
 import type { AppSettings, BatchItem, ExtractionResult } from "../shared/types"
 import { withDetailTab } from "./detail-tab"
-import type { SourceAdapter, SourceSubscriptionScanCandidate } from "./types"
+import type { SourceAdapter } from "./types"
 
 const ENTRY_SELECTOR = 'a[href^="/torrent/"][target="_blank"], a[href*="/torrent/"][target="_blank"]'
-const LIST_SCAN_ITEM_SELECTOR = "md-list.torrent-list md-list-item, .torrent-list md-list-item"
 
 type BangumiMoeDetailSnapshot = {
   title: string
@@ -70,8 +69,7 @@ export const bangumiMoeSourceAdapter: SourceAdapter = {
   supportedDeliveryModes: getSupportedDeliveryModes("bangumimoe"),
   defaultDeliveryMode: DEFAULT_SOURCE_DELIVERY_MODES.bangumimoe,
   subscriptionListScan: {
-    listPageUrl: "https://bangumi.moe/",
-    fetchCandidates: (tabId) => executeListScan(tabId)
+    listPageUrl: "https://bangumi.moe/"
   },
   matchesListPage(url) {
     if (!matchesHost(url) || this.matchesDetailUrl(url)) {
@@ -145,15 +143,6 @@ async function executeExtraction(tabId: number, domSettleMs: number): Promise<Ba
   })
 
   return execution[0]?.result as BangumiMoeDetailSnapshot
-}
-
-async function executeListScan(tabId: number): Promise<SourceSubscriptionScanCandidate[]> {
-  const execution = await getBrowser().scripting.executeScript({
-    target: { tabId },
-    func: bangumiMoeListScanScript
-  })
-
-  return (execution[0]?.result as SourceSubscriptionScanCandidate[] | undefined) ?? []
 }
 
 function bangumiMoeDetailExtractionScript(domSettleMs: number): Promise<BangumiMoeDetailSnapshot> {
@@ -238,107 +227,4 @@ function bangumiMoeDetailExtractionScript(domSettleMs: number): Promise<BangumiM
       torrentDownloadUrl: getTorrentDownloadUrl()
     }
   })()
-}
-
-async function bangumiMoeListScanScript(): Promise<SourceSubscriptionScanCandidate[]> {
-  const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
-  const POLL_INTERVAL_MS = 100
-  const STABLE_WINDOW_MS = 300
-  const MAX_WAIT_MS = 1500
-  const normalize = (value: string | null | undefined) =>
-    String(value ?? "")
-      .replace(/\s+/g, " ")
-      .trim()
-
-  const resolveUrl = (value: string) => {
-    try {
-      return new URL(value, window.location.href).href
-    } catch {
-      return ""
-    }
-  }
-
-  const getTitleFromAnchor = (anchor: HTMLAnchorElement) => {
-    const titleNode =
-      anchor.closest("h3")?.querySelector("span") ||
-      anchor.closest(".torrent-title")?.querySelector("h3 .ng-binding, h3 span, h3") ||
-      anchor
-        .closest(".md-tile-content")
-        ?.querySelector(".torrent-title h3 .ng-binding, .torrent-title h3 span, .torrent-title h3")
-
-    return normalize(titleNode?.textContent)
-  }
-
-  const collectCandidates = () => {
-    const candidates: SourceSubscriptionScanCandidate[] = []
-    const listItems = Array.from(document.querySelectorAll<HTMLElement>(LIST_SCAN_ITEM_SELECTOR))
-
-    for (const listItem of listItems) {
-      const anchor = Array.from(
-        listItem.querySelectorAll<HTMLAnchorElement>('a[href^="/torrent/"][target="_blank"], a[href*="/torrent/"][target="_blank"]')
-      ).find((candidate) => {
-        const detailUrl = resolveUrl(candidate.getAttribute("href") || candidate.href)
-        if (!detailUrl) {
-          return false
-        }
-
-        try {
-          return /\/torrent\/[a-f0-9]+$/i.test(new URL(detailUrl).pathname)
-        } catch {
-          return false
-        }
-      })
-
-      if (!anchor) {
-        continue
-      }
-
-      const detailUrl = resolveUrl(anchor.getAttribute("href") || anchor.href)
-      if (!detailUrl) {
-        continue
-      }
-
-      const title = getTitleFromAnchor(anchor)
-      if (!title) {
-        continue
-      }
-
-      candidates.push({
-        sourceId: "bangumimoe",
-        title,
-        detailUrl,
-        magnetUrl: "",
-        torrentUrl: "",
-        subgroup: ""
-      })
-    }
-
-    return candidates
-  }
-
-  const getSignature = (candidates: SourceSubscriptionScanCandidate[]) =>
-    candidates.map((candidate) => `${candidate.detailUrl}|${candidate.title}`).join("\n")
-
-  const deadline = Date.now() + MAX_WAIT_MS
-  let latestCandidates = collectCandidates()
-  let latestSignature = getSignature(latestCandidates)
-  let lastChangeAt = Date.now()
-
-  while (Date.now() < deadline) {
-    if (latestCandidates.length > 0 && Date.now() - lastChangeAt >= STABLE_WINDOW_MS) {
-      return latestCandidates
-    }
-
-    await sleep(POLL_INTERVAL_MS)
-
-    const candidates = collectCandidates()
-    const signature = getSignature(candidates)
-    if (signature !== latestSignature) {
-      latestCandidates = candidates
-      latestSignature = signature
-      lastChangeAt = Date.now()
-    }
-  }
-
-  return latestCandidates
 }

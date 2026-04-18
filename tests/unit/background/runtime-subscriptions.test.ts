@@ -149,6 +149,8 @@ describe("background runtime subscription boundary", () => {
     vi.resetModules()
     vi.restoreAllMocks()
     vi.clearAllMocks()
+    const { resetContentScriptReadyRegistry } = await import("../../../src/lib/subscriptions/content-ready")
+    resetContentScriptReadyRegistry()
     getSettingsMock.mockResolvedValue(createAppSettings({
       subscriptionsEnabled: true,
       notificationsEnabled: true,
@@ -193,6 +195,34 @@ describe("background runtime subscription boundary", () => {
       ok: true,
       settings
     })
+  })
+
+  it("acknowledges CONTENT_SCRIPT_READY and records the ready state for the sender tab", async () => {
+    const { waitForContentScriptReadySignal } = await import("../../../src/lib/subscriptions/content-ready")
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "CONTENT_SCRIPT_READY",
+        sourceId: "acgrip"
+      },
+      {
+        tab: {
+          id: 12
+        }
+      },
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: true
+    })
+    await expect(waitForContentScriptReadySignal(12, "acgrip", 10)).resolves.toBeUndefined()
   })
 
   it("reconciles alarms and notifies supported tabs when SAVE_APP_SETTINGS changes filters", async () => {

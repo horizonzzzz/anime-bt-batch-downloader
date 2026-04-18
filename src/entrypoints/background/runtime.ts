@@ -41,6 +41,8 @@ import { extractSingleItem } from "../../lib/sources/extraction"
 import { getSourceAdapterForPage } from "../../lib/sources"
 import {
   canDownloadSubscriptionNotifications,
+  clearContentScriptReadyForTab,
+  markContentScriptReady,
   parseSubscriptionNotificationRoundId,
   SUBSCRIPTION_ALARM_NAME
 } from "../../lib/subscriptions"
@@ -130,6 +132,7 @@ export function registerBackgroundRuntime() {
 
   extensionBrowser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.url !== undefined) {
+      clearContentScriptReadyForTab(tabId)
       updateIconForTab(tabId, changeInfo.url)
       return
     }
@@ -142,6 +145,10 @@ export function registerBackgroundRuntime() {
   extensionBrowser.tabs.onActivated.addListener(async (activeInfo) => {
     const tab = await extensionBrowser.tabs.get(activeInfo.tabId)
     updateIconForTab(activeInfo.tabId, tab.url)
+  })
+
+  extensionBrowser.tabs.onRemoved.addListener((tabId) => {
+    clearContentScriptReadyForTab(tabId)
   })
 
   extensionBrowser.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
@@ -208,6 +215,20 @@ export function registerBackgroundRuntime() {
           case "DELETE_SUBSCRIPTION":
             await deleteSubscriptionDefinition(runtimeMessage.subscriptionId)
             sendResponse(createRuntimeSuccessResponse("DELETE_SUBSCRIPTION", {}))
+            return
+          case "CONTENT_SCRIPT_READY":
+            if (!isValidSourceId(runtimeMessage.sourceId)) {
+              sendResponse(createRuntimeErrorResponse("Invalid CONTENT_SCRIPT_READY payload"))
+              return
+            }
+
+            if (typeof sender.tab?.id !== "number") {
+              sendResponse(createRuntimeErrorResponse("CONTENT_SCRIPT_READY requires a sender tab id"))
+              return
+            }
+
+            markContentScriptReady(sender.tab.id, runtimeMessage.sourceId)
+            sendResponse(createRuntimeSuccessResponse("CONTENT_SCRIPT_READY", {}))
             return
           case "SET_SOURCE_ENABLED":
             if (!isValidPopupSourceTogglePayload(message)) {

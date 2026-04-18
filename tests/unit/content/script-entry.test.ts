@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import { fakeBrowser } from "wxt/testing/fake-browser"
+import type { RuntimeRequest } from "../../../src/lib/shared/messages"
+import type { SourceId } from "../../../src/lib/shared/types"
 
 type RuntimeMessageListener = Parameters<typeof fakeBrowser.runtime.onMessage.addListener>[0]
 
@@ -46,6 +48,7 @@ const getAnchorMountTarget = vi.fn()
 const getBatchItemFromAnchor = vi.fn()
 const getDetailAnchors = vi.fn((): HTMLAnchorElement[] => [])
 const fetchMock = vi.fn()
+const getPageSubscriptionScanner = vi.fn()
 let bundledContentStyleText = ".anime-bt-content-root { color: rgb(37, 99, 235); }"
 
 vi.mock("react-dom/client", () => ({
@@ -68,6 +71,10 @@ vi.mock("../../../src/lib/content/page", () => ({
   getDetailAnchors,
   getSourceAdapterForLocation,
   getEnabledSourceAdapterForLocation
+}))
+
+vi.mock("../../../src/lib/content/subscription-scan", () => ({
+  getPageSubscriptionScanner
 }))
 
 vi.mock("wxt/utils/content-script-ui/shadow-root", () => ({
@@ -246,6 +253,45 @@ describe("content script runtime", () => {
     expect(module.default).toBeUndefined()
     expect(module.config).toBeUndefined()
   }, 10000)
+
+  it("defines the subscription scan protocol message types for background-to-content communication", () => {
+    // Protocol type contract: background runtime can request subscription list scans
+    // and content script can report readiness
+    // Verify that RuntimeRequest accepts these message shapes
+    expectTypeOf<{ type: "SCAN_SUBSCRIPTION_LIST"; sourceId: SourceId }>().toMatchTypeOf<RuntimeRequest>()
+    expectTypeOf<{ type: "CONTENT_SCRIPT_READY"; sourceId: SourceId }>().toMatchTypeOf<RuntimeRequest>()
+  })
+
+  it("registers the runtime listener before sending the ready signal", async () => {
+    getSourceAdapterForLocation.mockReturnValueOnce({
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    })
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      settings: {
+        enabledSources: {
+          acgrip: true
+        },
+        filters: []
+      }
+    })
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce({
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    })
+
+    const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
+    await startSourceBatchContentScript(createTestContext() as never)
+
+    const readyCallIndex = runtimeSendMessage.mock.calls.findIndex(
+      (call) => call[0]?.type === "ANIME_BT_CONTENT_SCRIPT_READY"
+    )
+
+    expect(runtimeAddListener).toHaveBeenCalledTimes(1)
+    expect(readyCallIndex).toBeGreaterThanOrEqual(0)
+    expect(runtimeAddListener).toHaveBeenCalledBefore(runtimeSendMessage)
+  })
 
   it("does not inject UI when the matched source is disabled but still listens for toggle updates", async () => {
     getSourceAdapterForLocation.mockReturnValueOnce({
@@ -816,5 +862,123 @@ describe("content script runtime", () => {
     })
 
     expect(getLatestPanelProps().statusText).toBe(statusBeforeDisable)
+  })
+
+  it("responds to SCAN_SUBSCRIPTION_LIST for a supported enabled source", async () => {
+    const anchorCell = document.createElement("td")
+    const anchor = document.createElement("a")
+    anchor.href = "https://acg.rip/t/1"
+    anchor.textContent = "Episode 01"
+    anchorCell.appendChild(anchor)
+    document.body.appendChild(anchorCell)
+
+    const source = {
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    }
+
+    getSourceAdapterForLocation.mockReturnValueOnce(source)
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce(source)
+    getDetailAnchors.mockReturnValueOnce([anchor])
+    getBatchItemFromAnchor.mockReturnValueOnce({
+      title: "Episode 01",
+      detailUrl: "https://acg.rip/t/1"
+    })
+    getAnchorMountTarget.mockReturnValueOnce(anchorCell)
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      settings: {
+        enabledSources: {
+          acgrip: true
+        }
+      }
+    })
+
+    // Mock the scanner
+    getPageSubscriptionScanner.mockReturnValueOnce({
+      sourceId: "acgrip",
+      scan: vi.fn().mockResolvedValue([
+        {
+          sourceId: "acgrip",
+          title: "Test Subscription",
+          detailUrl: "https://acg.rip/t/1",
+          publishTime: Date.now()
+        }
+      ])
+    })
+
+    const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
+    await startSourceBatchContentScript(createTestContext() as never)
+
+    await vi.waitFor(() => {
+      expect(runtimeAddListener).toHaveBeenCalledTimes(1)
+    })
+
+    const listener = runtimeAddListener.mock.calls[0]?.[0]
+    expect(listener).toBeTypeOf("function")
+
+    const response = await listener?.({
+      type: "ANIME_BT_SCAN_SUBSCRIPTION_LIST",
+      sourceId: "acgrip"
+    })
+
+    expect(response).toEqual({
+      ok: true,
+      candidates: [expect.objectContaining({ sourceId: "acgrip" })]
+    })
+  })
+
+  it("responds to SCAN_SUBSCRIPTION_LIST even when the source is disabled (background scan)", async () => {
+    const source = {
+      id: "acgrip",
+      displayName: "ACG.RIP"
+    }
+
+    getSourceAdapterForLocation.mockReturnValueOnce(source)
+    getEnabledSourceAdapterForLocation.mockReturnValueOnce(null)
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      settings: {
+        enabledSources: {
+          acgrip: false
+        }
+      }
+    })
+
+    // Mock the scanner
+    getPageSubscriptionScanner.mockReturnValueOnce({
+      sourceId: "acgrip",
+      scan: vi.fn().mockResolvedValue([
+        {
+          sourceId: "acgrip",
+          title: "Test Subscription",
+          detailUrl: "https://acg.rip/t/1",
+          publishTime: Date.now()
+        }
+      ])
+    })
+
+    const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
+    await startSourceBatchContentScript(createTestContext() as never)
+
+    await vi.waitFor(() => {
+      expect(runtimeAddListener).toHaveBeenCalledTimes(1)
+    })
+
+    // Panel should NOT be mounted (source disabled)
+    expect(createRoot).not.toHaveBeenCalled()
+
+    const listener = runtimeAddListener.mock.calls[0]?.[0]
+    expect(listener).toBeTypeOf("function")
+
+    const response = await listener?.({
+      type: "ANIME_BT_SCAN_SUBSCRIPTION_LIST",
+      sourceId: "acgrip"
+    })
+
+    expect(response).toEqual({
+      ok: true,
+      candidates: [expect.objectContaining({ sourceId: "acgrip" })]
+    })
   })
 })

@@ -1,9 +1,15 @@
 import { getSubscriptionScanSourceAdapterById } from "../sources"
 import { getBrowser } from "../shared/browser"
+import {
+  SCAN_SUBSCRIPTION_LIST_REQUEST,
+  type ScanSubscriptionListMessage,
+  type ScanSubscriptionListResultMessage
+} from "../shared/messages"
 import type { Browser } from "../shared/browser"
 import type { SourceId } from "../shared/types"
 import type { SourceSubscriptionScanCandidate } from "../sources/types"
 import type { SubscriptionCandidate } from "./types"
+import { waitForContentScriptReadySignal } from "./content-ready"
 
 export type RunWithListPageTab = <T>(
   listPageUrl: string,
@@ -13,6 +19,8 @@ export type RunWithListPageTab = <T>(
 type ScanSubscriptionCandidatesFromSourceDependencies = {
   getAdapterById?: typeof getSubscriptionScanSourceAdapterById
   runWithListPageTab?: RunWithListPageTab
+  sendMessageToTab?: (tabId: number, message: ScanSubscriptionListMessage) => Promise<ScanSubscriptionListResultMessage>
+  waitForContentScriptReady?: (tabId: number, sourceId: SourceId) => Promise<void>
 }
 
 export async function scanSubscriptionCandidatesFromSource(
@@ -26,9 +34,22 @@ export async function scanSubscriptionCandidatesFromSource(
   }
 
   const runWithListPageTab = dependencies.runWithListPageTab ?? withListPageTab
-  const rawCandidates = await runWithListPageTab(adapter.subscriptionListScan.listPageUrl, (tabId) =>
-    adapter.subscriptionListScan!.fetchCandidates(tabId)
-  )
+  const sendMessageToTab = dependencies.sendMessageToTab ?? defaultSendMessageToTab
+  const waitForContentScriptReady = dependencies.waitForContentScriptReady ?? defaultWaitForContentScriptReady
+
+  const rawCandidates = await runWithListPageTab(adapter.subscriptionListScan.listPageUrl, async (tabId) => {
+    await waitForContentScriptReady(tabId, sourceId)
+    const response = await sendMessageToTab(tabId, {
+      type: SCAN_SUBSCRIPTION_LIST_REQUEST,
+      sourceId
+    })
+
+    if (!response?.ok) {
+      throw new Error(response?.error ?? "Subscription scan failed in the content runtime.")
+    }
+
+    return response.candidates
+  })
 
   return normalizeAndDedupeCandidates(sourceId, rawCandidates, (url) => adapter.matchesDetailUrl(url))
 }
@@ -177,4 +198,15 @@ function parseUrl(value: string): URL | null {
   } catch {
     return null
   }
+}
+
+async function defaultSendMessageToTab(
+  tabId: number,
+  message: ScanSubscriptionListMessage
+): Promise<ScanSubscriptionListResultMessage> {
+  return getBrowser().tabs.sendMessage(tabId, message)
+}
+
+async function defaultWaitForContentScriptReady(tabId: number, sourceId: SourceId): Promise<void> {
+  await waitForContentScriptReadySignal(tabId, sourceId, 30000)
 }

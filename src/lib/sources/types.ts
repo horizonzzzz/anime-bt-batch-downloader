@@ -17,7 +17,6 @@ export type SourceSubscriptionScanCandidate = {
 
 export type SourceSubscriptionListScanSupport = {
   listPageUrl: string
-  fetchCandidates: (tabId: number) => Promise<SourceSubscriptionScanCandidate[]>
 }
 
 export type SourceAdapter = {

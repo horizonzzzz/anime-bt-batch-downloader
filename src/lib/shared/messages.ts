@@ -8,11 +8,14 @@ import type {
 } from "./types"
 import type { TaskHistoryRecord } from "../history/types"
 import type { PopupOptionsRoute, PopupStateViewModel } from "./popup"
+import type { SourceSubscriptionScanCandidate } from "../sources/types"
 import { getBrowser } from "./browser"
 
 export const BATCH_EVENT = "ANIME_BT_BATCH_EVENT"
 export const SOURCE_ENABLED_CHANGE_EVENT = "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT"
 export const FILTERS_UPDATED_EVENT = "ANIME_BT_FILTERS_UPDATED_EVENT"
+export const SCAN_SUBSCRIPTION_LIST_REQUEST = "ANIME_BT_SCAN_SUBSCRIPTION_LIST"
+export const CONTENT_SCRIPT_READY_EVENT = "ANIME_BT_CONTENT_SCRIPT_READY"
 
 export type BatchEventMessage = {
   type: typeof BATCH_EVENT
@@ -33,6 +36,26 @@ export type ContentRuntimeMessage =
   | SourceEnabledChangeMessage
   | FiltersUpdatedMessage
 
+export type ScanSubscriptionListMessage = {
+  type: typeof SCAN_SUBSCRIPTION_LIST_REQUEST
+  sourceId: SourceId
+}
+
+export type ContentScriptReadyMessage = {
+  type: typeof CONTENT_SCRIPT_READY_EVENT
+  sourceId: SourceId
+}
+
+export type ScanSubscriptionListResultMessage =
+  | {
+      ok: true
+      candidates: SourceSubscriptionScanCandidate[]
+    }
+  | {
+      ok: false
+      error: string
+    }
+
 export type RuntimeRequest =
   | { type: "GET_HISTORY" }
   | { type: "CLEAR_HISTORY" }
@@ -47,6 +70,8 @@ export type RuntimeRequest =
   | { type: "START_BATCH_DOWNLOAD"; items?: BatchItem[]; savePath?: string }
   | { type: "UPSERT_SUBSCRIPTION"; subscription: SubscriptionEntry }
   | { type: "DELETE_SUBSCRIPTION"; subscriptionId: string }
+  | { type: "SCAN_SUBSCRIPTION_LIST"; sourceId: SourceId }
+  | { type: "CONTENT_SCRIPT_READY"; sourceId: SourceId }
 
 export type RuntimeRequestType = RuntimeRequest["type"]
 
@@ -116,6 +141,12 @@ export type DeleteSubscriptionSuccessResponse = {
   ok: true
 }
 
+export type ScanSubscriptionListSuccessResponse = ScanSubscriptionListResultMessage
+
+export type ContentScriptReadySuccessResponse = {
+  ok: true
+}
+
 export type RuntimeSuccessResponseMap = {
   GET_HISTORY: GetHistorySuccessResponse
   CLEAR_HISTORY: ClearHistorySuccessResponse
@@ -130,6 +161,8 @@ export type RuntimeSuccessResponseMap = {
   START_BATCH_DOWNLOAD: StartBatchDownloadSuccessResponse
   UPSERT_SUBSCRIPTION: UpsertSubscriptionSuccessResponse
   DELETE_SUBSCRIPTION: DeleteSubscriptionSuccessResponse
+  SCAN_SUBSCRIPTION_LIST: ScanSubscriptionListSuccessResponse
+  CONTENT_SCRIPT_READY: ContentScriptReadySuccessResponse
 }
 
 export type RuntimeSuccessResponseFor<TType extends RuntimeRequestType> =
@@ -152,6 +185,8 @@ export type OpenOptionsPageResponse = RuntimeResponseFor<"OPEN_OPTIONS_PAGE">
 export type StartBatchDownloadResponse = RuntimeResponseFor<"START_BATCH_DOWNLOAD">
 export type UpsertSubscriptionResponse = RuntimeResponseFor<"UPSERT_SUBSCRIPTION">
 export type DeleteSubscriptionResponse = RuntimeResponseFor<"DELETE_SUBSCRIPTION">
+export type ScanSubscriptionListResponse = RuntimeResponseFor<"SCAN_SUBSCRIPTION_LIST">
+export type ContentScriptReadyResponse = RuntimeResponseFor<"CONTENT_SCRIPT_READY">
 export type RuntimeResponse = RuntimeResponseFor<RuntimeRequestType>
 
 export function createRuntimeSuccessResponse<TType extends RuntimeRequestType>(

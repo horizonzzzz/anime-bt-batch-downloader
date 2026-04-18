@@ -3,10 +3,9 @@ import { DEFAULT_SOURCE_DELIVERY_MODES, getSupportedDeliveryModes } from "./deli
 import { matchesSourceHost } from "./matching"
 import type { AppSettings, BatchItem, ExtractionResult } from "../shared/types"
 import { withDetailTab } from "./detail-tab"
-import type { SourceAdapter, SourceSubscriptionScanCandidate } from "./types"
+import type { SourceAdapter } from "./types"
 
 const DETAIL_SELECTOR = 'a[href^="/t/"], a[href*="/t/"]'
-const LIST_SCAN_ROW_SELECTOR = "table tr"
 
 type AcgRipDetailSnapshot = {
   title: string
@@ -56,8 +55,7 @@ export const acgRipSourceAdapter: SourceAdapter = {
   supportedDeliveryModes: getSupportedDeliveryModes("acgrip"),
   defaultDeliveryMode: DEFAULT_SOURCE_DELIVERY_MODES.acgrip,
   subscriptionListScan: {
-    listPageUrl: "https://acg.rip/",
-    fetchCandidates: (tabId) => executeListScan(tabId)
+    listPageUrl: "https://acg.rip/"
   },
   matchesListPage(url) {
     if (!matchesHost(url) || this.matchesDetailUrl(url) || matchesTorrentUrl(url)) {
@@ -160,15 +158,6 @@ async function executeExtraction(tabId: number): Promise<AcgRipDetailSnapshot> {
   return execution[0]?.result as AcgRipDetailSnapshot
 }
 
-async function executeListScan(tabId: number): Promise<SourceSubscriptionScanCandidate[]> {
-  const execution = await getBrowser().scripting.executeScript({
-    target: { tabId },
-    func: acgRipListScanScript
-  })
-
-  return (execution[0]?.result as SourceSubscriptionScanCandidate[] | undefined) ?? []
-}
-
 function acgRipDetailExtractionScript(): AcgRipDetailSnapshot {
   const title =
     document.querySelector(".post-show-content .panel-heading")?.textContent?.trim() ||
@@ -185,86 +174,4 @@ function acgRipDetailExtractionScript(): AcgRipDetailSnapshot {
     title,
     torrentUrl
   }
-}
-
-function acgRipListScanScript(): SourceSubscriptionScanCandidate[] {
-  const normalize = (value: string | null | undefined) =>
-    String(value ?? "")
-      .replace(/\s+/g, " ")
-      .trim()
-
-  const resolveUrl = (value: string) => {
-    try {
-      return new URL(value, window.location.href).href
-    } catch {
-      return ""
-    }
-  }
-
-  const matchesDetailPath = (value: string) => /\/t\/\d+$/i.test(value)
-  const matchesTorrentPath = (value: string) => /\/t\/\d+\.torrent$/i.test(value)
-
-  const candidates: SourceSubscriptionScanCandidate[] = []
-
-  const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(LIST_SCAN_ROW_SELECTOR))
-  for (const row of rows) {
-    const detailAnchor = Array.from(
-      row.querySelectorAll<HTMLAnchorElement>('a[href^="/t/"], a[href*="/t/"]')
-    ).find((anchor) => {
-      const detailUrl = resolveUrl(anchor.getAttribute("href") || anchor.href)
-      if (!detailUrl) {
-        return false
-      }
-
-      try {
-        return matchesDetailPath(new URL(detailUrl).pathname)
-      } catch {
-        return false
-      }
-    })
-
-    if (!detailAnchor) {
-      continue
-    }
-
-    const detailUrl = resolveUrl(detailAnchor.getAttribute("href") || detailAnchor.href)
-    if (!detailUrl) {
-      continue
-    }
-
-    const title = normalize(detailAnchor.textContent)
-    if (!title) {
-      continue
-    }
-
-    let torrentUrl = ""
-    const torrentAnchors = row.querySelectorAll<HTMLAnchorElement>('a[href$=".torrent"], a[href*=".torrent"]')
-
-    for (const candidate of Array.from(torrentAnchors ?? [])) {
-      const candidateUrl = resolveUrl(candidate.getAttribute("href") || candidate.href)
-      if (!candidateUrl) {
-        continue
-      }
-
-      try {
-        if (matchesTorrentPath(new URL(candidateUrl).pathname)) {
-          torrentUrl = candidateUrl
-          break
-        }
-      } catch {
-        // Ignore malformed torrent urls and keep searching.
-      }
-    }
-
-    candidates.push({
-      sourceId: "acgrip",
-      title,
-      detailUrl,
-      magnetUrl: "",
-      torrentUrl,
-      subgroup: ""
-    })
-  }
-
-  return candidates
 }
