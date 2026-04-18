@@ -52,7 +52,7 @@ afterEach(() => {
 })
 
 describe("release workflow", () => {
-  it("publishes a GitHub Release from semantic version tags", () => {
+  it("publishes GitHub Releases from semantic version tags, including prereleases", () => {
     const workflow = readRepoFile(".github/workflows/release.yml")
 
     expect(workflow).toContain("tags:")
@@ -65,6 +65,7 @@ describe("release workflow", () => {
     expect(workflow).toContain("scripts/prepare-release.mjs")
     expect(workflow).toContain("CHANGELOG.md")
     expect(workflow).toContain("--notes-file")
+    expect(workflow).toContain("--prerelease")
     expect(workflow).toContain("--draft=false")
     expect(workflow).toContain("gh release edit")
     expect(workflow).not.toContain("--generate-notes")
@@ -172,6 +173,116 @@ describe("release workflow", () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("Missing changelog section for version 1.1.0")
     expect(existsSync(notesPath)).toBe(false)
+  })
+
+  it("prepares beta prerelease notes and asset names from dotted prerelease tags", () => {
+    const temporaryDirectory = createTemporaryDirectory()
+    const archivePath = join(temporaryDirectory, "chrome-mv3-prod.zip")
+    const changelogPath = join(temporaryDirectory, "CHANGELOG.md")
+    const notesPath = join(temporaryDirectory, "release-notes-beta.md")
+
+    writeFileSync(archivePath, "dummy archive", "utf8")
+    writeFileSync(
+      changelogPath,
+      `# Changelog
+
+## 1.1.0-beta.1
+
+- Added prerelease packaging support.
+- Marked GitHub beta releases as prereleases.
+
+## 1.0.0
+
+- Initial release.
+`,
+      "utf8"
+    )
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        resolve(process.cwd(), "scripts/prepare-release.mjs"),
+        "--tag",
+        "v1.1.0-beta.1",
+        "--archive",
+        archivePath,
+        "--changelog",
+        changelogPath,
+        "--notes-out",
+        notesPath
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8"
+      }
+    )
+
+    const renamedArchivePath = join(
+      temporaryDirectory,
+      "anime-bt-batch-downloader-chrome-mv3-v1.1.0-beta.1.zip"
+    )
+    const releaseNotes = readFileSync(notesPath, "utf8")
+
+    expect(result.status).toBe(0)
+    expect(existsSync(archivePath)).toBe(false)
+    expect(existsSync(renamedArchivePath)).toBe(true)
+    expect(releaseNotes).toContain("Added prerelease packaging support.")
+    expect(releaseNotes).toContain("Marked GitHub beta releases as prereleases.")
+    expect(releaseNotes).not.toContain("Initial release.")
+  })
+
+  it("prepares alpha prerelease notes and asset names from dotted prerelease tags", () => {
+    const temporaryDirectory = createTemporaryDirectory()
+    const archivePath = join(temporaryDirectory, "chrome-mv3-prod.zip")
+    const changelogPath = join(temporaryDirectory, "CHANGELOG.md")
+    const notesPath = join(temporaryDirectory, "release-notes-alpha.md")
+
+    writeFileSync(archivePath, "dummy archive", "utf8")
+    writeFileSync(
+      changelogPath,
+      `# Changelog
+
+## 1.1.0-alpha.1
+
+- Added alpha prerelease packaging support.
+
+## 1.0.0
+
+- Initial release.
+`,
+      "utf8"
+    )
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        resolve(process.cwd(), "scripts/prepare-release.mjs"),
+        "--tag",
+        "v1.1.0-alpha.1",
+        "--archive",
+        archivePath,
+        "--changelog",
+        changelogPath,
+        "--notes-out",
+        notesPath
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8"
+      }
+    )
+
+    const renamedArchivePath = join(
+      temporaryDirectory,
+      "anime-bt-batch-downloader-chrome-mv3-v1.1.0-alpha.1.zip"
+    )
+    const releaseNotes = readFileSync(notesPath, "utf8")
+
+    expect(result.status).toBe(0)
+    expect(existsSync(archivePath)).toBe(false)
+    expect(existsSync(renamedArchivePath)).toBe(true)
+    expect(releaseNotes).toContain("Added alpha prerelease packaging support.")
+    expect(releaseNotes).not.toContain("Initial release.")
   })
 
   it("keeps repository-owned changelog entries for current and historical releases", () => {

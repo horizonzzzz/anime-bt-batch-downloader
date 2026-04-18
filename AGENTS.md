@@ -56,7 +56,10 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - disabled sources are rejected again by the background batch pipeline
   - popup-driven source toggles should take effect on the current matching tab without requiring a manual page refresh
 - Releases are published from semantic version tags, with GitHub Release notes sourced from `CHANGELOG.md`
-- Release assets are uploaded as versioned Chrome MV3 zip archives named `anime-bt-batch-downloader-chrome-mv3-v<version>.zip`
+  - stable tags use `v<major>.<minor>.<patch>`
+  - prerelease tags may use forms such as `v<major>.<minor>.<patch>-beta.<n>` and `v<major>.<minor>.<patch>-alpha.<n>`
+  - prerelease builds keep Chrome's numeric `manifest.version` while surfacing the full prerelease string through `manifest.version_name`
+- Release assets are uploaded as versioned Chrome MV3 zip archives named `anime-bt-batch-downloader-chrome-mv3-v<version>.zip`, including prerelease suffixes when present
 - Known product gaps:
   - no task cancellation flow
   - no advanced downloader options such as qBittorrent tags/categories or Transmission labels
@@ -123,9 +126,9 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `src/lib/subscriptions/` for subscription definitions, Dexie-backed runtime cache/manager coordination, retained-notification download workflows, grouped source scans, scheduler/alarm helpers, notification payloads, and recent-hit retention
   - `src/lib/shared/` for the WXT browser helper, cross-runtime messages, shared types, and Tailwind utility helpers
 - `.github/workflows/release.yml`
-  Tagged-release automation that validates versions, packages the extension, extracts the matching `CHANGELOG.md` section, renames the packaged archive, and publishes the GitHub Release.
+  Tagged-release automation that validates package, manifest `version` / `version_name`, packages the extension, extracts the matching `CHANGELOG.md` section, renames the packaged archive, and publishes the GitHub Release. Prerelease tags must publish prerelease GitHub Releases.
 - `scripts/prepare-release.mjs`
-  Release helper script that extracts version notes from `CHANGELOG.md`, renames the packaged zip artifact, and exposes the prepared paths to the workflow.
+  Release helper script that accepts stable and prerelease semantic tags, extracts version notes from `CHANGELOG.md`, renames the packaged zip artifact, and exposes the prepared paths to the workflow.
 - `src/lib/sources/`
   Source adapter registry plus site-specific page matching and extraction logic, source delivery-mode capability helpers, and options-page site metadata.
 - `src/lib/sources/matching.ts`

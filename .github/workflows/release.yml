@@ -47,13 +47,30 @@ jobs:
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
-          expected="${TAG_NAME#v}"
-          actual="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('build/chrome-mv3-prod/manifest.json', 'utf8')).version)")"
+          node - <<'EOF'
+          const fs = require('fs')
 
-          if [ "$actual" != "$expected" ]; then
-            echo "::error::Built manifest version $actual does not match tag version $expected"
-            exit 1
-          fi
+          const tagVersion = process.env.TAG_NAME.slice(1)
+          const expectedVersion = tagVersion.split('-')[0]
+          const expectedVersionName = tagVersion
+          const manifest = JSON.parse(fs.readFileSync('build/chrome-mv3-prod/manifest.json', 'utf8'))
+          const actualVersion = manifest.version
+          const actualVersionName = manifest.version_name || manifest.version
+
+          if (actualVersion !== expectedVersion) {
+            console.error(
+              `::error::Built manifest version ${actualVersion} does not match expected manifest version ${expectedVersion}`
+            )
+            process.exit(1)
+          }
+
+          if (actualVersionName !== expectedVersionName) {
+            console.error(
+              `::error::Built manifest version_name ${actualVersionName} does not match tag version ${expectedVersionName}`
+            )
+            process.exit(1)
+          }
+          EOF
 
       - name: Package extension
         run: pnpm package
@@ -93,6 +110,12 @@ jobs:
           ASSET_PATH: ${{ steps.prepare_release.outputs.asset_path }}
           NOTES_PATH: ${{ steps.prepare_release.outputs.notes_path }}
         run: |
+          prerelease_args=()
+
+          if [[ "$TAG_NAME" == *-* ]]; then
+            prerelease_args+=(--prerelease)
+          fi
+
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             mapfile -t existing_assets < <(gh release view "$TAG_NAME" --json assets --jq '.assets[].name')
 
@@ -105,11 +128,13 @@ jobs:
             gh release upload "$TAG_NAME" "$ASSET_PATH" --clobber
           else
             gh release create "$TAG_NAME" "$ASSET_PATH" \
+              "${prerelease_args[@]}" \
               --title "$TAG_NAME" \
               --notes-file "$NOTES_PATH"
           fi
 
           gh release edit "$TAG_NAME" \
+            "${prerelease_args[@]}" \
             --draft=false \
             --title "$TAG_NAME" \
             --notes-file "$NOTES_PATH"

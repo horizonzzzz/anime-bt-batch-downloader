@@ -34,8 +34,10 @@ function parseArguments(argv) {
 }
 
 function normalizeTagToVersion(tagName) {
-  if (!/^v\d+\.\d+\.\d+$/u.test(tagName)) {
-    throw new Error(`Expected a semantic version tag like v1.2.3, received ${tagName}`)
+  if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(tagName)) {
+    throw new Error(
+      `Expected a semantic version tag like v1.2.3, v1.2.3-beta.1, or v1.2.3-alpha.1, received ${tagName}`
+    )
   }
 
   return tagName.slice(1)
