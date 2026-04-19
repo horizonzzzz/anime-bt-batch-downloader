@@ -1,6 +1,7 @@
 import { getBrowser } from "../../shared/browser"
 import { DEFAULT_DOWNLOADER_CONFIG } from "./defaults"
-import { downloaderConfigSchema, type DownloaderConfig } from "./schema"
+import { downloaderConfigSchema } from "./schema"
+import type { DownloaderConfig } from "./types"
 import type { AppSettings } from "../../shared/types"
 
 const DOWNLOADER_CONFIG_STORAGE_KEY = "downloader_config"

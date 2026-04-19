@@ -1,7 +1,8 @@
 import { getDownloaderAdapter, getDownloaderMeta } from "../downloader"
 import { ensureDownloaderPermission } from "../downloader/permissions"
 import { getDownloaderConfig } from "../downloader/config/storage"
-import { downloaderConfigSchema, type DownloaderConfig } from "../downloader/config/schema"
+import { downloaderConfigSchema } from "../downloader/config/schema"
+import type { DownloaderConfig } from "../downloader/config/types"
 import type { TestDownloaderConnectionResult } from "../shared/types"
 
 export async function testDownloaderConnection(

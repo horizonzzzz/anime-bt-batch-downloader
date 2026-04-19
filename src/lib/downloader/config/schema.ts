@@ -25,5 +25,3 @@ export const downloaderConfigSchema = z.object({
     })
   }
 })
-
-export type DownloaderConfig = z.infer<typeof downloaderConfigSchema>

@@ -1,15 +1,13 @@
 import type { DownloaderId } from "../../shared/types"
+import { z } from "zod"
 
-export type DownloaderProfile = {
-  baseUrl: string
-  username: string
-  password: string
-}
+import {
+  downloaderConfigSchema,
+  downloaderProfileSchema
+} from "./schema"
 
-export type DownloaderConfig = {
-  activeId: DownloaderId
-  profiles: {
-    qbittorrent: DownloaderProfile
-    transmission: DownloaderProfile
-  }
-}
+export type DownloaderProfile = z.infer<typeof downloaderProfileSchema>
+export type DownloaderConfig = z.infer<typeof downloaderConfigSchema>
+
+// Re-export DownloaderId for convenience
+export type { DownloaderId }
