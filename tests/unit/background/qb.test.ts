@@ -7,17 +7,19 @@ import {
   loginQb,
   qbFetchText
 } from "../../../src/lib/downloader/qb"
-import { DEFAULT_SETTINGS } from "../../../src/lib/settings"
+import { DEFAULT_DOWNLOADER_CONFIG } from "../../../src/lib/downloader/config/defaults"
+import type { DownloaderConfig } from "../../../src/lib/downloader/config/types"
 
-const qbSettings = {
-  ...DEFAULT_SETTINGS,
-  downloaders: {
-    ...DEFAULT_SETTINGS.downloaders,
+const qbConfig: DownloaderConfig = {
+  ...DEFAULT_DOWNLOADER_CONFIG,
+  profiles: {
+    ...DEFAULT_DOWNLOADER_CONFIG.profiles,
     qbittorrent: {
       baseUrl: "http://127.0.0.1:17474",
       username: "admin",
       password: "secret"
-    }
+    },
+    transmission: DEFAULT_DOWNLOADER_CONFIG.profiles.transmission
   }
 }
 
@@ -25,13 +27,15 @@ describe("getQbLoginErrorMessage", () => {
   it("returns actionable guidance for 401 responses", () => {
     expect(
       getQbLoginErrorMessage(401, {
-        downloaders: {
-          ...DEFAULT_SETTINGS.downloaders,
+        ...DEFAULT_DOWNLOADER_CONFIG,
+        profiles: {
+          ...DEFAULT_DOWNLOADER_CONFIG.profiles,
           qbittorrent: {
             baseUrl: "http://127.0.0.1:17474",
             username: "",
             password: ""
-          }
+          },
+          transmission: DEFAULT_DOWNLOADER_CONFIG.profiles.transmission
         }
       })
     ).toContain("Enable Cross-Site Request Forgery (CSRF) protection")
@@ -40,13 +44,15 @@ describe("getQbLoginErrorMessage", () => {
   it("falls back to the generic HTTP status message", () => {
     expect(
       getQbLoginErrorMessage(403, {
-        downloaders: {
-          ...DEFAULT_SETTINGS.downloaders,
+        ...DEFAULT_DOWNLOADER_CONFIG,
+        profiles: {
+          ...DEFAULT_DOWNLOADER_CONFIG.profiles,
           qbittorrent: {
             baseUrl: "http://127.0.0.1:17474",
             username: "",
             password: ""
-          }
+          },
+          transmission: DEFAULT_DOWNLOADER_CONFIG.profiles.transmission
         }
       })
     ).toBe("qBittorrent login failed with HTTP 403.")
@@ -61,7 +67,7 @@ describe("loginQb", () => {
       })
     )
 
-    await expect(loginQb(qbSettings, fetchImpl)).resolves.toBeUndefined()
+    await expect(loginQb(qbConfig, fetchImpl)).resolves.toBeUndefined()
 
     expect(fetchImpl).toHaveBeenCalledTimes(1)
 
@@ -85,7 +91,7 @@ describe("loginQb", () => {
       })
     )
 
-    await expect(loginQb(qbSettings, fetchImpl)).rejects.toThrow(
+    await expect(loginQb(qbConfig, fetchImpl)).rejects.toThrow(
       "Enable Cross-Site Request Forgery (CSRF) protection"
     )
   })
@@ -97,7 +103,7 @@ describe("loginQb", () => {
       })
     )
 
-    await expect(loginQb(qbSettings, fetchImpl)).rejects.toThrow(
+    await expect(loginQb(qbConfig, fetchImpl)).rejects.toThrow(
       "qBittorrent login rejected the credentials: Fails."
     )
   })
@@ -112,7 +118,7 @@ describe("addUrlsToQb", () => {
     )
 
     await addUrlsToQb(
-      qbSettings,
+      qbConfig,
       ["magnet:?xt=urn:btih:abc"],
       {
         savePath: "D:\\Downloads\\Anime"
@@ -135,7 +141,7 @@ describe("addUrlsToQb", () => {
     )
 
     await addUrlsToQb(
-      qbSettings,
+      qbConfig,
       ["https://example.com/test.torrent"],
       undefined,
       fetchImpl
@@ -158,7 +164,7 @@ describe("qbFetchText", () => {
     )
 
     await expect(
-      qbFetchText(qbSettings, "/api/v2/app/version", { method: "GET" }, fetchImpl)
+      qbFetchText(qbConfig, "/api/v2/app/version", { method: "GET" }, fetchImpl)
     ).resolves.toBe(" v5.1.0 ")
 
     const [url, request] = fetchImpl.mock.calls[0] as [string, RequestInit]
@@ -175,7 +181,7 @@ describe("qbFetchText", () => {
       })
     )
 
-    await expect(qbFetchText(qbSettings, "/api/v2/app/version", undefined, fetchImpl)).rejects.toThrow(
+    await expect(qbFetchText(qbConfig, "/api/v2/app/version", undefined, fetchImpl)).rejects.toThrow(
       "qBittorrent request failed with HTTP 403."
     )
   })
@@ -190,7 +196,7 @@ describe("addTorrentFilesToQb", () => {
     )
 
     await addTorrentFilesToQb(
-      qbSettings,
+      qbConfig,
       [
         {
           filename: "episode-01.torrent",

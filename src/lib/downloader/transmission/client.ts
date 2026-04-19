@@ -1,4 +1,4 @@
-import type { AppSettings } from "../../shared/types"
+import type { DownloaderConfig } from "../config/types"
 
 type FetchLike = typeof fetch
 
@@ -7,8 +7,8 @@ type TransmissionRpcSuccess<TArguments = Record<string, unknown>> = {
   arguments?: TArguments
 }
 
-function getTransmissionSettings(settings: AppSettings) {
-  return settings.downloaders.transmission
+function getTransmissionProfile(config: DownloaderConfig) {
+  return config.profiles.transmission
 }
 
 function encodeBase64Utf8(value: string): string {
@@ -21,8 +21,8 @@ function encodeBase64Utf8(value: string): string {
   return btoa(binary)
 }
 
-function buildAuthHeader(settings: AppSettings): string | null {
-  const { username, password } = getTransmissionSettings(settings)
+function buildAuthHeader(config: DownloaderConfig): string | null {
+  const { username, password } = getTransmissionProfile(config)
   if (!username && !password) {
     return null
   }
@@ -30,7 +30,7 @@ function buildAuthHeader(settings: AppSettings): string | null {
   return `Basic ${encodeBase64Utf8(`${username}:${password}`)}`
 }
 
-function buildHeaders(settings: AppSettings, sessionId?: string): Record<string, string> {
+function buildHeaders(config: DownloaderConfig, sessionId?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json"
   }
@@ -39,7 +39,7 @@ function buildHeaders(settings: AppSettings, sessionId?: string): Record<string,
     headers["X-Transmission-Session-Id"] = sessionId
   }
 
-  const authHeader = buildAuthHeader(settings)
+  const authHeader = buildAuthHeader(config)
   if (authHeader) {
     headers.Authorization = authHeader
   }
@@ -48,16 +48,16 @@ function buildHeaders(settings: AppSettings, sessionId?: string): Record<string,
 }
 
 export async function transmissionRpc<TArguments = Record<string, unknown>>(
-  settings: AppSettings,
+  config: DownloaderConfig,
   method: string,
   args: Record<string, unknown> = {},
   fetchImpl: FetchLike = fetch,
   sessionId?: string
 ): Promise<TransmissionRpcSuccess<TArguments>> {
-  const transmissionSettings = getTransmissionSettings(settings)
-  const response = await fetchImpl(transmissionSettings.baseUrl, {
+  const transmissionProfile = getTransmissionProfile(config)
+  const response = await fetchImpl(transmissionProfile.baseUrl, {
     method: "POST",
-    headers: buildHeaders(settings, sessionId),
+    headers: buildHeaders(config, sessionId),
     body: JSON.stringify({
       method,
       arguments: args
@@ -70,7 +70,7 @@ export async function transmissionRpc<TArguments = Record<string, unknown>>(
       throw new Error("Transmission RPC session negotiation failed.")
     }
 
-    return transmissionRpc<TArguments>(settings, method, args, fetchImpl, nextSessionId)
+    return transmissionRpc<TArguments>(config, method, args, fetchImpl, nextSessionId)
   }
 
   if (!response.ok) {
@@ -86,8 +86,8 @@ export async function transmissionRpc<TArguments = Record<string, unknown>>(
 }
 
 export async function authenticateTransmission(
-  settings: AppSettings,
+  config: DownloaderConfig,
   fetchImpl: FetchLike = fetch
 ): Promise<void> {
-  await transmissionRpc(settings, "session-get", {}, fetchImpl)
+  await transmissionRpc(config, "session-get", {}, fetchImpl)
 }

@@ -18,6 +18,7 @@ import type {
 } from "../../lib/shared/types"
 import type { FilterConfig } from "../../lib/filter-rules/types"
 import type { SourceConfig } from "../../lib/sources/config/types"
+import type { DownloaderConfig } from "../../lib/downloader/config/types"
 import {
   DEFAULT_OPTIONS_ROUTE,
   getOptionsRoutes,
@@ -37,7 +38,7 @@ import { SubscriptionsPage } from "./pages/subscriptions/SubscriptionsPage"
 export type SettingsFormApi = {
   loadAppSettings: () => Promise<AppSettings>
   saveAppSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
-  testConnection: (settings: EditableSettingsPayload) => Promise<TestDownloaderConnectionResult>
+  testConnection: (config: DownloaderConfig) => Promise<TestDownloaderConnectionResult>
 }
 
 export type OptionsApi = SettingsFormApi & {
@@ -47,6 +48,8 @@ export type OptionsApi = SettingsFormApi & {
   saveFilterConfig: (config: FilterConfig) => Promise<FilterConfig>
   getSourceConfig: () => Promise<SourceConfig>
   saveSourceConfig: (config: SourceConfig) => Promise<SourceConfig>
+  getDownloaderConfig: () => Promise<DownloaderConfig>
+  saveDownloaderConfig: (config: DownloaderConfig) => Promise<DownloaderConfig>
 }
 
 type OptionsPageProps = {

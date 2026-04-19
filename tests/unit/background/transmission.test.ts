@@ -1,9 +1,22 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { DEFAULT_SETTINGS } from "../../../src/lib/settings"
+import { DEFAULT_DOWNLOADER_CONFIG } from "../../../src/lib/downloader/config/defaults"
+import type { DownloaderConfig } from "../../../src/lib/downloader/config/types"
 
 import { getDownloaderAdapter, getDownloaderMeta, SUPPORTED_DOWNLOADERS } from "../../../src/lib/downloader"
 import { transmissionDownloaderAdapter, transmissionRpc, addUrlsToTransmission } from "../../../src/lib/downloader/transmission"
+
+const transmissionConfig: DownloaderConfig = {
+  activeId: "transmission",
+  profiles: {
+    qbittorrent: DEFAULT_DOWNLOADER_CONFIG.profiles.qbittorrent,
+    transmission: {
+      baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+      username: "admin",
+      password: "secret"
+    }
+  }
+}
 
 describe("downloader registry", () => {
   it("registers transmission as a supported downloader", () => {
@@ -49,21 +62,8 @@ describe("transmission submission", () => {
         })
       )
 
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      currentDownloaderId: "transmission" as const,
-      downloaders: {
-        ...DEFAULT_SETTINGS.downloaders,
-        transmission: {
-          baseUrl: "http://127.0.0.1:9091/transmission/rpc",
-          username: "admin",
-          password: "secret"
-        }
-      }
-    }
-
     await addUrlsToTransmission(
-      settings,
+      transmissionConfig,
       ["magnet:?xt=urn:btih:abc", "https://example.com/file.torrent"],
       { savePath: "/downloads/anime" },
       fetchImpl
@@ -116,14 +116,9 @@ describe("transmission submission", () => {
         })
       )
 
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      currentDownloaderId: "transmission" as const
-    }
-
     await expect(
       addUrlsToTransmission(
-        settings,
+        transmissionConfig,
         ["magnet:?xt=urn:btih:ok1", "magnet:?xt=urn:btih:bad", "magnet:?xt=urn:btih:ok2"],
         {},
         fetchImpl
@@ -177,20 +172,7 @@ describe("transmissionDownloaderAdapter", () => {
         )
       )
 
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      currentDownloaderId: "transmission" as const,
-      downloaders: {
-        ...DEFAULT_SETTINGS.downloaders,
-        transmission: {
-          baseUrl: "http://127.0.0.1:9091/transmission/rpc",
-          username: "admin",
-          password: "secret"
-        }
-      }
-    }
-
-    await expect(transmissionRpc<{ version?: string }>(settings, "session-get", {}, fetchImpl)).resolves.toEqual({
+    await expect(transmissionRpc<{ version?: string }>(transmissionConfig, "session-get", {}, fetchImpl)).resolves.toEqual({
       result: "success",
       arguments: {
         version: "4.0.6"
@@ -227,11 +209,10 @@ describe("transmissionDownloaderAdapter", () => {
       )
     )
 
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      currentDownloaderId: "transmission" as const,
-      downloaders: {
-        ...DEFAULT_SETTINGS.downloaders,
+    const unicodeConfig: DownloaderConfig = {
+      activeId: "transmission",
+      profiles: {
+        qbittorrent: DEFAULT_DOWNLOADER_CONFIG.profiles.qbittorrent,
         transmission: {
           baseUrl: "http://127.0.0.1:9091/transmission/rpc",
           username: "管理员",
@@ -240,7 +221,7 @@ describe("transmissionDownloaderAdapter", () => {
       }
     }
 
-    await expect(transmissionRpc(settings, "session-get", {}, fetchImpl)).resolves.toMatchObject({
+    await expect(transmissionRpc(unicodeConfig, "session-get", {}, fetchImpl)).resolves.toMatchObject({
       result: "success"
     })
 

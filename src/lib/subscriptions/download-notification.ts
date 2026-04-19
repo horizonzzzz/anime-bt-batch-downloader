@@ -3,6 +3,8 @@ import type {
   DownloaderTorrentFile,
   DownloaderUrlSubmissionResult
 } from "../downloader"
+import { appSettingsToDownloaderConfig } from "../downloader/config/storage"
+import type { DownloaderConfig } from "../downloader/config/types"
 import {
   classifyExtractionResult,
   createPreparedExtractionResult
@@ -157,10 +159,11 @@ export async function downloadSubscriptionNotificationHits(
 
   if (preparedHits.length > 0) {
     try {
-      await dependencies.downloader.authenticate(input.appSettings)
+      const downloaderConfig = appSettingsToDownloaderConfig(input.appSettings)
+      await dependencies.downloader.authenticate(downloaderConfig)
       const submissionResult = await submitPreparedHits(
         preparedHits,
-        input.appSettings,
+        downloaderConfig,
         dependencies.downloader,
         dependencies.fetchTorrentForUpload,
         attemptedAt
@@ -336,7 +339,7 @@ async function prepareSubscriptionHit(
 
 async function submitPreparedHits(
   preparedHits: PreparedSubscriptionHit[],
-  settings: AppSettings,
+  downloaderConfig: DownloaderConfig,
   downloader: DownloaderAdapter,
   fetchTorrentForUpload: (torrentUrl: string) => Promise<DownloaderTorrentFile>,
   attemptedAt: string
@@ -358,7 +361,7 @@ async function submitPreparedHits(
   if (urlPreparedHits.length > 0) {
     try {
       const result = await downloader.addUrls(
-        settings,
+        downloaderConfig,
         urlPreparedHits.map((entry) => entry.classified.submitUrl),
         undefined
       )
@@ -380,7 +383,7 @@ async function submitPreparedHits(
   for (const preparedHit of torrentPreparedHits) {
     try {
       const torrent = await fetchTorrentForUpload(preparedHit.classified.submitUrl)
-      await downloader.addTorrentFiles(settings, [torrent], undefined)
+      await downloader.addTorrentFiles(downloaderConfig, [torrent], undefined)
       statuses[preparedHit.hitId] = {
         downloadStatus: "submitted",
         downloadedAt: attemptedAt

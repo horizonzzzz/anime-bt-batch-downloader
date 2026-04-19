@@ -394,7 +394,7 @@ describe("HistoryPage", () => {
     
     runtimeMock.addListener(async (message: unknown) => {
       const msg = message as { type: string; recordId?: string; itemIds?: string[] }
-      
+
       if (msg.type === "GET_HISTORY") {
         return {
           ok: true,
@@ -402,30 +402,30 @@ describe("HistoryPage", () => {
         }
       }
 
-      if (msg.type === "GET_APP_SETTINGS") {
+      if (msg.type === "GET_HISTORY_PAGE_CONTEXT") {
         return {
           ok: true,
-          settings: {
+          context: {
             currentDownloaderId: "qbittorrent"
           }
         }
       }
-      
+
       if (msg.type === "DELETE_HISTORY_RECORD") {
         if (msg.recordId) {
           deletedIds.add(msg.recordId)
         }
         return { ok: true }
       }
-      
+
       if (msg.type === "CLEAR_HISTORY") {
         return { ok: true }
       }
-      
+
       if (msg.type === "RETRY_FAILED_ITEMS") {
         return { ok: true, successCount: 1, failedCount: 0 }
       }
-      
+
       return { ok: true }
     })
   })
@@ -448,12 +448,12 @@ describe("HistoryPage", () => {
     expect(
       runtimeMock
         .getSentMessages()
-        .some((message) => (message as { type?: string })?.type === "GET_APP_SETTINGS")
+        .some((message) => (message as { type?: string })?.type === "GET_HISTORY_PAGE_CONTEXT")
     ).toBe(true)
     expect(
       runtimeMock
         .getSentMessages()
-        .some((message) => (message as { type?: string })?.type === "GET_SETTINGS")
+        .some((message) => (message as { type?: string })?.type === "GET_APP_SETTINGS")
     ).toBe(false)
   })
 

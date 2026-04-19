@@ -1,4 +1,5 @@
 import type { DownloaderAdapter } from "../downloader"
+import type { DownloaderConfig } from "../downloader/config/types"
 import type {
   AppSettings,
   BatchEventPayload,
@@ -22,7 +23,7 @@ export type BackgroundBatchDependencies = {
   saveSettings: (partialSettings: Partial<AppSettings>) => Promise<AppSettings>
   extractSingleItem: (item: BatchItem, settings: AppSettings) => Promise<ExtractionResult>
   sendBatchEvent: (tabId: number, payload: BatchEventPayload) => Promise<void>
-  getDownloader: (settings: AppSettings) => DownloaderAdapter
-  ensureDownloaderPermission: (settings: AppSettings) => Promise<void>
+  getDownloader: (config: DownloaderConfig) => DownloaderAdapter
+  ensureDownloaderPermission: (config: DownloaderConfig) => Promise<void>
   fetchImpl?: typeof fetch
 }

@@ -99,14 +99,38 @@ describe("runtime message helpers", () => {
     await sendRuntimeRequest({
       type: "TEST_DOWNLOADER_CONNECTION",
       settings: {
-        currentDownloaderId: "qbittorrent"
+        activeId: "qbittorrent",
+        profiles: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "",
+            password: ""
+          },
+          transmission: {
+            baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+            username: "",
+            password: ""
+          }
+        }
       }
     })
 
     expect(runtimeSendMessage).toHaveBeenCalledWith({
       type: "TEST_DOWNLOADER_CONNECTION",
       settings: {
-        currentDownloaderId: "qbittorrent"
+        activeId: "qbittorrent",
+        profiles: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "",
+            password: ""
+          },
+          transmission: {
+            baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+            username: "",
+            password: ""
+          }
+        }
       }
     })
   })

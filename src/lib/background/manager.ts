@@ -2,6 +2,7 @@ import { decideFilterAction } from "../filter-rules"
 import { normalizeSavePath } from "../settings"
 import { getSourceConfig } from "../sources/config"
 import { getDisabledSources } from "../sources/config/selectors"
+import { appSettingsToDownloaderConfig } from "../downloader/config/storage"
 import {
   classifyExtractionResult,
   createPreparedExtractionResult
@@ -95,9 +96,10 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
       })
 
       try {
-        await dependencies.ensureDownloaderPermission(job.settings)
-        const downloader = dependencies.getDownloader(job.settings)
-        await downloader.authenticate(job.settings)
+        const downloaderConfig = appSettingsToDownloaderConfig(job.settings)
+        await dependencies.ensureDownloaderPermission(downloaderConfig)
+        const downloader = dependencies.getDownloader(downloaderConfig)
+        await downloader.authenticate(downloaderConfig)
         await submitPreparedResults(job, preparedSubmissions)
       } catch (error: unknown) {
         const failure = error instanceof Error ? error.message : String(error)
@@ -164,13 +166,14 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
     job: BatchJob,
     preparedSubmissions: ClassifiedBatchResult[]
   ): Promise<void> {
-    const downloader = dependencies.getDownloader(job.settings)
+    const downloaderConfig = appSettingsToDownloaderConfig(job.settings)
+    const downloader = dependencies.getDownloader(downloaderConfig)
     const { urlSubmissions, torrentFileSubmissions } = splitPreparedSubmissions(preparedSubmissions)
 
     if (urlSubmissions.length) {
       try {
         const submissionResult = await downloader.addUrls(
-          job.settings,
+          downloaderConfig,
           urlSubmissions.map((entry) => entry.submitUrl),
           getSavePathOption(job.savePath)
         )
@@ -185,7 +188,7 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
       try {
         const torrent = await fetchTorrentForUpload(entry.submitUrl, dependencies.fetchImpl)
         await downloader.addTorrentFiles(
-          job.settings,
+          downloaderConfig,
           [torrent],
           getSavePathOption(job.savePath)
         )

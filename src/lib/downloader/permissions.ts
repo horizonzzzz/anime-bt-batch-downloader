@@ -1,33 +1,31 @@
 import { getDownloaderMeta } from "./registry"
 import { i18n } from "../i18n"
 import { getBrowser } from "../shared/browser"
-import type { AppSettings } from "../shared/types"
-
-type DownloaderPermissionSettings = Pick<AppSettings, "currentDownloaderId" | "downloaders">
+import type { DownloaderConfig } from "./config/types"
 
 type PermissionsApi = {
   contains: (permissions: { origins: string[] }) => Promise<boolean>
   request: (permissions: { origins: string[] }) => Promise<boolean>
 }
 
-function getCurrentDownloaderBaseUrl(settings: DownloaderPermissionSettings): string {
-  return settings.currentDownloaderId === "transmission"
-    ? settings.downloaders.transmission.baseUrl
-    : settings.downloaders.qbittorrent.baseUrl
+function getCurrentDownloaderBaseUrl(config: DownloaderConfig): string {
+  return config.activeId === "transmission"
+    ? config.profiles.transmission.baseUrl
+    : config.profiles.qbittorrent.baseUrl
 }
 
 function getPermissionErrorMessage(
-  settings: DownloaderPermissionSettings,
+  config: DownloaderConfig,
   translationKey: "required" | "denied"
 ): string {
-  const downloaderName = getDownloaderMeta(settings.currentDownloaderId).displayName
-  const baseUrl = getCurrentDownloaderBaseUrl(settings)
+  const downloaderName = getDownloaderMeta(config.activeId).displayName
+  const baseUrl = getCurrentDownloaderBaseUrl(config)
 
   return i18n.t(`downloader.permissions.${translationKey}`, [downloaderName, baseUrl])
 }
 
-export function getDownloaderPermissionOrigins(settings: DownloaderPermissionSettings): string[] {
-  const baseUrl = getCurrentDownloaderBaseUrl(settings)
+export function getDownloaderPermissionOrigins(config: DownloaderConfig): string[] {
+  const baseUrl = getCurrentDownloaderBaseUrl(config)
 
   let parsedUrl: URL
   try {
@@ -44,14 +42,14 @@ export function getDownloaderPermissionOrigins(settings: DownloaderPermissionSet
 }
 
 export async function ensureDownloaderPermission(
-  settings: DownloaderPermissionSettings,
+  config: DownloaderConfig,
   options?: {
     interactive?: boolean
     permissionsApi?: PermissionsApi
   }
 ): Promise<void> {
   const permissionsApi = options?.permissionsApi ?? (getBrowser().permissions as PermissionsApi)
-  const origins = getDownloaderPermissionOrigins(settings)
+  const origins = getDownloaderPermissionOrigins(config)
 
   if (await permissionsApi.contains({ origins })) {
     return
@@ -62,17 +60,17 @@ export async function ensureDownloaderPermission(
       return
     }
 
-    throw new Error(getPermissionErrorMessage(settings, "denied"))
+    throw new Error(getPermissionErrorMessage(config, "denied"))
   }
 
-  throw new Error(getPermissionErrorMessage(settings, "required"))
+  throw new Error(getPermissionErrorMessage(config, "required"))
 }
 
 export async function requestDownloaderPermission(
-  settings: DownloaderPermissionSettings,
+  config: DownloaderConfig,
   permissionsApi?: PermissionsApi
 ): Promise<void> {
-  await ensureDownloaderPermission(settings, {
+  await ensureDownloaderPermission(config, {
     interactive: true,
     permissionsApi
   })

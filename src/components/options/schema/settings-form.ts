@@ -7,6 +7,7 @@ import type {
   DownloaderId,
   SourceId
 } from "../../../lib/shared/types"
+import type { DownloaderConfig } from "../../../lib/downloader/config/types"
 
 const deliveryModeSchema = z.enum([
   "magnet",
@@ -123,4 +124,22 @@ export function createSettingsFormDefaults(
 
 export function toSettingsPayload(values: SettingsFormInput): EditableSettingsPayload {
   return settingsFormSchema.parse(values)
+}
+
+export function toDownloaderConfig(values: SettingsFormValues): DownloaderConfig {
+  return {
+    activeId: values.currentDownloaderId,
+    profiles: {
+      qbittorrent: {
+        baseUrl: values.downloaders.qbittorrent.baseUrl,
+        username: values.downloaders.qbittorrent.username,
+        password: values.downloaders.qbittorrent.password
+      },
+      transmission: {
+        baseUrl: values.downloaders.transmission.baseUrl,
+        username: values.downloaders.transmission.username,
+        password: values.downloaders.transmission.password
+      }
+    }
+  }
 }

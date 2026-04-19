@@ -1,55 +1,88 @@
-import type { AppSettings } from "../../shared/types"
-import { getQbLoginErrorMessage } from "./errors"
+import type { DownloaderConfig } from "../config/types"
+import type { DownloaderUrlSubmissionResult } from "../types"
+import type { QbTorrentFile } from "./types"
 
 type FetchLike = typeof fetch
 
-function getQbSettings(settings: AppSettings) {
-  return settings.downloaders.qbittorrent
+function getQbProfile(config: DownloaderConfig) {
+  return config.profiles.qbittorrent
 }
 
-export async function loginQb(
-  settings: AppSettings,
+export async function addUrlsToQb(
+  config: DownloaderConfig,
+  urls: string[],
+  options: {
+    savePath?: string
+  } = {},
   fetchImpl: FetchLike = fetch
-): Promise<void> {
-  const qbSettings = getQbSettings(settings)
-  const body = new URLSearchParams()
-  body.set("username", qbSettings.username)
-  body.set("password", qbSettings.password)
+): Promise<DownloaderUrlSubmissionResult> {
+  if (!urls.length) {
+    return {
+      entries: []
+    }
+  }
+  const qbProfile = getQbProfile(config)
 
-  const response = await fetchImpl(`${qbSettings.baseUrl}/api/v2/auth/login`, {
+  const formData = new FormData()
+  formData.append("urls", urls.join("\n"))
+  const savePath = String(options.savePath ?? "").trim()
+  if (savePath) {
+    formData.append("savepath", savePath)
+  }
+
+  const response = await fetchImpl(`${qbProfile.baseUrl}/api/v2/torrents/add`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-    },
-    body: body.toString()
+    body: formData
   })
 
   if (!response.ok) {
-    throw new Error(getQbLoginErrorMessage(response.status, settings))
+    throw new Error(`qBittorrent rejected the batch add request with HTTP ${response.status}.`)
   }
 
-  const text = await response.text()
-  if (!/^ok/i.test(text.trim())) {
-    throw new Error(`qBittorrent login rejected the credentials: ${text.trim() || "unknown response"}`)
+  return {
+    entries: urls.map((url) => ({
+      url,
+      status: "submitted" as const
+    }))
   }
 }
 
-export async function qbFetchText(
-  settings: AppSettings,
-  path: string,
-  init?: RequestInit,
+export async function addTorrentFilesToQb(
+  config: DownloaderConfig,
+  torrents: QbTorrentFile[],
+  options: {
+    savePath?: string
+  } = {},
   fetchImpl: FetchLike = fetch
-): Promise<string> {
-  const qbSettings = getQbSettings(settings)
-  const response = await fetchImpl(`${qbSettings.baseUrl}${path}`, {
+): Promise<void> {
+  if (!torrents.length) {
+    return
+  }
+  const qbProfile = getQbProfile(config)
+
+  const formData = new FormData()
+  for (const torrent of torrents) {
+    formData.append(
+      "torrents",
+      new File([torrent.blob], torrent.filename, {
+        type: torrent.blob.type || "application/x-bittorrent"
+      })
+    )
+  }
+
+  const savePath = String(options.savePath ?? "").trim()
+  if (savePath) {
+    formData.append("savepath", savePath)
+  }
+
+  const response = await fetchImpl(`${qbProfile.baseUrl}/api/v2/torrents/add`, {
+    method: "POST",
     credentials: "include",
-    ...init
+    body: formData
   })
 
   if (!response.ok) {
-    throw new Error(`qBittorrent request failed with HTTP ${response.status}.`)
+    throw new Error(`qBittorrent rejected the torrent file upload with HTTP ${response.status}.`)
   }
-
-  return response.text()
 }

@@ -227,7 +227,8 @@ describe("retryFailedItems", () => {
       )
       expect((deps as any).ensureDownloaderPermission).toHaveBeenCalledWith(
         expect.objectContaining({
-          downloaders: expect.objectContaining({
+          activeId: "qbittorrent",
+          profiles: expect.objectContaining({
             qbittorrent: expect.objectContaining({
               baseUrl: "http://localhost:8080"
             })

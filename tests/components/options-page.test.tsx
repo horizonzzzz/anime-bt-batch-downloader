@@ -79,6 +79,24 @@ const sourceConfig: SourceConfig = {
   }
 }
 
+import type { DownloaderConfig } from "../../src/lib/downloader/config/types"
+
+const downloaderConfig: DownloaderConfig = {
+  activeId: "qbittorrent",
+  profiles: {
+    qbittorrent: {
+      baseUrl: "http://127.0.0.1:17474",
+      username: "admin",
+      password: "123456"
+    },
+    transmission: {
+      baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+      username: "transmission",
+      password: "secret"
+    }
+  }
+}
+
 const editableSettings = settings
 const {
   subscriptionsEnabled: _subscriptionsEnabled,
@@ -115,6 +133,8 @@ function createOptionsApi(overrides: Partial<TestOptionsApi> = {}): TestOptionsA
     saveFilterConfig: vi.fn().mockImplementation(async (config) => config),
     getSourceConfig: vi.fn().mockResolvedValue(sourceConfig),
     saveSourceConfig: vi.fn().mockImplementation(async (config) => config),
+    getDownloaderConfig: vi.fn().mockResolvedValue(downloaderConfig),
+    saveDownloaderConfig: vi.fn().mockImplementation(async (config) => config),
     upsertSubscription: vi.fn().mockImplementation(async (subscription) => {
       await upsertSubscription(subscription)
     }),
@@ -124,7 +144,7 @@ function createOptionsApi(overrides: Partial<TestOptionsApi> = {}): TestOptionsA
     testConnection: vi.fn().mockResolvedValue({
       downloaderId: "qbittorrent",
       displayName: "qBittorrent",
-      baseUrl: settings.downloaders.qbittorrent.baseUrl,
+      baseUrl: downloaderConfig.profiles.qbittorrent.baseUrl,
       version: "5.0.0"
     }),
     ...overrides
@@ -1061,7 +1081,7 @@ describe("OptionsPage", () => {
 
       await user.click(screen.getByRole("button", { name: "测试连接" }))
 
-      expect(api.testConnection).toHaveBeenCalledWith(formEditableSettings)
+      expect(api.testConnection).toHaveBeenCalledWith(downloaderConfig)
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "测试连接" })).toBeDisabled()
         expect(screen.getByRole("status")).toHaveTextContent("正在测试连接。")
@@ -1102,7 +1122,7 @@ describe("OptionsPage", () => {
       expect(permissionsRequestMock).toHaveBeenCalledWith({
         origins: ["http://127.0.0.1/*"]
       })
-      expect(api.testConnection).toHaveBeenCalledWith(formEditableSettings)
+      expect(api.testConnection).toHaveBeenCalledWith(downloaderConfig)
     },
     10000
   )
@@ -1159,12 +1179,12 @@ describe("OptionsPage", () => {
 
       await waitFor(() => {
         expect(api.testConnection).toHaveBeenCalledWith({
-          ...formEditableSettings,
-          currentDownloaderId: "qbittorrent",
-          downloaders: {
-            ...formEditableSettings.downloaders,
+          ...downloaderConfig,
+          activeId: "qbittorrent",
+          profiles: {
+            ...downloaderConfig.profiles,
             transmission: {
-              ...formEditableSettings.downloaders.transmission,
+              ...downloaderConfig.profiles.transmission,
               baseUrl: ""
             }
           }

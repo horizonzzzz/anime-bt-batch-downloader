@@ -17,6 +17,7 @@ import {
 } from "../../lib/background"
 import { getDownloaderAdapter } from "../../lib/downloader"
 import { ensureDownloaderPermission } from "../../lib/downloader/permissions"
+import { appSettingsToDownloaderConfig } from "../../lib/downloader/config/storage"
 import {
   clearHistory,
   deleteHistoryRecord,
@@ -34,6 +35,11 @@ import {
   getSourceConfig,
   saveSourceConfig
 } from "../../lib/sources/config"
+import {
+  getDownloaderConfig,
+  saveDownloaderConfig
+} from "../../lib/downloader/config/storage"
+import { getHistoryPageContext } from "../../lib/background/queries/history-context"
 import { SOURCE_IDS } from "../../lib/sources/catalog"
 import {
   BATCH_EVENT,
@@ -64,8 +70,8 @@ const batchDownloadManager = createBatchDownloadManager({
   saveSettings,
   extractSingleItem,
   sendBatchEvent,
-  ensureDownloaderPermission,
-  getDownloader: (settings) => getDownloaderAdapter(settings.currentDownloaderId)
+  ensureDownloaderPermission: (config) => ensureDownloaderPermission(config),
+  getDownloader: (config) => getDownloaderAdapter(config.activeId)
 })
 
 let runtimeRegistered = false
@@ -131,7 +137,8 @@ export function registerBackgroundRuntime() {
         return
       }
 
-      await ensureDownloaderPermission(settings, {
+      const downloaderConfig = await getDownloaderConfig()
+      await ensureDownloaderPermission(downloaderConfig, {
         interactive: true
       })
       await downloadSubscriptionHits({ roundId })
@@ -234,6 +241,28 @@ export function registerBackgroundRuntime() {
             sendResponse(
               createRuntimeSuccessResponse("SAVE_SOURCE_CONFIG", {
                 config: savedSourceConfig
+              })
+            )
+            return
+          case "GET_DOWNLOADER_CONFIG":
+            sendResponse(
+              createRuntimeSuccessResponse("GET_DOWNLOADER_CONFIG", {
+                config: await getDownloaderConfig()
+              })
+            )
+            return
+          case "SAVE_DOWNLOADER_CONFIG":
+            const savedDownloaderConfig = await saveDownloaderConfig(runtimeMessage.config)
+            sendResponse(
+              createRuntimeSuccessResponse("SAVE_DOWNLOADER_CONFIG", {
+                config: savedDownloaderConfig
+              })
+            )
+            return
+          case "GET_HISTORY_PAGE_CONTEXT":
+            sendResponse(
+              createRuntimeSuccessResponse("GET_HISTORY_PAGE_CONTEXT", {
+                context: await getHistoryPageContext()
               })
             )
             return
@@ -343,8 +372,8 @@ export function registerBackgroundRuntime() {
                   getSettings,
                   getHistoryRecord,
                   updateHistoryRecord,
-                  getDownloader: (settings) => getDownloaderAdapter(settings.currentDownloaderId),
-                  ensureDownloaderPermission,
+                  getDownloader: (config) => getDownloaderAdapter(config.activeId),
+                  ensureDownloaderPermission: (config) => ensureDownloaderPermission(config),
                   fetchTorrentForUpload
                 }
               )

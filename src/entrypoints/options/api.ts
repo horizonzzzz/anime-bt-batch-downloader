@@ -1,5 +1,6 @@
 import { i18n } from "../../lib/i18n"
 import type { OptionsApi } from "../../components/options/OptionsPage"
+import type { DownloaderConfig } from "../../lib/downloader/config/types"
 import { sendRuntimeRequest } from "../../lib/shared/messages"
 
 export const optionsApi: OptionsApi = {
@@ -43,10 +44,10 @@ export const optionsApi: OptionsApi = {
       throw new Error(response.error || i18n.t("options.status.saveFailed"))
     }
   },
-  async testConnection(settings) {
+  async testConnection(config: DownloaderConfig) {
     const response = await sendRuntimeRequest({
       type: "TEST_DOWNLOADER_CONNECTION",
-      settings
+      settings: config
     })
 
     if (!response.ok) {
@@ -86,6 +87,26 @@ export const optionsApi: OptionsApi = {
   async saveSourceConfig(config) {
     const response = await sendRuntimeRequest({
       type: "SAVE_SOURCE_CONFIG",
+      config
+    })
+
+    if (!response.ok) {
+      throw new Error(response.error || i18n.t("options.status.saveFailed"))
+    }
+
+    return response.config
+  },
+  async getDownloaderConfig() {
+    const response = await sendRuntimeRequest({ type: "GET_DOWNLOADER_CONFIG" })
+    if (!response.ok) {
+      throw new Error(response.error || i18n.t("options.status.loadFailed"))
+    }
+
+    return response.config
+  },
+  async saveDownloaderConfig(config: DownloaderConfig) {
+    const response = await sendRuntimeRequest({
+      type: "SAVE_DOWNLOADER_CONFIG",
       config
     })
 

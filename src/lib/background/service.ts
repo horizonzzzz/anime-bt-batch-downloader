@@ -1,29 +1,32 @@
 import { getDownloaderAdapter, getDownloaderMeta } from "../downloader"
 import { ensureDownloaderPermission } from "../downloader/permissions"
-import { getSettings, mergeSettings, sanitizeSettings } from "../settings"
-import type { AppSettings, TestDownloaderConnectionResult } from "../shared/types"
+import { getDownloaderConfig } from "../downloader/config/storage"
+import { downloaderConfigSchema, type DownloaderConfig } from "../downloader/config/schema"
+import type { TestDownloaderConnectionResult } from "../shared/types"
 
 export async function testDownloaderConnection(
-  overrideSettings: Partial<AppSettings> | null,
+  overrideConfig: DownloaderConfig | null,
   options?: {
     interactivePermissionRequest?: boolean
   }
 ): Promise<TestDownloaderConnectionResult> {
-  const settings = sanitizeSettings(mergeSettings(await getSettings(), overrideSettings))
+  const config = overrideConfig
+    ? downloaderConfigSchema.parse(overrideConfig)
+    : downloaderConfigSchema.parse(await getDownloaderConfig())
   const interactivePermissionRequest =
-    options?.interactivePermissionRequest ?? overrideSettings == null
+    options?.interactivePermissionRequest ?? overrideConfig == null
 
-  const downloaderId = settings.currentDownloaderId
-  const adapter = getDownloaderAdapter(downloaderId)
-  const meta = getDownloaderMeta(downloaderId)
-  await ensureDownloaderPermission(
-    settings,
-    interactivePermissionRequest ? { interactive: true } : undefined
-  )
-  const result = await adapter.testConnection(settings)
+  const adapter = getDownloaderAdapter(config.activeId)
+  const meta = getDownloaderMeta(config.activeId)
+
+  await ensureDownloaderPermission(config, {
+    interactive: interactivePermissionRequest
+  })
+
+  const result = await adapter.testConnection(config)
 
   return {
-    downloaderId,
+    downloaderId: config.activeId,
     displayName: meta.displayName,
     baseUrl: result.baseUrl,
     version: result.version

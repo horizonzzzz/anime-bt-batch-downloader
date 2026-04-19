@@ -11,6 +11,7 @@ import {
   createSettingsFormDefaults,
   settingsFormSchema,
   toSettingsPayload,
+  toDownloaderConfig,
   type SettingsFormInput,
   type SettingsFormValues
 } from "../schema/settings-form"
@@ -133,8 +134,9 @@ export function useSettingsForm(api: SettingsFormApi) {
 
     try {
       const payload = toSettingsPayload(form.getValues())
-      await requestDownloaderPermission(payload)
-      const result = (await api.testConnection(payload)) as TestDownloaderConnectionResult
+      const downloaderConfig = toDownloaderConfig(payload)
+      await requestDownloaderPermission(downloaderConfig)
+      const result = (await api.testConnection(downloaderConfig)) as TestDownloaderConnectionResult
       setConnectionState("success")
       setConnectionMessage(
         i18n.t("options.status.connectedTo", [result.displayName, result.baseUrl || i18n.t("options.status.noAddressReturned")])

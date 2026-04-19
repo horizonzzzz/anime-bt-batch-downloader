@@ -11,6 +11,8 @@ import type { PopupOptionsRoute, PopupStateViewModel } from "./popup"
 import type { SourceSubscriptionScanCandidate } from "../sources/types"
 import type { FilterConfig } from "../filter-rules/types"
 import type { SourceConfig } from "../sources/config/types"
+import type { DownloaderConfig } from "../downloader/config/types"
+import type { HistoryPageContext } from "../background/queries/history-context"
 import { getBrowser } from "./browser"
 
 export const BATCH_EVENT = "ANIME_BT_BATCH_EVENT"
@@ -65,7 +67,10 @@ export type RuntimeRequest =
   | { type: "RETRY_FAILED_ITEMS"; recordId: string; itemIds?: string[] }
   | { type: "GET_APP_SETTINGS" }
   | { type: "SAVE_APP_SETTINGS"; settings?: Partial<AppSettings> }
-  | { type: "TEST_DOWNLOADER_CONNECTION"; settings?: Partial<AppSettings> | null }
+  | { type: "TEST_DOWNLOADER_CONNECTION"; settings?: DownloaderConfig | null }
+  | { type: "GET_DOWNLOADER_CONFIG" }
+  | { type: "SAVE_DOWNLOADER_CONFIG"; config: DownloaderConfig }
+  | { type: "GET_HISTORY_PAGE_CONTEXT" }
   | { type: "GET_FILTER_CONFIG" }
   | { type: "SAVE_FILTER_CONFIG"; config: FilterConfig }
   | { type: "GET_SOURCE_CONFIG" }
@@ -174,6 +179,21 @@ export type SaveSourceConfigSuccessResponse = {
   config: SourceConfig
 }
 
+export type GetDownloaderConfigSuccessResponse = {
+  ok: true
+  config: DownloaderConfig
+}
+
+export type SaveDownloaderConfigSuccessResponse = {
+  ok: true
+  config: DownloaderConfig
+}
+
+export type GetHistoryPageContextSuccessResponse = {
+  ok: true
+  context: HistoryPageContext
+}
+
 export type RuntimeSuccessResponseMap = {
   GET_HISTORY: GetHistorySuccessResponse
   CLEAR_HISTORY: ClearHistorySuccessResponse
@@ -186,6 +206,9 @@ export type RuntimeSuccessResponseMap = {
   SAVE_FILTER_CONFIG: SaveFilterConfigSuccessResponse
   GET_SOURCE_CONFIG: GetSourceConfigSuccessResponse
   SAVE_SOURCE_CONFIG: SaveSourceConfigSuccessResponse
+  GET_DOWNLOADER_CONFIG: GetDownloaderConfigSuccessResponse
+  SAVE_DOWNLOADER_CONFIG: SaveDownloaderConfigSuccessResponse
+  GET_HISTORY_PAGE_CONTEXT: GetHistoryPageContextSuccessResponse
   GET_POPUP_STATE: GetPopupStateSuccessResponse
   SET_SOURCE_ENABLED: SetSourceEnabledSuccessResponse
   OPEN_OPTIONS_PAGE: OpenOptionsPageSuccessResponse
@@ -222,6 +245,9 @@ export type GetFilterConfigResponse = RuntimeResponseFor<"GET_FILTER_CONFIG">
 export type SaveFilterConfigResponse = RuntimeResponseFor<"SAVE_FILTER_CONFIG">
 export type GetSourceConfigResponse = RuntimeResponseFor<"GET_SOURCE_CONFIG">
 export type SaveSourceConfigResponse = RuntimeResponseFor<"SAVE_SOURCE_CONFIG">
+export type GetDownloaderConfigResponse = RuntimeResponseFor<"GET_DOWNLOADER_CONFIG">
+export type SaveDownloaderConfigResponse = RuntimeResponseFor<"SAVE_DOWNLOADER_CONFIG">
+export type GetHistoryPageContextResponse = RuntimeResponseFor<"GET_HISTORY_PAGE_CONTEXT">
 export type RuntimeResponse = RuntimeResponseFor<RuntimeRequestType>
 
 export function createRuntimeSuccessResponse<TType extends RuntimeRequestType>(

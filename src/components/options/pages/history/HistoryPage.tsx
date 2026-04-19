@@ -15,9 +15,9 @@ export function HistoryPage() {
 
   async function loadRecords() {
     try {
-      const [historyResponse, settingsResponse] = await Promise.all([
+      const [historyResponse, contextResponse] = await Promise.all([
         sendRuntimeRequest({ type: "GET_HISTORY" }),
-        sendRuntimeRequest({ type: "GET_APP_SETTINGS" })
+        sendRuntimeRequest({ type: "GET_HISTORY_PAGE_CONTEXT" })
       ])
 
       if (!historyResponse.ok) {
@@ -31,8 +31,8 @@ export function HistoryPage() {
         setSelectedRecord(updated ?? null)
       }
 
-      if (settingsResponse.ok && settingsResponse.settings?.currentDownloaderId) {
-        setCurrentDownloaderId(settingsResponse.settings.currentDownloaderId)
+      if (contextResponse.ok && contextResponse.context?.currentDownloaderId) {
+        setCurrentDownloaderId(contextResponse.context.currentDownloaderId)
       }
     } catch {
       setError(i18n.t("options.history.loadFailed"))

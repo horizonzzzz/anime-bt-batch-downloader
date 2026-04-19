@@ -1,7 +1,7 @@
 import type { DownloaderAdapter } from "../types"
-import { loginQb, qbFetchText } from "./client"
+import { loginQb, qbFetchText } from "./submission"
 import { getQbLoginErrorMessage } from "./errors"
-import { addTorrentFilesToQb, addUrlsToQb } from "./submission"
+import { addTorrentFilesToQb, addUrlsToQb } from "./client"
 export type { QbTorrentFile } from "./types"
 
 export const qbDownloaderAdapter: DownloaderAdapter = {
@@ -10,17 +10,17 @@ export const qbDownloaderAdapter: DownloaderAdapter = {
   authenticate: loginQb,
   addUrls: addUrlsToQb,
   addTorrentFiles: addTorrentFilesToQb,
-  async testConnection(settings) {
-    await loginQb(settings)
-    const version = await qbFetchText(settings, "/api/v2/app/version", { method: "GET" })
+  async testConnection(config) {
+    await loginQb(config)
+    const version = await qbFetchText(config, "/api/v2/app/version", { method: "GET" })
 
     return {
-      baseUrl: settings.downloaders.qbittorrent.baseUrl,
+      baseUrl: config.profiles.qbittorrent.baseUrl,
       version: version.trim() || "unknown"
     }
   }
 }
 
-export { qbFetchText, loginQb } from "./client"
+export { qbFetchText, loginQb } from "./submission"
 export { getQbLoginErrorMessage } from "./errors"
-export { addTorrentFilesToQb, addUrlsToQb } from "./submission"
+export { addTorrentFilesToQb, addUrlsToQb } from "./client"

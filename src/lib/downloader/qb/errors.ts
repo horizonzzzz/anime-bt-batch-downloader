@@ -1,10 +1,10 @@
-import type { AppSettings } from "../../shared/types"
+import type { DownloaderConfig } from "../config/types"
 
 export function getQbLoginErrorMessage(
   status: number,
-  settings: Pick<AppSettings, "downloaders">
+  config: DownloaderConfig
 ): string {
-  const baseUrl = settings.downloaders.qbittorrent.baseUrl
+  const baseUrl = config.profiles.qbittorrent.baseUrl
   if (status === 401) {
     return [
       `qBittorrent login failed with HTTP 401 at ${baseUrl}.`,

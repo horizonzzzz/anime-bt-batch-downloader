@@ -8,16 +8,16 @@ export const transmissionDownloaderAdapter: DownloaderAdapter = {
   authenticate: authenticateTransmission,
   addUrls: addUrlsToTransmission,
   addTorrentFiles: addTorrentFilesToTransmission,
-  async testConnection(settings, fetchImpl = fetch) {
+  async testConnection(config, fetchImpl = fetch) {
     const result = await transmissionRpc<{ version?: string }>(
-      settings,
+      config,
       "session-get",
       {},
       fetchImpl
     )
 
     return {
-      baseUrl: settings.downloaders.transmission.baseUrl,
+      baseUrl: config.profiles.transmission.baseUrl,
       version: result.arguments?.version?.trim() || "unknown"
     }
   }

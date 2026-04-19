@@ -1,5 +1,7 @@
 import { i18n } from "../i18n"
 import type { DownloaderAdapter, DownloaderTorrentFile } from "../downloader"
+import { appSettingsToDownloaderConfig } from "../downloader/config/storage"
+import type { DownloaderConfig } from "../downloader/config/types"
 import type { TaskHistoryItem, TaskHistoryRecord } from "../history/types"
 import type { AppSettings } from "../shared/types"
 
@@ -18,8 +20,8 @@ export type RetryDependencies = {
   getSettings: () => Promise<AppSettings>
   getHistoryRecord: (recordId: string) => Promise<TaskHistoryRecord | null>
   updateHistoryRecord: (record: TaskHistoryRecord) => Promise<void>
-  getDownloader: (settings: AppSettings) => DownloaderAdapter
-  ensureDownloaderPermission: (settings: AppSettings) => Promise<void>
+  getDownloader: (config: DownloaderConfig) => DownloaderAdapter
+  ensureDownloaderPermission: (config: DownloaderConfig) => Promise<void>
   fetchTorrentForUpload: (torrentUrl: string) => Promise<DownloaderTorrentFile>
 }
 
@@ -96,7 +98,8 @@ export async function retryFailedItems(
   }
 
   const settings = await deps.getSettings()
-  const downloader = deps.getDownloader(settings)
+  const downloaderConfig = appSettingsToDownloaderConfig(settings)
+  const downloader = deps.getDownloader(downloaderConfig)
   const urlItems: { item: TaskHistoryItem; url: string }[] = []
   const torrentFileItems: { item: TaskHistoryItem; url: string }[] = []
   const itemsWithoutUrls: TaskHistoryItem[] = []
@@ -131,8 +134,8 @@ export async function retryFailedItems(
 
   if (urlItems.length > 0 || torrentFileItems.length > 0) {
     try {
-      await deps.ensureDownloaderPermission(settings)
-      await downloader.authenticate(settings)
+      await deps.ensureDownloaderPermission(downloaderConfig)
+      await downloader.authenticate(downloaderConfig)
     } catch (error) {
       throw new Error(i18n.t("options.history.retryErrors.authFailed", [error instanceof Error ? error.message : String(error)]))
     }
@@ -141,7 +144,7 @@ export async function retryFailedItems(
   if (urlItems.length > 0) {
     for (const { item, url } of urlItems) {
       try {
-        const result = await downloader.addUrls(settings, [url], savePathOption)
+        const result = await downloader.addUrls(downloaderConfig, [url], savePathOption)
         const submission = result.entries[0]
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (submission?.status === "submitted") {
@@ -172,7 +175,7 @@ export async function retryFailedItems(
     for (const { item, url } of torrentFileItems) {
       try {
         const torrent = await deps.fetchTorrentForUpload(url)
-        await downloader.addTorrentFiles(settings, [torrent], savePathOption)
+        await downloader.addTorrentFiles(downloaderConfig, [torrent], savePathOption)
         const index = updatedItems.findIndex(i => i.id === item.id)
         if (index !== -1) {
           updatedItems[index] = updateItemAfterSuccess(item)

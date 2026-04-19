@@ -144,7 +144,14 @@ describe("createBatchDownloadManager", () => {
     expect(dependencies.extractSingleItem).not.toHaveBeenCalled()
     expect(downloader.authenticate).toHaveBeenCalledTimes(1)
     expect(downloader.addTorrentFiles).toHaveBeenCalledWith(
-      expect.objectContaining({ lastSavePath: "D:\\Anime" }),
+      expect.objectContaining({
+        activeId: "qbittorrent",
+        profiles: expect.objectContaining({
+          qbittorrent: expect.objectContaining({
+            baseUrl: "http://127.0.0.1:17474"
+          })
+        })
+      }),
       [expect.objectContaining({ filename: "episode-01.torrent" })],
       {
         savePath: "D:\\Anime"
@@ -751,7 +758,8 @@ describe("createBatchDownloadManager", () => {
 
     expect((dependencies as any).ensureDownloaderPermission).toHaveBeenCalledWith(
       expect.objectContaining({
-        downloaders: expect.objectContaining({
+        activeId: "qbittorrent",
+        profiles: expect.objectContaining({
           qbittorrent: expect.objectContaining({
             baseUrl: "http://127.0.0.1:17474"
           })

@@ -1,21 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { DEFAULT_SETTINGS } from "../../../src/lib/settings/defaults"
-import type { AppSettings } from "../../../src/lib/shared/types"
+import type { DownloaderConfig } from "../../../src/lib/downloader/config/types"
+import { DEFAULT_DOWNLOADER_CONFIG } from "../../../src/lib/downloader/config/defaults"
 
 const {
-  getSettingsMock,
-  mergeSettingsMock,
-  sanitizeSettingsMock,
+  getDownloaderConfigMock,
   getDownloaderAdapterMock,
   getDownloaderMetaMock,
   testConnectionMock,
   permissionsContainsMock,
   permissionsRequestMock
 } = vi.hoisted(() => ({
-  getSettingsMock: vi.fn(),
-  mergeSettingsMock: vi.fn(),
-  sanitizeSettingsMock: vi.fn(),
+  getDownloaderConfigMock: vi.fn(),
   getDownloaderAdapterMock: vi.fn(),
   getDownloaderMetaMock: vi.fn(),
   testConnectionMock: vi.fn(),
@@ -23,18 +19,9 @@ const {
   permissionsRequestMock: vi.fn()
 }))
 
-vi.mock("../../../src/lib/settings", async () => {
-  const actual = await vi.importActual<typeof import("../../../src/lib/settings")>(
-    "../../../src/lib/settings"
-  )
-
-  return {
-    ...actual,
-    getSettings: getSettingsMock,
-    mergeSettings: mergeSettingsMock,
-    sanitizeSettings: sanitizeSettingsMock
-  }
-})
+vi.mock("../../../src/lib/downloader/config/storage", () => ({
+  getDownloaderConfig: getDownloaderConfigMock
+}))
 
 vi.mock("../../../src/lib/downloader", () => ({
   getDownloaderAdapter: getDownloaderAdapterMock,
@@ -60,10 +47,10 @@ vi.mock("../../../src/lib/shared/browser", async () => {
 import { testDownloaderConnection } from "../../../src/lib/background/service"
 
 describe("testDownloaderConnection", () => {
-  const storedSettings: AppSettings = {
-    ...DEFAULT_SETTINGS,
-    downloaders: {
-      ...DEFAULT_SETTINGS.downloaders,
+  const storedConfig: DownloaderConfig = {
+    ...DEFAULT_DOWNLOADER_CONFIG,
+    profiles: {
+      ...DEFAULT_DOWNLOADER_CONFIG.profiles,
       qbittorrent: {
         baseUrl: "http://127.0.0.1:7474",
         username: "admin",
@@ -72,23 +59,21 @@ describe("testDownloaderConnection", () => {
     }
   }
 
-  const sanitizedSettings: AppSettings = {
-    ...storedSettings,
-    downloaders: {
-      ...DEFAULT_SETTINGS.downloaders,
+  const overrideConfig: DownloaderConfig = {
+    activeId: "qbittorrent",
+    profiles: {
       qbittorrent: {
         baseUrl: "http://127.0.0.1:17474",
         username: "root",
         password: "secret"
-      }
+      },
+      transmission: DEFAULT_DOWNLOADER_CONFIG.profiles.transmission
     }
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    getSettingsMock.mockResolvedValue(storedSettings)
-    mergeSettingsMock.mockReturnValue(sanitizedSettings)
-    sanitizeSettingsMock.mockReturnValue(sanitizedSettings)
+    getDownloaderConfigMock.mockResolvedValue(storedConfig)
     getDownloaderAdapterMock.mockReturnValue({
       testConnection: testConnectionMock
     })
@@ -104,18 +89,9 @@ describe("testDownloaderConnection", () => {
     permissionsRequestMock.mockResolvedValue(true)
   })
 
-  it("merges stored settings with overrides, sanitizes them, and uses the selected downloader adapter", async () => {
+  it("tests downloader connection from DownloaderConfig instead of Partial<AppSettings>", async () => {
     await expect(
-      testDownloaderConnection({
-        downloaders: {
-          ...DEFAULT_SETTINGS.downloaders,
-          qbittorrent: {
-            baseUrl: " http://127.0.0.1:17474/// ",
-            username: " root ",
-            password: "secret"
-          }
-        }
-      })
+      testDownloaderConnection(overrideConfig)
     ).resolves.toEqual({
       downloaderId: "qbittorrent",
       displayName: "qBittorrent",
@@ -123,24 +99,13 @@ describe("testDownloaderConnection", () => {
       version: "4.6.0"
     })
 
-    expect(getSettingsMock).toHaveBeenCalledTimes(1)
-    expect(mergeSettingsMock).toHaveBeenCalledWith(storedSettings, {
-      downloaders: {
-        ...DEFAULT_SETTINGS.downloaders,
-        qbittorrent: {
-          baseUrl: " http://127.0.0.1:17474/// ",
-          username: " root ",
-          password: "secret"
-        }
-      }
-    })
-    expect(sanitizeSettingsMock).toHaveBeenCalledWith(sanitizedSettings)
+    expect(getDownloaderConfigMock).not.toHaveBeenCalled()
     expect(getDownloaderAdapterMock).toHaveBeenCalledWith("qbittorrent")
     expect(permissionsContainsMock).toHaveBeenCalledWith({
       origins: ["http://127.0.0.1/*"]
     })
     expect(permissionsRequestMock).not.toHaveBeenCalled()
-    expect(testConnectionMock).toHaveBeenCalledWith(sanitizedSettings)
+    expect(testConnectionMock).toHaveBeenCalledWith(overrideConfig)
   })
 
   it("returns adapter-provided fallback values unchanged", async () => {
@@ -155,6 +120,8 @@ describe("testDownloaderConnection", () => {
       baseUrl: "http://127.0.0.1:17474",
       version: "unknown"
     })
+
+    expect(getDownloaderConfigMock).toHaveBeenCalledTimes(1)
   })
 
   it("rethrows default adapter connection failures", async () => {
@@ -196,6 +163,14 @@ describe("testDownloaderConnection", () => {
     expect(permissionsRequestMock).toHaveBeenCalledWith({
       origins: ["http://127.0.0.1/*"]
     })
-    expect(testConnectionMock).toHaveBeenCalledWith(sanitizedSettings)
+    expect(getDownloaderConfigMock).toHaveBeenCalledTimes(1)
+    expect(testConnectionMock).toHaveBeenCalledWith(storedConfig)
+  })
+
+  it("skips interactive permission request when override config is provided", async () => {
+    permissionsContainsMock.mockResolvedValueOnce(false)
+
+    await expect(testDownloaderConnection(overrideConfig)).rejects.toThrow("权限")
+    expect(permissionsRequestMock).not.toHaveBeenCalled()
   })
 })
