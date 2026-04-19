@@ -242,6 +242,7 @@
       "expandConfigSuffix": "展开配置",
       "collapseConfigSuffix": "收起配置",
       "enabledSummary": "当前已启用 $1 / $2 个站点",
+      "saveSites": "保存站点配置",
       "deliveryMode": {
         "magnet": "优先磁力链",
         "torrentUrl": "直接提交种子链接",

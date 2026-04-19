@@ -864,11 +864,15 @@ describe("OptionsPage", () => {
 
 
   it(
-    "saves edited values across the general and site management views",
+    "saves edited values through domain-specific save buttons",
     async () => {
       const user = userEvent.setup()
       const api = createOptionsApi({
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+        saveAppSettings: vi.fn().mockImplementation(async (nextSettings) => ({
+          ...settings,
+          ...nextSettings
+        })),
+        saveSourceConfig: vi.fn().mockImplementation(async (config) => config)
       })
 
       render(<OptionsPage api={api} />)
@@ -879,6 +883,22 @@ describe("OptionsPage", () => {
       await user.clear(usernameField)
       await user.type(usernameField, "operator")
 
+      // Save general settings first
+      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+
+      await waitFor(() => {
+        expect(api.saveAppSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            downloaders: expect.objectContaining({
+              qbittorrent: expect.objectContaining({
+                username: "operator"
+              })
+            })
+          })
+        )
+      })
+
+      // Now navigate to sites and edit site settings
       await user.click(screen.getByRole("button", { name: "站点配置" }))
 
       const kisssubCard = screen.getByTestId("site-card-kisssub")
@@ -891,22 +911,22 @@ describe("OptionsPage", () => {
 
       await user.click(screen.getByRole("switch", { name: "Bangumi.moe 启用开关" }))
 
-      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+      // Save site config with the dedicated button
+      await user.click(screen.getByRole("button", { name: "保存站点配置" }))
 
       await waitFor(() => {
-        expect(api.saveSettings).toHaveBeenCalledWith(
+        expect(api.saveSourceConfig).toHaveBeenCalledWith(
           expect.objectContaining({
-            downloaders: expect.objectContaining({
-              qbittorrent: expect.objectContaining({
-                username: "operator"
+            kisssub: expect.objectContaining({
+              script: expect.objectContaining({
+                revision: "20260324.1"
               })
             }),
-            remoteScriptRevision: "20260324.1",
-            sourceDeliveryModes: expect.objectContaining({
-              acgrip: "torrent-url"
+            acgrip: expect.objectContaining({
+              deliveryMode: "torrent-url"
             }),
-            enabledSources: expect.objectContaining({
-              bangumimoe: false
+            bangumimoe: expect.objectContaining({
+              enabled: false
             })
           })
         )
@@ -957,7 +977,7 @@ describe("OptionsPage", () => {
     async () => {
       const user = userEvent.setup()
       const api = createOptionsApi({
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+        saveSourceConfig: vi.fn().mockImplementation(async (config) => config)
       })
 
       render(<OptionsPage api={api} />)
@@ -965,6 +985,9 @@ describe("OptionsPage", () => {
       expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "站点配置" }))
+
+      // Wait for site config to load
+      await screen.findByTestId("sites-workbench")
 
       const kisssubCard = screen.getByTestId("site-card-kisssub")
       const revisionField = within(kisssubCard).getByLabelText("Kisssub 脚本版本号")
@@ -986,17 +1009,18 @@ describe("OptionsPage", () => {
         within(kisssubCard).getByRole("radio", { name: "先下载种子再上传到 qB" })
       ).toBeChecked()
 
-      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+      // Save with the dedicated site config button
+      await user.click(screen.getByRole("button", { name: "保存站点配置" }))
 
       await waitFor(() => {
-        expect(api.saveSettings).toHaveBeenCalledWith(
+        expect(api.saveSourceConfig).toHaveBeenCalledWith(
           expect.objectContaining({
-            remoteScriptRevision: "20260324.1",
-            sourceDeliveryModes: expect.objectContaining({
-              kisssub: "torrent-file"
-            }),
-            enabledSources: expect.objectContaining({
-              kisssub: true
+            kisssub: expect.objectContaining({
+              script: expect.objectContaining({
+                revision: "20260324.1"
+              }),
+              deliveryMode: "torrent-file",
+              enabled: true
             })
           })
         )

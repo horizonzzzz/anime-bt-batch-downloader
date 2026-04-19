@@ -45,7 +45,7 @@ export const OPTIONS_ROUTES = [
   {
     id: "sites",
     path: SITES_ROUTE,
-    mode: "form"
+    mode: "view"
   },
   {
     id: "filters",

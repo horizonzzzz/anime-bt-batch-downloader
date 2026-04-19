@@ -1,36 +1,27 @@
 import { i18n } from "../../../../lib/i18n"
 import type { JSX } from "react"
 
-import { useFormContext } from "react-hook-form"
-
 import {
   getDeliveryModeLabel,
   getSupportedDeliveryModes
 } from "../../../../lib/sources/delivery"
 import type { LocalizedSiteConfigMeta } from "../../../../lib/sources/site-meta"
-import type { DeliveryMode } from "../../../../lib/shared/types"
+import type { DeliveryMode, SourceId } from "../../../../lib/shared/types"
 import { cn } from "../../../../lib/shared/cn"
 import { Label, RadioGroup, RadioGroupItem } from "../../../ui"
 import { SectionHeading } from "../../form/SectionHeading"
-import type {
-  SettingsFormInput,
-  SettingsFormValues
-} from "../../schema/settings-form"
 
 type SiteDeliveryModeSectionProps = {
   site: LocalizedSiteConfigMeta
   currentMode: DeliveryMode
+  onDeliveryModeChange: (sourceId: SourceId, deliveryMode: DeliveryMode) => void
 }
 
 export function SiteDeliveryModeSection({
   site,
-  currentMode
+  currentMode,
+  onDeliveryModeChange
 }: SiteDeliveryModeSectionProps): JSX.Element {
-  const { setValue } = useFormContext<
-    SettingsFormInput,
-    unknown,
-    SettingsFormValues
-  >()
   const supportedModes = getSupportedDeliveryModes(site.id)
 
   if (site.strategyMode === "locked") {
@@ -58,11 +49,7 @@ export function SiteDeliveryModeSection({
       <RadioGroup
         value={currentMode}
         onValueChange={(value) =>
-          setValue(
-            `sourceDeliveryModes.${site.id}`,
-            value as DeliveryMode,
-            { shouldDirty: true }
-          )
+          onDeliveryModeChange(site.id, value as DeliveryMode)
         }>
         {supportedModes.map((mode) => {
           const itemId = `${site.id}-${mode}`
@@ -87,5 +74,3 @@ export function SiteDeliveryModeSection({
     </section>
   )
 }
-
-

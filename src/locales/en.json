@@ -242,6 +242,7 @@
       "expandConfigSuffix": "expand config",
       "collapseConfigSuffix": "collapse config",
       "enabledSummary": "$1 / $2 sites enabled",
+      "saveSites": "Save site config",
       "deliveryMode": {
         "magnet": "Prefer magnet links",
         "torrentUrl": "Submit torrent URL directly",

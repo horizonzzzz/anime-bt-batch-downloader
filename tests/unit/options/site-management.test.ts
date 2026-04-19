@@ -1,20 +1,44 @@
 import { describe, expect, it } from "vitest"
 
+import { DEFAULT_SOURCE_CONFIG } from "../../../src/lib/sources/config/defaults"
+import type { SourceConfig } from "../../../src/lib/sources/config/types"
 import {
-  buildSortedSites,
-  countEnabledSites,
-  getInitialExpandedSites,
-  reconcileExpandedSites
+  buildSortedSitesFromConfig,
+  countEnabledSitesFromConfig,
+  getInitialExpandedSitesFromConfig,
+  reconcileExpandedSitesFromConfig
 } from "../../../src/components/options/pages/sites/site-management"
+
+function createTestSourceConfig(
+  overrides: Partial<SourceConfig>
+): SourceConfig {
+  return {
+    ...DEFAULT_SOURCE_CONFIG,
+    ...overrides
+  }
+}
 
 describe("site management helpers", () => {
   it("sorts enabled sites ahead of disabled sites while preserving catalog order", () => {
-    const orderedIds = buildSortedSites({
-      kisssub: false,
-      dongmanhuayuan: true,
-      acgrip: true,
-      bangumimoe: false
-    }).map((site) => site.id)
+    const config = createTestSourceConfig({
+      kisssub: {
+        ...DEFAULT_SOURCE_CONFIG.kisssub,
+        enabled: false
+      },
+      dongmanhuayuan: {
+        ...DEFAULT_SOURCE_CONFIG.dongmanhuayuan,
+        enabled: true
+      },
+      acgrip: {
+        ...DEFAULT_SOURCE_CONFIG.acgrip,
+        enabled: true
+      },
+      bangumimoe: {
+        ...DEFAULT_SOURCE_CONFIG.bangumimoe,
+        enabled: false
+      }
+    })
+    const orderedIds = buildSortedSitesFromConfig(config).map((site) => site.id)
 
     expect(orderedIds).toEqual([
       "dongmanhuayuan",
@@ -25,43 +49,95 @@ describe("site management helpers", () => {
   })
 
   it("counts only enabled sites", () => {
-    expect(
-      countEnabledSites({
-        kisssub: true,
-        dongmanhuayuan: false,
-        acgrip: true,
-        bangumimoe: false
-      })
-    ).toBe(2)
+    const config = createTestSourceConfig({
+      kisssub: {
+        ...DEFAULT_SOURCE_CONFIG.kisssub,
+        enabled: true
+      },
+      dongmanhuayuan: {
+        ...DEFAULT_SOURCE_CONFIG.dongmanhuayuan,
+        enabled: false
+      },
+      acgrip: {
+        ...DEFAULT_SOURCE_CONFIG.acgrip,
+        enabled: true
+      },
+      bangumimoe: {
+        ...DEFAULT_SOURCE_CONFIG.bangumimoe,
+        enabled: false
+      }
+    })
+    expect(countEnabledSitesFromConfig(config)).toBe(2)
   })
 
   it("initially expands every enabled site", () => {
-    expect(
-      getInitialExpandedSites({
-        kisssub: true,
-        dongmanhuayuan: false,
-        acgrip: true,
-        bangumimoe: true
-      })
-    ).toEqual(["kisssub", "acgrip", "bangumimoe"])
+    const config = createTestSourceConfig({
+      kisssub: {
+        ...DEFAULT_SOURCE_CONFIG.kisssub,
+        enabled: true
+      },
+      dongmanhuayuan: {
+        ...DEFAULT_SOURCE_CONFIG.dongmanhuayuan,
+        enabled: false
+      },
+      acgrip: {
+        ...DEFAULT_SOURCE_CONFIG.acgrip,
+        enabled: true
+      },
+      bangumimoe: {
+        ...DEFAULT_SOURCE_CONFIG.bangumimoe,
+        enabled: true
+      }
+    })
+    expect(getInitialExpandedSitesFromConfig(config)).toEqual([
+      "kisssub",
+      "acgrip",
+      "bangumimoe"
+    ])
   })
 
   it("drops newly disabled sites and appends newly enabled sites", () => {
+    const previousConfig = createTestSourceConfig({
+      kisssub: {
+        ...DEFAULT_SOURCE_CONFIG.kisssub,
+        enabled: true
+      },
+      dongmanhuayuan: {
+        ...DEFAULT_SOURCE_CONFIG.dongmanhuayuan,
+        enabled: false
+      },
+      acgrip: {
+        ...DEFAULT_SOURCE_CONFIG.acgrip,
+        enabled: true
+      },
+      bangumimoe: {
+        ...DEFAULT_SOURCE_CONFIG.bangumimoe,
+        enabled: false
+      }
+    })
+    const nextConfig = createTestSourceConfig({
+      kisssub: {
+        ...DEFAULT_SOURCE_CONFIG.kisssub,
+        enabled: false
+      },
+      dongmanhuayuan: {
+        ...DEFAULT_SOURCE_CONFIG.dongmanhuayuan,
+        enabled: true
+      },
+      acgrip: {
+        ...DEFAULT_SOURCE_CONFIG.acgrip,
+        enabled: true
+      },
+      bangumimoe: {
+        ...DEFAULT_SOURCE_CONFIG.bangumimoe,
+        enabled: false
+      }
+    })
     expect(
-      reconcileExpandedSites({
+      reconcileExpandedSitesFromConfig({
         currentExpandedSites: ["kisssub", "acgrip"],
-        previousEnabledSources: {
-          kisssub: true,
-          dongmanhuayuan: false,
-          acgrip: true,
-          bangumimoe: false
-        },
-        nextEnabledSources: {
-          kisssub: false,
-          dongmanhuayuan: true,
-          acgrip: true,
-          bangumimoe: false
-        }
+        previousConfig,
+        nextConfig
       })
     ).toEqual(["acgrip", "dongmanhuayuan"])
   })

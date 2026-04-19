@@ -1,22 +1,19 @@
 import { i18n } from "../../../../lib/i18n"
 import type { JSX } from "react"
 
-import { useFormContext } from "react-hook-form"
-
 import { Input, Label } from "../../../ui"
 import { SectionHeading } from "../../form/SectionHeading"
-import type {
-  SettingsFormInput,
-  SettingsFormValues
-} from "../../schema/settings-form"
+import type { KisssubScriptConfig } from "../../../../lib/sources/config/types"
 
-export function SiteScriptFieldsSection(): JSX.Element {
-  const { register } = useFormContext<
-    SettingsFormInput,
-    unknown,
-    SettingsFormValues
-  >()
+type SiteScriptFieldsSectionProps = {
+  script: KisssubScriptConfig
+  onScriptChange: (url: string, revision: string) => void
+}
 
+export function SiteScriptFieldsSection({
+  script,
+  onScriptChange
+}: SiteScriptFieldsSectionProps): JSX.Element {
   return (
     <section className="grid gap-4 border-t border-zinc-100 pt-6">
       <SectionHeading
@@ -26,15 +23,21 @@ export function SiteScriptFieldsSection(): JSX.Element {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="remoteScriptUrl">{i18n.t("options.sites.scriptFields.remoteScriptUrlLabel")}</Label>
-          <Input id="remoteScriptUrl" {...register("remoteScriptUrl")} />
+          <Input
+            id="remoteScriptUrl"
+            value={script.url}
+            onChange={(event) => onScriptChange(event.target.value, script.revision)}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="remoteScriptRevision">{i18n.t("options.sites.scriptFields.remoteScriptRevisionLabel")}</Label>
-          <Input id="remoteScriptRevision" {...register("remoteScriptRevision")} />
+          <Input
+            id="remoteScriptRevision"
+            value={script.revision}
+            onChange={(event) => onScriptChange(script.url, event.target.value)}
+          />
         </div>
       </div>
     </section>
   )
 }
-
-

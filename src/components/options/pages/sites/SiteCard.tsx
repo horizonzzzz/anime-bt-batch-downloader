@@ -1,5 +1,6 @@
 import type { LocalizedSiteConfigMeta } from "../../../../lib/sources/site-meta"
 import type { DeliveryMode, SourceId } from "../../../../lib/shared/types"
+import type { KisssubScriptConfig } from "../../../../lib/sources/config/types"
 import { cn } from "../../../../lib/shared/cn"
 import { Card } from "../../../ui"
 import { SiteCardHeader } from "./SiteCardHeader"
@@ -13,8 +14,11 @@ type SiteCardProps = {
   isEnabled: boolean
   isExpanded: boolean
   currentMode: DeliveryMode
+  kisssubScript?: KisssubScriptConfig
   onToggleExpanded: (sourceId: SourceId) => void
   onToggleEnabled: (sourceId: SourceId, enabled: boolean) => void
+  onDeliveryModeChange: (sourceId: SourceId, deliveryMode: DeliveryMode) => void
+  onKisssubScriptChange?: (url: string, revision: string) => void
 }
 
 export function SiteCard({
@@ -23,8 +27,11 @@ export function SiteCard({
   isEnabled,
   isExpanded,
   currentMode,
+  kisssubScript,
   onToggleExpanded,
-  onToggleEnabled
+  onToggleEnabled,
+  onDeliveryModeChange,
+  onKisssubScriptChange
 }: SiteCardProps) {
   return (
     <article data-testid={`site-card-${site.id}`}>
@@ -47,10 +54,17 @@ export function SiteCard({
 
           {isExpanded ? (
             <div className="space-y-6 border-t border-zinc-100 bg-white px-5 py-6">
-              <SiteDeliveryModeSection site={site} currentMode={currentMode} />
+              <SiteDeliveryModeSection
+                site={site}
+                currentMode={currentMode}
+                onDeliveryModeChange={onDeliveryModeChange}
+              />
 
-              {site.hasKisssubScriptFields ? (
-                <SiteScriptFieldsSection />
+              {site.hasKisssubScriptFields && kisssubScript && onKisssubScriptChange ? (
+                <SiteScriptFieldsSection
+                  script={kisssubScript}
+                  onScriptChange={onKisssubScriptChange}
+                />
               ) : null}
 
               <SiteNotePanel site={site} />
