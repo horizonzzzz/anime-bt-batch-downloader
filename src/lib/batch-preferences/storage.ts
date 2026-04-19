@@ -24,23 +24,37 @@ export async function getBatchUiPreferences(): Promise<BatchUiPreferences> {
 
   // If batch_ui_preferences exists, use it directly
   if (stored[BATCH_UI_PREFERENCES_STORAGE_KEY]) {
-    return {
-      lastSavePath: String(
-        (stored[BATCH_UI_PREFERENCES_STORAGE_KEY] as BatchUiPreferences).lastSavePath ?? ""
-      ).trim()
+    try {
+      return {
+        lastSavePath: String(
+          (stored[BATCH_UI_PREFERENCES_STORAGE_KEY] as BatchUiPreferences).lastSavePath ?? ""
+        ).trim()
+      }
+    } catch {
+      await extensionBrowser.storage.local.set({
+        [BATCH_UI_PREFERENCES_STORAGE_KEY]: DEFAULT_BATCH_UI_PREFERENCES
+      })
+      return DEFAULT_BATCH_UI_PREFERENCES
     }
   }
 
   // Migration: read from legacy app_settings fields
-  const legacySettings = (stored["app_settings"] as LegacyAppSettings | undefined) ?? {}
-  const migratedPreferences = migrateFromLegacySettings(legacySettings)
+  try {
+    const legacySettings = (stored["app_settings"] as LegacyAppSettings | undefined) ?? {}
+    const migratedPreferences = migrateFromLegacySettings(legacySettings)
 
-  // Persist migrated preferences for future reads
-  await extensionBrowser.storage.local.set({
-    [BATCH_UI_PREFERENCES_STORAGE_KEY]: migratedPreferences
-  })
+    // Persist migrated preferences for future reads
+    await extensionBrowser.storage.local.set({
+      [BATCH_UI_PREFERENCES_STORAGE_KEY]: migratedPreferences
+    })
 
-  return migratedPreferences
+    return migratedPreferences
+  } catch {
+    await extensionBrowser.storage.local.set({
+      [BATCH_UI_PREFERENCES_STORAGE_KEY]: DEFAULT_BATCH_UI_PREFERENCES
+    })
+    return DEFAULT_BATCH_UI_PREFERENCES
+  }
 }
 
 export async function saveBatchUiPreferences(

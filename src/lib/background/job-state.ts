@@ -20,7 +20,7 @@ export function buildBatchRuntimeContext(
   }
 }
 
-function buildExtractionContextFromConfigs(
+export function buildExtractionContextFromConfigs(
   executionConfig: BatchExecutionConfig,
   sourceConfig: SourceConfig
 ): ExtractionContext {

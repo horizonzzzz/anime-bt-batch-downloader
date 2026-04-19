@@ -22,6 +22,7 @@ import type { ExtractionContext } from "../sources/types"
 import { getSourceConfig } from "../sources/config"
 import { resolveSourceEnabled } from "../sources/config/selectors"
 import { getBatchExecutionConfig } from "../batch-config/storage"
+import { buildExtractionContextFromConfigs } from "../background/job-state"
 import { listSubscriptionsByIds } from "./catalog-repository"
 import { subscriptionDb } from "./db"
 import { getNotificationRound } from "./notification-round-repository"
@@ -86,18 +87,7 @@ export async function downloadSubscriptionNotificationHits(
 
   const sourceConfig = await getSourceConfig()
   const batchExecutionConfig = await getBatchExecutionConfig()
-  const extractionContext: ExtractionContext = {
-    execution: {
-      retryCount: batchExecutionConfig.retryCount,
-      injectTimeoutMs: batchExecutionConfig.injectTimeoutMs,
-      domSettleMs: batchExecutionConfig.domSettleMs
-    },
-    source: {
-      kisssub: {
-        script: sourceConfig.kisssub.script
-      }
-    }
-  }
+  const extractionContext = buildExtractionContextFromConfigs(batchExecutionConfig, sourceConfig)
   const hits = notificationRound.hits.map((hit) => ({ ...hit }))
   const subscriptions = await listSubscriptionsByIds([
     ...new Set(hits.map((hit) => hit.subscriptionId))
