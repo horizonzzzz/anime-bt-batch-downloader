@@ -7,7 +7,6 @@ const {
   activeJobsMock,
   buildPopupStateMock,
   notifySupportedSourceTabsOfContentSettingsChangeMock,
-  notifyActiveTabOfSourceEnabledChangeMock,
   openOptionsPageForRouteMock,
   getSourceConfigMock,
   saveSourceConfigMock,
@@ -16,7 +15,6 @@ const {
   activeJobsMock: new Map<number, unknown>(),
   buildPopupStateMock: vi.fn(),
   notifySupportedSourceTabsOfContentSettingsChangeMock: vi.fn(),
-  notifyActiveTabOfSourceEnabledChangeMock: vi.fn(),
   openOptionsPageForRouteMock: vi.fn(),
   getSourceConfigMock: vi.fn(),
   saveSourceConfigMock: vi.fn(),
@@ -36,7 +34,6 @@ vi.mock("../../../src/lib/background", async () => {
     buildPopupState: buildPopupStateMock,
     notifySupportedSourceTabsOfContentSettingsChange:
       notifySupportedSourceTabsOfContentSettingsChangeMock,
-    notifyActiveTabOfSourceEnabledChange: notifyActiveTabOfSourceEnabledChangeMock,
     openOptionsPageForRoute: openOptionsPageForRouteMock,
     setSourceEnabledForPopup: setSourceEnabledForPopupMock,
     fetchTorrentForUpload: vi.fn(),

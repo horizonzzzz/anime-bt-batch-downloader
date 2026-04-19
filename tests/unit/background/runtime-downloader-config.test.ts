@@ -6,7 +6,6 @@ type RuntimeMessageListener = Parameters<typeof fakeBrowser.runtime.onMessage.ad
 const {
   activeJobsMock,
   buildPopupStateMock,
-  notifyActiveTabOfSourceEnabledChangeMock,
   openOptionsPageForRouteMock,
   getDownloaderConfigMock,
   saveDownloaderConfigMock,
@@ -14,7 +13,6 @@ const {
 } = vi.hoisted(() => ({
   activeJobsMock: new Map<number, unknown>(),
   buildPopupStateMock: vi.fn(),
-  notifyActiveTabOfSourceEnabledChangeMock: vi.fn(),
   openOptionsPageForRouteMock: vi.fn(),
   getDownloaderConfigMock: vi.fn(),
   saveDownloaderConfigMock: vi.fn(),
@@ -32,7 +30,6 @@ vi.mock("../../../src/lib/background", async () => {
       startBatchDownload: vi.fn()
     }),
     buildPopupState: buildPopupStateMock,
-    notifyActiveTabOfSourceEnabledChange: notifyActiveTabOfSourceEnabledChangeMock,
     openOptionsPageForRoute: openOptionsPageForRouteMock,
     setSourceEnabledForPopup: setSourceEnabledForPopupMock,
     fetchTorrentForUpload: vi.fn(),

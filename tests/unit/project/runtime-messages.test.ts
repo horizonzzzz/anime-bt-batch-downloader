@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 
 import {
   BATCH_EVENT,
-  SOURCE_ENABLED_CHANGE_EVENT,
+  CONTENT_SETTINGS_CHANGED_EVENT,
   createRuntimeErrorResponse,
   createRuntimeSuccessResponse,
   sendRuntimeRequest,
@@ -110,7 +110,7 @@ describe("runtime message helpers", () => {
     })
   })
 
-  it("keeps TEST_DOWNLOADER_CONNECTION available for partial app settings probes", async () => {
+  it("keeps TEST_DOWNLOADER_CONNECTION available for downloader-config probes", async () => {
     runtimeSendMessage.mockResolvedValue({
       ok: true,
       result: {
@@ -171,8 +171,8 @@ describe("runtime message helpers", () => {
     expect(BATCH_EVENT).toBe("ANIME_BT_BATCH_EVENT")
   })
 
-  it("uses a dedicated source-enablement event channel name", () => {
-    expect(SOURCE_ENABLED_CHANGE_EVENT).toBe("ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT")
+  it("uses a unified content-settings event channel name", () => {
+    expect(CONTENT_SETTINGS_CHANGED_EVENT).toBe("ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT")
   })
 
   it("supports filter-config runtime requests", async () => {

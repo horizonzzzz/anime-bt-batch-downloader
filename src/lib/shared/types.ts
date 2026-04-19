@@ -120,40 +120,6 @@ export type BatchStats = {
 
 export type DownloaderId = "qbittorrent" | "transmission"
 
-export type QbittorrentSettings = {
-  baseUrl: string
-  username: string
-  password: string
-}
-
-export type TransmissionSettings = {
-  baseUrl: string
-  username: string
-  password: string
-}
-
-export type AppSettings = {
-  currentDownloaderId: DownloaderId
-  downloaders: {
-    qbittorrent: QbittorrentSettings
-    transmission: TransmissionSettings
-  }
-  concurrency: number
-  injectTimeoutMs: number
-  domSettleMs: number
-  retryCount: number
-  remoteScriptUrl: string
-  remoteScriptRevision: string
-  lastSavePath: string
-  sourceDeliveryModes: Partial<Record<SourceId, DeliveryMode>>
-  enabledSources: Partial<Record<SourceId, boolean>>
-  filters: FilterEntry[]
-  subscriptionsEnabled: boolean
-  pollingIntervalMinutes: number
-  notificationsEnabled: boolean
-  notificationDownloadActionEnabled: boolean
-}
-
 export type TestDownloaderConnectionResult = {
   downloaderId: DownloaderId
   displayName: string

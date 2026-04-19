@@ -89,7 +89,7 @@ describe("testDownloaderConnection", () => {
     permissionsRequestMock.mockResolvedValue(true)
   })
 
-  it("tests downloader connection from DownloaderConfig instead of Partial<AppSettings>", async () => {
+  it("tests downloader connection from DownloaderConfig overrides", async () => {
     await expect(
       testDownloaderConnection(overrideConfig)
     ).resolves.toEqual({

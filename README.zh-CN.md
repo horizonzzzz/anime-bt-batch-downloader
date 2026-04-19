@@ -17,6 +17,8 @@ Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的
 - 一次性把选中条目提交到当前下载器
 - 当前支持的下载器：`qBittorrent WebUI` 与 `Transmission RPC`
 - 支持为当前批次单独指定下载目录
+- 配置页按下载器配置、站点配置、过滤规则、订阅、历史、概览等域拆分为独立工作台
+- 运行时配置改为按功能域分别存储，不再依赖单一聚合 settings 文档
 - 界面文案会自动跟随浏览器 UI 语言，扩展内不提供手动语言切换
 
 ## 支持源站
@@ -130,7 +132,7 @@ pnpm test:all
 - `src/entrypoints/source-batch.content/`：WXT 内容脚本入口、运行时 bootstrap 与内容样式入口
 - `src/components/`：浮动批量面板与配置页 UI
 - `src/lib/sources/`：源站适配器与站点专属提取逻辑
-- `src/lib/`：通用设置、下载器适配器、运行时消息与批处理工具
+- `src/lib/`：按功能域拆分的配置/存储模块、下载器适配器、运行时消息、订阅与批处理工具
 - `tests/`：单元测试、组件测试与 Playwright E2E 测试
 
 ## 测试

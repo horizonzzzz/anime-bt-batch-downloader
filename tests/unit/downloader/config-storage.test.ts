@@ -37,33 +37,6 @@ describe("downloader config storage", () => {
     expect(saved.profiles.qbittorrent.username).toBe("admin")
   })
 
-  it("ignores legacy app_settings downloader fields and hydrates defaults", async () => {
-    await fakeBrowser.storage.local.set({
-      app_settings: {
-        currentDownloaderId: "transmission",
-        downloaders: {
-          qbittorrent: {
-            baseUrl: "http://192.168.1.100:8080",
-            username: "qbuser",
-            password: "qbpass"
-          },
-          transmission: {
-            baseUrl: "http://192.168.1.100:9091/transmission/rpc",
-            username: "truser",
-            password: "trpass"
-          }
-        }
-      }
-    })
-
-    const config = await getDownloaderConfig()
-
-    expect(config).toEqual(DEFAULT_DOWNLOADER_CONFIG)
-
-    const stored = await fakeBrowser.storage.local.get("downloader_config")
-    expect(stored.downloader_config).toEqual(config)
-  })
-
   it("persists downloader config changes to dedicated storage key", async () => {
     const saved = await saveDownloaderConfig({
       activeId: "transmission",

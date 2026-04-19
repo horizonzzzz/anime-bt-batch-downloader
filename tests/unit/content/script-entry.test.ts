@@ -697,7 +697,7 @@ describe("content script runtime", () => {
     expect(createdUis.every(({ shadow }) => shadow.textContent?.includes(".anime-bt-content-root"))).toBe(true)
   })
 
-  it("tears down injected UI when the current source is disabled from the popup and rebuilds it when re-enabled", async () => {
+  it("tears down injected UI when content settings disable the current source and rebuilds it when re-enabled", async () => {
     const anchorCell = document.createElement("td")
     const anchor = document.createElement("a")
     anchor.href = "https://acg.rip/t/1"
@@ -719,13 +719,45 @@ describe("content script runtime", () => {
     getDetailAnchors.mockReturnValueOnce([anchor])
     getBatchItemFromAnchor.mockReturnValueOnce(item)
     getAnchorMountTarget.mockReturnValueOnce(anchorCell)
-    runtimeSendMessage.mockResolvedValue({
-      ok: true,
-      state: {
-        enabled: true,
-        filters: [],
-        lastSavePath: ""
+    runtimeSendMessage.mockImplementation(({ type }) => {
+      if (type === "GET_CONTENT_SCRIPT_STATE") {
+        const callCount = runtimeSendMessage.mock.calls.filter(
+          (call) => call[0]?.type === "GET_CONTENT_SCRIPT_STATE"
+        ).length
+
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: true,
+            state: {
+              enabled: true,
+              filters: [],
+              lastSavePath: ""
+            }
+          })
+        }
+
+        if (callCount === 2) {
+          return Promise.resolve({
+            ok: true,
+            state: {
+              enabled: false,
+              filters: [],
+              lastSavePath: ""
+            }
+          })
+        }
+
+        return Promise.resolve({
+          ok: true,
+          state: {
+            enabled: true,
+            filters: [],
+            lastSavePath: ""
+          }
+        })
       }
+
+      return Promise.resolve({ ok: true })
     })
 
     const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
@@ -739,25 +771,23 @@ describe("content script runtime", () => {
     expect(listener).toBeTypeOf("function")
 
     listener?.({
-      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
-      sourceId: "acgrip",
-      enabled: false
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
 
-    expect(createdRoots[0]?.unmount).toHaveBeenCalledTimes(1)
-    expect(createdRoots[1]?.unmount).toHaveBeenCalledTimes(1)
-    expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).toBeNull()
-    expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).toBeNull()
-    expect(anchor.dataset.animeBtBatchDecorated).toBeUndefined()
+    await vi.waitFor(() => {
+      expect(createdRoots[0]?.unmount).toHaveBeenCalledTimes(1)
+      expect(createdRoots[1]?.unmount).toHaveBeenCalledTimes(1)
+      expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).toBeNull()
+      expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).toBeNull()
+      expect(anchor.dataset.animeBtBatchDecorated).toBeUndefined()
+    })
 
     getDetailAnchors.mockReturnValueOnce([anchor])
     getBatchItemFromAnchor.mockReturnValueOnce(item)
     getAnchorMountTarget.mockReturnValueOnce(anchorCell)
 
     listener?.({
-      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
-      sourceId: "acgrip",
-      enabled: true
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
 
     await vi.waitFor(() => {
@@ -771,7 +801,7 @@ describe("content script runtime", () => {
     expect(getLatestPanelProps().statusText).toBe("就绪。先在当前列表页勾选资源。")
   })
 
-  it("preserves in-flight running state when disabling and re-enabling the current source", async () => {
+  it("preserves in-flight running state when content settings disable and then re-enable the current source", async () => {
     const anchorCell = document.createElement("td")
     const anchor = document.createElement("a")
     anchor.href = "https://acg.rip/t/3"
@@ -795,6 +825,21 @@ describe("content script runtime", () => {
     getAnchorMountTarget.mockReturnValueOnce(anchorCell)
     runtimeSendMessage.mockImplementation(({ type }) => {
       if (type === "GET_CONTENT_SCRIPT_STATE") {
+        const callCount = runtimeSendMessage.mock.calls.filter(
+          (call) => call[0]?.type === "GET_CONTENT_SCRIPT_STATE"
+        ).length
+
+        if (callCount === 2) {
+          return Promise.resolve({
+            ok: true,
+            state: {
+              enabled: false,
+              filters: [],
+              lastSavePath: ""
+            }
+          })
+        }
+
         return Promise.resolve({
           ok: true,
           state: {
@@ -832,22 +877,20 @@ describe("content script runtime", () => {
     expect(statusBeforeDisable).not.toBe("就绪。先在当前列表页勾选资源。")
 
     listener?.({
-      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
-      sourceId: "acgrip",
-      enabled: false
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
 
-    expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).toBeNull()
-    expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).toBeNull()
+    await vi.waitFor(() => {
+      expect(document.querySelector("[data-anime-bt-batch-panel-root='1']")).toBeNull()
+      expect(document.querySelector("[data-anime-bt-batch-checkbox-root='1']")).toBeNull()
+    })
 
     getDetailAnchors.mockReturnValueOnce([anchor])
     getBatchItemFromAnchor.mockReturnValueOnce(item)
     getAnchorMountTarget.mockReturnValueOnce(anchorCell)
 
     listener?.({
-      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
-      sourceId: "acgrip",
-      enabled: true
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
 
     await vi.waitFor(() => {

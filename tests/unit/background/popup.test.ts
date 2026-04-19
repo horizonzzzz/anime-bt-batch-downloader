@@ -4,7 +4,7 @@ import { DEFAULT_DOWNLOADER_CONFIG } from "../../../src/lib/downloader/config/de
 import { DEFAULT_SOURCE_CONFIG } from "../../../src/lib/sources/config/defaults"
 import {
   buildPopupState,
-  notifyActiveTabOfSourceEnabledChange,
+  notifySupportedSourceTabsOfContentSettingsChange,
   normalizePopupOptionsRoute,
   openOptionsPageForRoute,
   setSourceEnabledForPopup
@@ -275,47 +275,7 @@ describe("popup background helpers", () => {
     expect(createTab).not.toHaveBeenCalled()
   })
 
-  it("notifies the active tab when the popup toggles the current source", async () => {
-    const queryActiveTabId = vi.fn(async () => 11)
-    const sendMessageToTab = vi.fn(async () => undefined)
-
-    await notifyActiveTabOfSourceEnabledChange("kisssub", false, {
-      queryActiveTabId,
-      sendMessageToTab
-    })
-
-    expect(queryActiveTabId).toHaveBeenCalledTimes(1)
-    expect(sendMessageToTab).toHaveBeenCalledWith(11, {
-      type: "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT",
-      sourceId: "kisssub",
-      enabled: false
-    })
-  })
-
-  it("ignores source-toggle tab sync when no active tab is available", async () => {
-    const queryActiveTabId = vi.fn(async () => null)
-    const sendMessageToTab = vi.fn(async () => undefined)
-
-    await notifyActiveTabOfSourceEnabledChange("kisssub", true, {
-      queryActiveTabId,
-      sendMessageToTab
-    })
-
-    expect(sendMessageToTab).not.toHaveBeenCalled()
-  })
-
-  it("broadcasts filter updates to supported source tabs without touching unrelated pages", async () => {
-    const popupModule = (await import("../../../src/lib/background/popup")) as Record<string, unknown>
-    const notifySupportedSourceTabsOfFilterChange = popupModule
-      .notifySupportedSourceTabsOfFilterChange as
-      | ((dependencies?: {
-          queryTabs: () => Promise<Array<{ id?: number; url?: string | null }>>
-          sendMessageToTab: (tabId: number, message: { type: string }) => Promise<void>
-        }) => Promise<void>)
-      | undefined
-
-    expect(notifySupportedSourceTabsOfFilterChange).toBeTypeOf("function")
-
+  it("broadcasts content-settings updates to supported source tabs without touching unrelated pages", async () => {
     const queryTabs = vi.fn(async () => [
       { id: 11, url: "https://acg.rip/" },
       { id: 12, url: "https://bangumi.moe/search" },
@@ -324,7 +284,7 @@ describe("popup background helpers", () => {
     ])
     const sendMessageToTab = vi.fn(async () => undefined)
 
-    await notifySupportedSourceTabsOfFilterChange?.({
+    await notifySupportedSourceTabsOfContentSettingsChange({
       queryTabs,
       sendMessageToTab
     })
@@ -332,10 +292,10 @@ describe("popup background helpers", () => {
     expect(queryTabs).toHaveBeenCalledTimes(1)
     expect(sendMessageToTab).toHaveBeenCalledTimes(2)
     expect(sendMessageToTab).toHaveBeenNthCalledWith(1, 11, {
-      type: "ANIME_BT_FILTERS_UPDATED_EVENT"
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
     expect(sendMessageToTab).toHaveBeenNthCalledWith(2, 12, {
-      type: "ANIME_BT_FILTERS_UPDATED_EVENT"
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
   })
 })

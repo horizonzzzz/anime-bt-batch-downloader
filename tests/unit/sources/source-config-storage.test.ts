@@ -96,7 +96,7 @@ describe("source config storage", () => {
     })
   })
 
-  it("persists source enablement changes independently of app settings", async () => {
+  it("persists source enablement changes under dedicated source config storage", async () => {
     const saved = await saveSourceConfig({
       ...DEFAULT_SOURCE_CONFIG,
       acgrip: {
@@ -128,35 +128,7 @@ describe("source config storage", () => {
     expect(saved.bangumimoe.deliveryMode).toBe("torrent-url")
   })
 
-  it("ignores legacy app_settings and hydrates default source config", async () => {
-    await fakeBrowser.storage.local.set({
-      app_settings: {
-        enabledSources: {
-          kisssub: false,
-          dongmanhuayuan: true,
-          acgrip: false,
-          bangumimoe: true
-        },
-        sourceDeliveryModes: {
-          kisssub: "torrent-file",
-          acgrip: "torrent-url"
-        },
-        // URL must match acgscript pattern: //{prefix}.acgscript.com/script/{path}/{file}.js?{version}
-        remoteScriptUrl: "//custom.acgscript.com/script/miobt/test.js?20260419",
-        remoteScriptRevision: "custom-rev"
-      }
-    })
-
-    const config = await getSourceConfig()
-
-    expect(config).toEqual(DEFAULT_SOURCE_CONFIG)
-
-    const stored = await fakeBrowser.storage.local.get("source_config")
-    expect(stored.source_config).toEqual(config)
-  })
-
-  it("uses source_config directly when it exists, ignoring legacy app_settings", async () => {
-    // Set up both source_config and legacy app_settings
+  it("uses source_config directly when it exists", async () => {
     await fakeBrowser.storage.local.set({
       source_config: {
         kisssub: {
@@ -180,39 +152,14 @@ describe("source config storage", () => {
           enabled: false,
           deliveryMode: "magnet"
         }
-      },
-      app_settings: {
-        enabledSources: {
-          kisssub: true // Should be ignored
-        },
-        sourceDeliveryModes: {
-          kisssub: "magnet" // Should be ignored
-        },
-        remoteScriptUrl: "//old.acgscript.com/script/miobt/old.js?20180101", // Should be ignored
-        remoteScriptRevision: "old-rev" // Should be ignored
       }
     })
 
     const config = await getSourceConfig()
 
-    // Should use source_config values, not legacy
     expect(config.kisssub.enabled).toBe(false)
     expect(config.kisssub.deliveryMode).toBe("torrent-file")
     expect(config.kisssub.script.url).toBe("//new.acgscript.com/script/miobt/new.js?20260419")
     expect(config.kisssub.script.revision).toBe("new-rev")
-  })
-
-  it("still hydrates defaults when only legacy app_settings is present", async () => {
-    await fakeBrowser.storage.local.set({
-      app_settings: {
-        enabledSources: {
-          kisssub: false
-        }
-      }
-    })
-
-    const config = await getSourceConfig()
-
-    expect(config).toEqual(DEFAULT_SOURCE_CONFIG)
   })
 })

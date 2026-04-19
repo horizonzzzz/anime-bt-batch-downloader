@@ -17,6 +17,8 @@ Built with `WXT + React 19 + TypeScript`, the project is organized around source
 - Submit selected items to the active downloader in one batch
 - Supported downloaders: `qBittorrent WebUI` and `Transmission RPC`
 - Optionally override the active downloader's download path for the current batch
+- Options page uses per-domain workbenches for downloader config, site config, filters, subscriptions, history, and overview
+- Runtime config is stored in dedicated domain keys instead of a single monolithic settings document
 - UI copy follows the browser UI language automatically; there is no manual language switch inside the extension
 
 ## Supported Sources
@@ -130,7 +132,7 @@ pnpm test:all
 - `src/entrypoints/source-batch.content/`: WXT content-script entrypoint, runtime bootstrap, and content style entry
 - `src/components/`: floating batch panel and options page UI
 - `src/lib/sources/`: source adapters and source-specific extraction helpers
-- `src/lib/`: shared settings, downloader adapters, runtime messaging, and batch helpers
+- `src/lib/`: domain-specific config/storage modules, downloader adapters, runtime messaging, subscriptions, and batch helpers
 - `tests/`: unit, component, and Playwright E2E coverage
 
 ## Testing

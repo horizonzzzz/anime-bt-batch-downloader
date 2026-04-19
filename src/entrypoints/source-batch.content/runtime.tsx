@@ -14,14 +14,11 @@ import {
   BATCH_EVENT,
   CONTENT_SETTINGS_CHANGED_EVENT,
   CONTENT_SCRIPT_READY_EVENT,
-  FILTERS_UPDATED_EVENT,
   SCAN_SUBSCRIPTION_LIST_REQUEST,
-  SOURCE_ENABLED_CHANGE_EVENT,
   sendRuntimeRequest,
   type ContentRuntimeMessage,
   type ScanSubscriptionListMessage,
-  type ScanSubscriptionListResultMessage,
-  type SourceEnabledChangeMessage
+  type ScanSubscriptionListResultMessage
 } from "../../lib/shared/messages"
 import {
   getAnchorMountTarget,
@@ -160,16 +157,6 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
 
       if (message.type === BATCH_EVENT) {
         handleBatchEvent(message)
-        return
-      }
-
-      if (message.type === SOURCE_ENABLED_CHANGE_EVENT) {
-        void handleSourceEnabledChange(message)
-        return
-      }
-
-      if (message.type === FILTERS_UPDATED_EVENT) {
-        void handleContentSettingsChanged()
         return
       }
 
@@ -400,19 +387,6 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
       childList: true,
       subtree: true
     })
-  }
-
-  async function handleSourceEnabledChange(message: SourceEnabledChangeMessage) {
-    if (!matchedPageSource || matchedPageSource.id !== message.sourceId) {
-      return
-    }
-
-    if (message.enabled) {
-      await activateSource(matchedPageSource)
-      return
-    }
-
-    deactivateSource({ preserveRunningState: true })
   }
 
   async function handleContentSettingsChanged() {

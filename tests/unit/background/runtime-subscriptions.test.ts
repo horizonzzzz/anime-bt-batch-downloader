@@ -20,7 +20,6 @@ const {
   downloadSubscriptionHitsMock,
   executeSubscriptionScanMock,
   getSubscriptionPolicyConfigMock,
-  notifySupportedSourceTabsOfFilterChangeMock,
   reconcileSubscriptionAlarmMock,
   testDownloaderConnectionMock,
   upsertSubscriptionDefinitionMock
@@ -30,7 +29,6 @@ const {
   downloadSubscriptionHitsMock: vi.fn(),
   executeSubscriptionScanMock: vi.fn(),
   getSubscriptionPolicyConfigMock: vi.fn(),
-  notifySupportedSourceTabsOfFilterChangeMock: vi.fn(),
   reconcileSubscriptionAlarmMock: vi.fn(),
   testDownloaderConnectionMock: vi.fn(),
   upsertSubscriptionDefinitionMock: vi.fn()
@@ -58,7 +56,6 @@ vi.mock("../../../src/lib/background", async () => {
     deleteSubscriptionDefinition: deleteSubscriptionDefinitionMock,
     downloadSubscriptionHits: downloadSubscriptionHitsMock,
     executeSubscriptionScan: executeSubscriptionScanMock,
-    notifySupportedSourceTabsOfFilterChange: notifySupportedSourceTabsOfFilterChangeMock,
     reconcileSubscriptionAlarm: reconcileSubscriptionAlarmMock,
     retryFailedItems: vi.fn(),
     testDownloaderConnection: testDownloaderConnectionMock,
@@ -189,7 +186,19 @@ describe("background runtime subscription boundary", () => {
       {
         type: "TEST_DOWNLOADER_CONNECTION",
         settings: {
-          currentDownloaderId: "qbittorrent"
+          activeId: "qbittorrent",
+          profiles: {
+            qbittorrent: {
+              baseUrl: "http://127.0.0.1:17474",
+              username: "",
+              password: ""
+            },
+            transmission: {
+              baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+              username: "",
+              password: ""
+            }
+          }
         }
       },
       {},
@@ -202,7 +211,19 @@ describe("background runtime subscription boundary", () => {
     })
     expect(testDownloaderConnectionMock).toHaveBeenCalledWith(
       {
-        currentDownloaderId: "qbittorrent"
+        activeId: "qbittorrent",
+        profiles: {
+          qbittorrent: {
+            baseUrl: "http://127.0.0.1:17474",
+            username: "",
+            password: ""
+          },
+          transmission: {
+            baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+            username: "",
+            password: ""
+          }
+        }
       }
     )
     expect(sendResponse).toHaveBeenCalledWith({

@@ -7,11 +7,7 @@ import { resolveSourceEnabled } from "../sources/config/selectors"
 import { getDownloaderConfig } from "../downloader/config/storage"
 import {
   CONTENT_SETTINGS_CHANGED_EVENT,
-  FILTERS_UPDATED_EVENT,
-  SOURCE_ENABLED_CHANGE_EVENT,
-  type ContentSettingsChangedMessage,
-  type FiltersUpdatedMessage,
-  type SourceEnabledChangeMessage
+  type ContentSettingsChangedMessage
 } from "../shared/messages"
 import { getBrowser, getExtensionUrl } from "../shared/browser"
 import { DEFAULT_OPTIONS_ROUTE, isOptionsRoutePath, type OptionsRoutePath } from "../shared/options-routes"
@@ -51,21 +47,10 @@ type OpenOptionsPageDependencies = {
   getExtensionUrl: (path: string) => string
 }
 
-type NotifyActiveTabOfSourceEnabledChangeDependencies = {
-  queryActiveTabId: () => Promise<number | null>
-  sendMessageToTab: (tabId: number, message: SourceEnabledChangeMessage) => Promise<void>
-}
-
-type NotifySupportedSourceTabsDependencies<TMessage extends { type: string }> = {
+type NotifySupportedSourceTabsOfContentSettingsChangeDependencies = {
   queryTabs: () => Promise<Array<{ id?: number; url?: string | null }>>
-  sendMessageToTab: (tabId: number, message: TMessage) => Promise<void>
+  sendMessageToTab: (tabId: number, message: ContentSettingsChangedMessage) => Promise<void>
 }
-
-type NotifySupportedSourceTabsOfFilterChangeDependencies =
-  NotifySupportedSourceTabsDependencies<FiltersUpdatedMessage>
-
-type NotifySupportedSourceTabsOfContentSettingsChangeDependencies =
-  NotifySupportedSourceTabsDependencies<ContentSettingsChangedMessage>
 
 const DEFAULT_BUILD_POPUP_STATE_DEPENDENCIES: BuildPopupStateDependencies = {
   getSourceConfig,
@@ -116,22 +101,6 @@ const DEFAULT_OPEN_OPTIONS_PAGE_DEPENDENCIES: OpenOptionsPageDependencies = {
   },
   getExtensionUrl
 }
-
-const DEFAULT_NOTIFY_ACTIVE_TAB_OF_SOURCE_ENABLED_CHANGE_DEPENDENCIES: NotifyActiveTabOfSourceEnabledChangeDependencies =
-  {
-    queryActiveTabId,
-    sendMessageToTab: async (tabId, message) => {
-      await getBrowser().tabs.sendMessage(tabId, message)
-    }
-  }
-
-const DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_FILTER_CHANGE_DEPENDENCIES: NotifySupportedSourceTabsOfFilterChangeDependencies =
-  {
-    queryTabs: async () => getBrowser().tabs.query({}),
-    sendMessageToTab: async (tabId, message) => {
-      await getBrowser().tabs.sendMessage(tabId, message)
-    }
-  }
 
 const DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_CONTENT_SETTINGS_CHANGE_DEPENDENCIES: NotifySupportedSourceTabsOfContentSettingsChangeDependencies =
   {
@@ -197,38 +166,6 @@ export async function setSourceEnabledForPopup(
   })
 }
 
-export async function notifyActiveTabOfSourceEnabledChange(
-  sourceId: SourceId,
-  enabled: boolean,
-  dependencies: NotifyActiveTabOfSourceEnabledChangeDependencies = DEFAULT_NOTIFY_ACTIVE_TAB_OF_SOURCE_ENABLED_CHANGE_DEPENDENCIES
-) {
-  const activeTabId = await dependencies.queryActiveTabId()
-  if (typeof activeTabId !== "number") {
-    return
-  }
-
-  try {
-    await dependencies.sendMessageToTab(activeTabId, {
-      type: SOURCE_ENABLED_CHANGE_EVENT,
-      sourceId,
-      enabled
-    })
-  } catch {
-    // Ignore tabs without a receiver, such as unsupported or reloaded pages.
-  }
-}
-
-export async function notifySupportedSourceTabsOfFilterChange(
-  dependencies: NotifySupportedSourceTabsOfFilterChangeDependencies = DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_FILTER_CHANGE_DEPENDENCIES
-) {
-  await notifySupportedSourceTabs(
-    {
-      type: FILTERS_UPDATED_EVENT
-    },
-    dependencies
-  )
-}
-
 export async function notifySupportedSourceTabsOfContentSettingsChange(
   dependencies: NotifySupportedSourceTabsOfContentSettingsChangeDependencies = DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_CONTENT_SETTINGS_CHANGE_DEPENDENCIES
 ) {
@@ -241,16 +178,8 @@ export async function notifySupportedSourceTabsOfContentSettingsChange(
 }
 
 async function notifySupportedSourceTabs(
-  message: FiltersUpdatedMessage,
-  dependencies: NotifySupportedSourceTabsOfFilterChangeDependencies
-): Promise<void>
-async function notifySupportedSourceTabs(
   message: ContentSettingsChangedMessage,
   dependencies: NotifySupportedSourceTabsOfContentSettingsChangeDependencies
-): Promise<void>
-async function notifySupportedSourceTabs<TMessage extends { type: string }>(
-  message: TMessage,
-  dependencies: NotifySupportedSourceTabsDependencies<TMessage>
 ) {
   const tabs = await dependencies.queryTabs()
 

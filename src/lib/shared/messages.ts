@@ -20,8 +20,6 @@ import type { OverviewState } from "../background/queries/overview-state"
 import { getBrowser } from "./browser"
 
 export const BATCH_EVENT = "ANIME_BT_BATCH_EVENT"
-export const SOURCE_ENABLED_CHANGE_EVENT = "ANIME_BT_SOURCE_ENABLED_CHANGE_EVENT"
-export const FILTERS_UPDATED_EVENT = "ANIME_BT_FILTERS_UPDATED_EVENT"
 export const CONTENT_SETTINGS_CHANGED_EVENT = "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
 export const SCAN_SUBSCRIPTION_LIST_REQUEST = "ANIME_BT_SCAN_SUBSCRIPTION_LIST"
 export const CONTENT_SCRIPT_READY_EVENT = "ANIME_BT_CONTENT_SCRIPT_READY"
@@ -30,24 +28,12 @@ export type BatchEventMessage = {
   type: typeof BATCH_EVENT
 } & BatchEventPayload
 
-export type SourceEnabledChangeMessage = {
-  type: typeof SOURCE_ENABLED_CHANGE_EVENT
-  sourceId: SourceId
-  enabled: boolean
-}
-
-export type FiltersUpdatedMessage = {
-  type: typeof FILTERS_UPDATED_EVENT
-}
-
 export type ContentSettingsChangedMessage = {
   type: typeof CONTENT_SETTINGS_CHANGED_EVENT
 }
 
 export type ContentRuntimeMessage =
   | BatchEventMessage
-  | SourceEnabledChangeMessage
-  | FiltersUpdatedMessage
   | ContentSettingsChangedMessage
 
 export type ScanSubscriptionListMessage = {
