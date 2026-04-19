@@ -93,4 +93,25 @@ describe("subscription policy storage", () => {
     expect(config.pollingIntervalMinutes).toBe(45)
     expect(config.notificationsEnabled).toBe(false)
   })
+
+  it("migrates legacy app_settings to subscription_policy_config on first access", async () => {
+    await fakeBrowser.storage.local.set({
+      app_settings: {
+        subscriptionsEnabled: true,
+        pollingIntervalMinutes: 45,
+        subscriptionNotificationsEnabled: false,
+        subscriptionNotificationDownloadActionEnabled: true
+      }
+    })
+
+    const config = await getSubscriptionPolicyConfig()
+
+    expect(config.enabled).toBe(true)
+    expect(config.pollingIntervalMinutes).toBe(45)
+    expect(config.notificationsEnabled).toBe(false)
+    expect(config.notificationDownloadActionEnabled).toBe(true)
+
+    const stored = await fakeBrowser.storage.local.get("subscription_policy_config")
+    expect(stored.subscription_policy_config).toEqual(config)
+  })
 })
