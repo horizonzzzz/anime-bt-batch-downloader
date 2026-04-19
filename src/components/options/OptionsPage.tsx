@@ -81,7 +81,7 @@ function OptionsWorkspaceContent({ api }: OptionsPageProps) {
   const currentDownloaderName = getDownloaderMeta(downloaderWorkbench.config.activeId).displayName
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 lg:flex lg:items-start">
+    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 lg:flex-row lg:items-start">
       <OptionsSidebar
         routes={localizedRoutes}
         activePath={activeMeta.path}

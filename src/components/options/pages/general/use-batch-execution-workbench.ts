@@ -1,5 +1,5 @@
 import { i18n } from "../../../../lib/i18n"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import type { BatchExecutionConfig } from "../../../../lib/batch-config/types"
 import type { OptionsApi } from "../../OptionsPage"
@@ -48,7 +48,7 @@ export function useBatchExecutionConfigWorkbench(api: OptionsApi) {
     }
   }, [api])
 
-  async function save() {
+  const save = useCallback(async () => {
     setSaving(true)
     setStatus({
       tone: "info",
@@ -61,15 +61,17 @@ export function useBatchExecutionConfigWorkbench(api: OptionsApi) {
         tone: "success",
         message: i18n.t("options.status.settingsSaved")
       })
+      return true
     } catch (error: unknown) {
       setStatus({
         tone: "error",
         message: error instanceof Error ? error.message : i18n.t("options.status.saveFailed")
       })
+      return false
     } finally {
       setSaving(false)
     }
-  }
+  }, [api, config])
 
   return { config, setConfig, status, loading, saving, save }
 }

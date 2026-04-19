@@ -144,7 +144,9 @@
       "viewGithubRepo": "查看 GitHub 仓库"
     },
     "footer": {
-      "saveAll": "保存所有设置"
+      "eyebrow": "当前页面操作",
+      "currentPageDescription": "只保存当前页面对应的配置，不影响其他配置页。",
+      "generalDescription": "基础配置页会在一次操作中同时保存下载器设置和批量执行设置。"
     },
     "routes": {
       "general": {
@@ -232,7 +234,9 @@
         }
       },
       "saveDownloader": "保存下载器设置",
-      "saveBatchExecution": "保存批量执行设置"
+      "saveBatchExecution": "保存批量执行设置",
+      "saveCombined": "保存基础设置",
+      "saveCombinedFailed": "基础设置中有配置项保存失败，请重试。"
     },
     "sites": {
       "badge": {

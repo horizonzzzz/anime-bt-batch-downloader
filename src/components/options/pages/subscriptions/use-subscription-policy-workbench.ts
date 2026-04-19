@@ -1,7 +1,7 @@
 import { i18n } from "../../../../lib/i18n"
 import { DEFAULT_SUBSCRIPTION_POLICY_CONFIG } from "../../../../lib/subscriptions/policy/defaults"
 import type { SubscriptionPolicyConfig } from "../../../../lib/subscriptions/policy/types"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import type { OptionsApi } from "../../OptionsPage"
 
@@ -58,7 +58,7 @@ export function useSubscriptionPolicyWorkbench(api: OptionsApi) {
     }
   }, [api])
 
-  const savePolicy = async () => {
+  const savePolicy = useCallback(async () => {
     if (!policyReady) {
       return
     }
@@ -84,7 +84,7 @@ export function useSubscriptionPolicyWorkbench(api: OptionsApi) {
     } finally {
       setSaving(false)
     }
-  }
+  }, [api, policy, policyReady])
 
   return {
     policy,

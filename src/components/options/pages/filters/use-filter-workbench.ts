@@ -1,5 +1,5 @@
 import { i18n } from "../../../../lib/i18n"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import type { FilterConfig } from "../../../../lib/filter-rules/types"
 import type { OptionsApi } from "../../OptionsPage"
@@ -43,7 +43,7 @@ export function useFilterWorkbench(api: OptionsApi) {
     }
   }, [api])
 
-  async function save() {
+  const save = useCallback(async () => {
     setSaving(true)
     setStatus({
       tone: "info",
@@ -64,7 +64,7 @@ export function useFilterWorkbench(api: OptionsApi) {
     } finally {
       setSaving(false)
     }
-  }
+  }, [api, config])
 
   return { config, setConfig, status, loading, saving, save }
 }

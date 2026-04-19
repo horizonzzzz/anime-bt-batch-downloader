@@ -360,6 +360,11 @@ describe("OptionsPage", () => {
     expect(screen.getByRole("heading", { name: "下载器选择" })).toBeInTheDocument()
     expect(screen.getByRole("radio", { name: "qBittorrent" })).toBeChecked()
     expect(screen.getByText("下载器兼容性提示")).toBeInTheDocument()
+    expect(screen.getByTestId("options-page-footer")).toBeInTheDocument()
+    expect(screen.getByTestId("options-page-footer")).toHaveClass("fixed")
+    expect(screen.getByRole("button", { name: "保存基础设置" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "保存下载器设置" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "保存批量执行设置" })).not.toBeInTheDocument()
   })
 
   it("switches to transmission settings fields when transmission is selected", async () => {
@@ -405,7 +410,7 @@ describe("OptionsPage", () => {
     render(<OptionsPage api={api} />)
 
     expect(await screen.findByRole("heading", { name: "站点配置" })).toBeInTheDocument()
-    expect(screen.getByText("当前下载器：Transmission")).toBeInTheDocument()
+    expect(await screen.findByText("当前下载器：Transmission")).toBeInTheDocument()
   })
 
   it(
@@ -428,6 +433,8 @@ describe("OptionsPage", () => {
       expect(screen.getByText("Dongmanhuayuan 动漫花园")).toBeInTheDocument()
       expect(screen.getAllByText("ACG.RIP").length).toBeGreaterThan(0)
       expect(screen.getByText("Bangumi.moe")).toBeInTheDocument()
+      expect(screen.getByTestId("options-page-footer")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "保存站点配置" })).toBeInTheDocument()
 
       await user.click(screen.getByRole("button", { name: "源站概览" }))
 
@@ -438,6 +445,7 @@ describe("OptionsPage", () => {
       expect(screen.getByText("面向动漫爱好者的BT资源交流站")).toBeInTheDocument()
       expect(screen.getByText("分类清晰、以种子直下为主的ACG站")).toBeInTheDocument()
       expect(screen.getByText("追番日历结合最新种子发布的社区")).toBeInTheDocument()
+      expect(screen.queryByTestId("options-page-footer")).not.toBeInTheDocument()
     },
     10000
   )
@@ -944,8 +952,8 @@ describe("OptionsPage", () => {
       await user.clear(usernameField)
       await user.type(usernameField, "operator")
 
-      // Save downloader config with the dedicated button
-      await user.click(screen.getByRole("button", { name: "保存下载器设置" }))
+      // Save general config with the unified footer button
+      await user.click(screen.getByRole("button", { name: "保存基础设置" }))
 
       await waitFor(() => {
         expect(api.saveDownloaderConfig).toHaveBeenCalledWith(
@@ -998,7 +1006,7 @@ describe("OptionsPage", () => {
     20000
   )
 
-  it("disables the downloader save button while persisting settings", async () => {
+  it("disables the general save button while persisting settings", async () => {
     const user = userEvent.setup()
     let resolveSave: ((value: DownloaderConfig) => void) | undefined
     const api = createOptionsApi({
@@ -1014,7 +1022,7 @@ describe("OptionsPage", () => {
 
     expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
 
-    const saveButton = screen.getByRole("button", { name: "保存下载器设置" })
+    const saveButton = screen.getByRole("button", { name: "保存基础设置" })
     expect(saveButton).not.toBeDisabled()
 
     await user.click(saveButton)
@@ -1255,7 +1263,7 @@ describe("OptionsPage", () => {
       expect(transmissionBaseUrlField).toHaveValue("")
 
       await user.click(screen.getByRole("radio", { name: "qBittorrent" }))
-      await user.click(screen.getByRole("button", { name: "保存下载器设置" }))
+      await user.click(screen.getByRole("button", { name: "保存基础设置" }))
 
       await waitFor(() => {
         expect(api.saveDownloaderConfig).toHaveBeenCalledWith(

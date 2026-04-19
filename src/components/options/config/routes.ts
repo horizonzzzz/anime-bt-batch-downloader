@@ -21,6 +21,7 @@ export type OptionsRouteMeta = {
   label: string
   title: string
   description: string
+  footerLabel: string
 }
 
 const [
@@ -66,7 +67,8 @@ function localizeRoute(route: (typeof OPTIONS_ROUTES)[number]): OptionsRouteMeta
     ...route,
     label: i18n.t(`${baseKey}.label`),
     title: i18n.t(`${baseKey}.title`),
-    description: i18n.t(`${baseKey}.description`)
+    description: i18n.t(`${baseKey}.description`),
+    footerLabel: i18n.t(`${baseKey}.footerLabel`)
   }
 }
 

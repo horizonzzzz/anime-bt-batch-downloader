@@ -1,7 +1,7 @@
 import { i18n } from "../../../../lib/i18n"
 import { useMemo, useState } from "react"
 
-import { HiOutlinePlus } from "react-icons/hi2"
+import { HiOutlineArrowPath, HiOutlinePlus } from "react-icons/hi2"
 
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   Button,
   Card
 } from "../../../ui"
+import { useOptionsPageFooter } from "../../layout/OptionsPageFooter"
 import type { OptionsApi } from "../../OptionsPage"
 import { FilterRuleBuilderDialog } from "./FilterRuleBuilderDialog"
 import { FilterWorkbenchCard } from "./FilterWorkbenchCards"
@@ -105,6 +106,30 @@ export function FiltersPage({ api }: FiltersPageProps) {
   const enabledFiltersCount = filters.filter((filter) => filter.enabled).length
   const pendingDeleteFilter =
     pendingDeleteIndex !== null ? filters[pendingDeleteIndex] : null
+  const footerConfig = useMemo(() => {
+    if (loading) {
+      return null
+    }
+
+    return {
+      description: i18n.t("options.footer.currentPageDescription"),
+      actions: (
+        <Button
+          type="button"
+          size="lg"
+          className="min-w-[168px] sm:min-w-[192px]"
+          onClick={() => void save()}
+          disabled={loading || saving}>
+          {saving ? (
+            <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : null}
+          {saving ? i18n.t("common.processing") : i18n.t("options.filters.saveFilters")}
+        </Button>
+      )
+    }
+  }, [loading, save, saving])
+
+  useOptionsPageFooter(footerConfig)
 
   return (
     <div className="space-y-8" data-testid="filters-workbench">
@@ -151,10 +176,6 @@ export function FiltersPage({ api }: FiltersPageProps) {
                 {i18n.t("options.filters.enabledCount", [enabledFiltersCount])}
               </div>
             </div>
-
-            <Button type="button" onClick={() => void save()} disabled={loading || saving}>
-              {saving ? i18n.t("common.processing") : i18n.t("options.filters.saveFilters")}
-            </Button>
           </div>
         </div>
       </Card>

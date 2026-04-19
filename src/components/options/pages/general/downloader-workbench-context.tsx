@@ -17,7 +17,7 @@ type DownloaderWorkbenchState = {
 
 type DownloaderWorkbenchActions = {
   setConfig: (config: DownloaderConfig) => void
-  save: () => Promise<void>
+  save: () => Promise<boolean>
 }
 
 type DownloaderWorkbenchContextValue = DownloaderWorkbenchState & DownloaderWorkbenchActions
@@ -111,11 +111,13 @@ export function DownloaderWorkbenchProvider({
         tone: "success",
         message: i18n.t("options.status.settingsSaved")
       })
+      return true
     } catch (error: unknown) {
       setStatus({
         tone: "error",
         message: error instanceof Error ? error.message : i18n.t("options.status.saveFailed")
       })
+      return false
     } finally {
       setSaving(false)
     }

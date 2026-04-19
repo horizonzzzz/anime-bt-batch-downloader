@@ -1,7 +1,9 @@
 import { i18n } from "../../../../lib/i18n"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { HiOutlineArrowPath } from "react-icons/hi2"
 
 import { Button, Card, Alert } from "../../../ui"
+import { useOptionsPageFooter } from "../../layout/OptionsPageFooter"
 import type { OptionsApi } from "../../OptionsPage"
 import { useSourceConfigWorkbench } from "./use-source-config-workbench"
 
@@ -68,6 +70,30 @@ export function SiteManagementView({ api }: SiteManagementViewProps) {
     if (!config) return 0
     return countEnabledSitesFromConfig(config)
   }, [config])
+  const footerConfig = useMemo(() => {
+    if (!config) {
+      return null
+    }
+
+    return {
+      description: i18n.t("options.footer.currentPageDescription"),
+      actions: (
+        <Button
+          type="button"
+          size="lg"
+          className="min-w-[168px] sm:min-w-[192px]"
+          onClick={() => void save()}
+          disabled={loading || saving}>
+          {saving ? (
+            <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : null}
+          {saving ? i18n.t("common.processing") : i18n.t("options.sites.saveSites")}
+        </Button>
+      )
+    }
+  }, [config, loading, save, saving])
+
+  useOptionsPageFooter(footerConfig)
 
   const toggleSiteExpanded = (sourceId: SourceId) => {
     if (!config || !config[sourceId].enabled) return
@@ -144,13 +170,6 @@ export function SiteManagementView({ api }: SiteManagementViewProps) {
                 {i18n.t("options.sites.enabledSummary", [enabledCount, SOURCE_IDS.length])}
               </div>
             </div>
-
-            <Button
-              type="button"
-              onClick={() => void save()}
-              disabled={loading || saving}>
-              {saving ? i18n.t("common.processing") : i18n.t("options.sites.saveSites")}
-            </Button>
           </div>
         </div>
       </Card>

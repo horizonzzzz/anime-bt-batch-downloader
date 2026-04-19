@@ -300,7 +300,7 @@ test("options page saves settings through the background worker", async () => {
 
     await page.getByLabel("qBittorrent WebUI 地址").fill("http://127.0.0.1:17474")
     await page.getByLabel("用户名").fill("admin")
-    await page.getByRole("button", { name: "保存所有设置" }).click()
+    await page.getByRole("button", { name: "保存基础设置" }).click()
 
     await expect(page.getByText("设置已保存。")).toBeVisible()
   } finally {
@@ -332,7 +332,7 @@ test("options page persists simplified filter edits after saving settings", asyn
 
     await expect(page.getByRole("heading", { name: "爱恋 1080 简繁", exact: true })).toBeVisible()
 
-    await page.getByRole("button", { name: "保存所有设置" }).click()
+    await page.getByRole("button", { name: "保存筛选器配置" }).click()
 
     await expect(page.getByText("设置已保存。")).toBeVisible()
 
@@ -736,7 +736,7 @@ test("disabling a source stops injection until it is enabled again", async () =>
     await expect(acgripSwitch).toHaveAttribute("aria-checked", "true")
     await acgripSwitch.click()
     await expect(acgripSwitch).toHaveAttribute("aria-checked", "false")
-    await optionsPage.getByRole("button", { name: "保存所有设置" }).click()
+    await optionsPage.getByRole("button", { name: "保存站点配置" }).click()
     await expect(optionsPage.getByText("设置已保存。")).toBeVisible()
 
     const disabledPage = await extension.context.newPage()
@@ -753,7 +753,7 @@ test("disabling a source stops injection until it is enabled again", async () =>
     await expect(reenabledSwitch).toHaveAttribute("aria-checked", "false")
     await reenabledSwitch.click()
     await expect(reenabledSwitch).toHaveAttribute("aria-checked", "true")
-    await reopenOptionsPage.getByRole("button", { name: "保存所有设置" }).click()
+    await reopenOptionsPage.getByRole("button", { name: "保存站点配置" }).click()
     await expect(reopenOptionsPage.getByText("设置已保存。")).toBeVisible()
 
     const reenabledPage = await extension.context.newPage()

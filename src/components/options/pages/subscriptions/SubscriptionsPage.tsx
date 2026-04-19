@@ -1,7 +1,7 @@
 import { i18n } from "../../../../lib/i18n"
 import { useMemo, useState } from "react"
 
-import { HiOutlinePlus } from "react-icons/hi2"
+import { HiOutlineArrowPath, HiOutlinePlus } from "react-icons/hi2"
 
 import type { SubscriptionEntry } from "../../../../lib/shared/types"
 import {
@@ -17,6 +17,7 @@ import {
   Button,
   Card
 } from "../../../ui"
+import { useOptionsPageFooter } from "../../layout/OptionsPageFooter"
 import type { OptionsApi } from "../../OptionsPage"
 import { SubscriptionCard } from "./SubscriptionCard"
 import { SubscriptionEditorDialog } from "./SubscriptionEditorDialog"
@@ -50,6 +51,7 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
   const {
     policy,
     setPolicy,
+    status: policyStatus,
     loading: policyLoading,
     saving: policySaving,
     savePolicy
@@ -90,11 +92,37 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
       enabled
     })
   }
+  const footerConfig = useMemo(() => {
+    return {
+      description: i18n.t("options.footer.currentPageDescription"),
+      actions: (
+        <Button
+          type="button"
+          size="lg"
+          className="min-w-[168px] sm:min-w-[208px]"
+          disabled={loading || policyLoading || policySaving}
+          onClick={() => void savePolicy()}>
+          {policySaving ? (
+            <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : null}
+          {policySaving
+            ? i18n.t("common.processing")
+            : i18n.t("options.subscriptions.global.saveButton")}
+        </Button>
+      )
+    }
+  }, [loading, policyLoading, policySaving, savePolicy])
+
+  useOptionsPageFooter(footerConfig)
+  const visibleStatus =
+    policySaving || policyStatus.tone === "error"
+      ? policyStatus
+      : status
 
   return (
     <div className="space-y-8" data-testid="subscriptions-workbench">
       <div role="status" aria-live="polite">
-        <Alert tone={status.tone} title={status.message} />
+        <Alert tone={visibleStatus.tone} title={visibleStatus.message} />
       </div>
 
       <SubscriptionsGlobalCard
@@ -134,7 +162,6 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
             notificationDownloadActionEnabled: enabled
           }))
         }
-        onSave={() => void savePolicy()}
       />
 
       <section className="space-y-4" data-testid="subscriptions-list">

@@ -1,6 +1,6 @@
 import { i18n } from "../../../../lib/i18n"
 
-import { Badge, Button, Card, Input, Label, Switch } from "../../../ui"
+import { Badge, Card, Input, Label, Switch } from "../../../ui"
 import {
   formatSubscriptionDateTime,
   getNotificationDownloadActionStateLabel
@@ -23,7 +23,6 @@ type SubscriptionsGlobalCardProps = {
   onPollingIntervalMinutesChange: (minutes: number) => void
   onNotificationsEnabledChange: (enabled: boolean) => void
   onNotificationDownloadActionEnabledChange: (enabled: boolean) => void
-  onSave?: () => void
 }
 
 export function SubscriptionsGlobalCard({
@@ -42,8 +41,7 @@ export function SubscriptionsGlobalCard({
   onSubscriptionsEnabledChange,
   onPollingIntervalMinutesChange,
   onNotificationsEnabledChange,
-  onNotificationDownloadActionEnabledChange,
-  onSave
+  onNotificationDownloadActionEnabledChange
 }: SubscriptionsGlobalCardProps) {
   const notificationActionState = getNotificationDownloadActionStateLabel(
     notificationsEnabled,
@@ -153,16 +151,6 @@ export function SubscriptionsGlobalCard({
             </dl>
           </div>
         </div>
-
-        {onSave ? (
-          <div className="flex justify-end border-t border-zinc-100 pt-2">
-            <Button type="button" size="sm" onClick={onSave} disabled={controlsDisabled}>
-              {saving
-                ? i18n.t("common.processing")
-                : i18n.t("options.subscriptions.global.saveButton")}
-            </Button>
-          </div>
-        ) : null}
       </div>
     </Card>
   )

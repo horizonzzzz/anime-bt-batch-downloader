@@ -144,7 +144,9 @@
       "viewGithubRepo": "View GitHub Repository"
     },
     "footer": {
-      "saveAll": "Save All Settings"
+      "eyebrow": "Current page actions",
+      "currentPageDescription": "Only the configuration owned by this page will be saved.",
+      "generalDescription": "This page saves the downloader settings and batch execution settings together."
     },
     "routes": {
       "general": {
@@ -232,7 +234,9 @@
         }
       },
       "saveDownloader": "Save downloader settings",
-      "saveBatchExecution": "Save batch execution settings"
+      "saveBatchExecution": "Save batch execution settings",
+      "saveCombined": "Save basic settings",
+      "saveCombinedFailed": "Some basic settings failed to save. Please try again."
     },
     "sites": {
       "badge": {

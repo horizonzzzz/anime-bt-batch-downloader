@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 
 import { i18n } from "../../../../lib/i18n"
 import { requestDownloaderPermission } from "../../../../lib/downloader/permissions"
 import { HiOutlineArrowPath } from "react-icons/hi2"
 
-import { Button, Card, Alert } from "../../../ui"
+import { Button, Alert } from "../../../ui"
 import { useDownloaderWorkbench } from "./downloader-workbench-context"
 import { useBatchExecutionConfigWorkbench } from "./use-batch-execution-workbench"
 import { ConnectionHelpAlert } from "./ConnectionHelpAlert"
@@ -12,6 +12,7 @@ import { DownloaderSelectorSection } from "./DownloaderSelectorSection"
 import { ExtractionCadenceSection } from "./ExtractionCadenceSection"
 import { QbCredentialsSection, type ConnectionState } from "./QbCredentialsSection"
 import { TransmissionCredentialsSection } from "./TransmissionCredentialsSection"
+import { useOptionsPageFooter } from "../../layout/OptionsPageFooter"
 import type { OptionsApi } from "../../OptionsPage"
 
 type GeneralSettingsPageProps = {
@@ -20,6 +21,11 @@ type GeneralSettingsPageProps = {
 
 export function GeneralSettingsPage({ api }: GeneralSettingsPageProps) {
   const [advancedOpen, setAdvancedOpen] = useState(true)
+  const [generalSaving, setGeneralSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<{
+    tone: "info" | "success" | "error"
+    message: string
+  } | null>(null)
 
   const downloaderWorkbench = useDownloaderWorkbench()
   const batchWorkbench = useBatchExecutionConfigWorkbench(api)
@@ -38,10 +44,36 @@ export function GeneralSettingsPage({ api }: GeneralSettingsPageProps) {
     setConnectionVersion("")
   }, [currentDownloaderId])
 
+  const handleSaveGeneralSettings = async () => {
+    setGeneralSaving(true)
+    setSaveStatus({
+      tone: "info",
+      message: i18n.t("options.status.savingSettings")
+    })
+
+    try {
+      const [downloaderSaved, batchSaved] = await Promise.all([
+        downloaderWorkbench.save(),
+        batchWorkbench.save()
+      ])
+
+      setSaveStatus({
+        tone: downloaderSaved && batchSaved ? "success" : "error",
+        message:
+          downloaderSaved && batchSaved
+            ? i18n.t("options.status.settingsSaved")
+            : i18n.t("options.general.saveCombinedFailed")
+      })
+    } finally {
+      setGeneralSaving(false)
+    }
+  }
+
   const handleTestConnection = async () => {
     setTesting(true)
     setConnectionState("idle")
     setConnectionMessage("")
+    setSaveStatus(null)
 
     try {
       await requestDownloaderPermission(downloaderWorkbench.config)
@@ -73,7 +105,7 @@ export function GeneralSettingsPage({ api }: GeneralSettingsPageProps) {
       ? `${i18n.t("options.general.common.connectionSuccess")}。${connectionVersion}`
       : connectionState === "error"
         ? connectionMessage
-        : downloaderWorkbench.status.message || batchWorkbench.status.message || ""
+        : saveStatus?.message || downloaderWorkbench.status.message || batchWorkbench.status.message || ""
 
   const statusTone = testing
     ? "info"
@@ -81,7 +113,37 @@ export function GeneralSettingsPage({ api }: GeneralSettingsPageProps) {
       ? "success"
       : connectionState === "error"
         ? "error"
-        : mapTone(downloaderWorkbench.status.tone)
+        : saveStatus?.tone || mapTone(downloaderWorkbench.status.tone)
+  const generalSaveBusy = generalSaving || downloaderWorkbench.saving || batchWorkbench.saving
+  const footerConfig = useMemo(() => {
+    if (downloaderWorkbench.loading || batchWorkbench.loading) {
+      return null
+    }
+
+    return {
+      description: i18n.t("options.footer.generalDescription"),
+      actions: (
+        <Button
+          type="button"
+          size="lg"
+          className="min-w-[176px] sm:min-w-[208px]"
+          disabled={generalSaveBusy}
+          onClick={() => void handleSaveGeneralSettings()}>
+          {generalSaveBusy ? (
+            <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : null}
+          <span>{i18n.t("options.general.saveCombined")}</span>
+        </Button>
+      )
+    }
+  }, [
+    batchWorkbench.loading,
+    downloaderWorkbench.loading,
+    generalSaveBusy,
+    handleSaveGeneralSettings
+  ])
+
+  useOptionsPageFooter(footerConfig)
 
   if (downloaderWorkbench.loading || batchWorkbench.loading) {
     return (
@@ -96,11 +158,11 @@ export function GeneralSettingsPage({ api }: GeneralSettingsPageProps) {
 
   return (
     <div className="space-y-6">
-      {statusMessage && (
-        <div role="status">
-          {statusMessage}
+      {statusMessage ? (
+        <div role="status" aria-live="polite">
+          <Alert tone={statusTone} title={statusMessage} />
         </div>
-      )}
+      ) : null}
 
       <DownloaderSelectorSection
         activeId={downloaderWorkbench.config.activeId}
@@ -144,46 +206,12 @@ export function GeneralSettingsPage({ api }: GeneralSettingsPageProps) {
         />
       )}
 
-      <Card className="border-t border-zinc-100 pt-4">
-        <div className="flex items-center justify-between">
-          <Button
-            type="button"
-            size="lg"
-            className="min-w-[120px]"
-            disabled={downloaderWorkbench.saving}
-            onClick={() => void downloaderWorkbench.save()}
-          >
-            {downloaderWorkbench.saving ? (
-              <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : null}
-            <span>{i18n.t("options.general.saveDownloader")}</span>
-          </Button>
-        </div>
-      </Card>
-
       <ExtractionCadenceSection
         open={advancedOpen}
         onOpenChange={setAdvancedOpen}
         config={batchWorkbench.config}
         onConfigChange={batchWorkbench.setConfig}
       />
-
-      <Card className="border-t border-zinc-100 pt-4">
-        <div className="flex items-center justify-between">
-          <Button
-            type="button"
-            size="lg"
-            className="min-w-[120px]"
-            disabled={batchWorkbench.saving}
-            onClick={() => void batchWorkbench.save()}
-          >
-            {batchWorkbench.saving ? (
-              <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : null}
-            <span>{i18n.t("options.general.saveBatchExecution")}</span>
-          </Button>
-        </div>
-      </Card>
     </div>
   )
 }
