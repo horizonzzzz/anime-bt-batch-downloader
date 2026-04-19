@@ -2,7 +2,6 @@ import { i18n } from "../../../../lib/i18n"
 import type { JSX } from "react"
 
 import { HiOutlineArrowPath } from "react-icons/hi2"
-import { useFormContext } from "react-hook-form"
 
 import {
   Button,
@@ -14,13 +13,12 @@ import {
   Input
 } from "../../../ui"
 import { FormField } from "../../form/Field"
-import type { ConnectionState } from "../../hooks/use-settings-form"
-import type {
-  SettingsFormInput,
-  SettingsFormValues
-} from "../../schema/settings-form"
+import type { DownloaderProfile } from "../../../../lib/downloader/config/types"
+import type { ConnectionState } from "./QbCredentialsSection"
 
 type TransmissionCredentialsSectionProps = {
+  config: DownloaderProfile
+  onConfigChange: (config: DownloaderProfile) => void
   connectionMessage: string
   connectionState: ConnectionState
   testing: boolean
@@ -36,16 +34,13 @@ function getConnectionStatusClassName(connectionState: ConnectionState): string 
 }
 
 export function TransmissionCredentialsSection({
+  config,
+  onConfigChange,
   connectionMessage,
   connectionState,
   testing,
   onTestConnection
 }: TransmissionCredentialsSectionProps): JSX.Element {
-  const {
-    register,
-    formState: { errors }
-  } = useFormContext<SettingsFormInput, unknown, SettingsFormValues>()
-
   return (
     <Card>
       <CardHeader>
@@ -59,40 +54,49 @@ export function TransmissionCredentialsSection({
           <div className="md:col-span-2">
             <FormField
               label={i18n.t("options.general.transmission.baseUrlLabel")}
-              htmlFor="downloaders.transmission.baseUrl"
-              required
-              error={errors.downloaders?.transmission?.baseUrl?.message}>
+              htmlFor="transmission.baseUrl"
+              required>
               <Input
-                id="downloaders.transmission.baseUrl"
+                id="transmission.baseUrl"
                 placeholder="http://127.0.0.1:9091/transmission/rpc"
                 autoComplete="url"
-                {...register("downloaders.transmission.baseUrl")}
+                value={config.baseUrl}
+                onChange={(e) => onConfigChange({
+                  ...config,
+                  baseUrl: e.target.value
+                })}
               />
             </FormField>
           </div>
 
           <FormField
             label={i18n.t("options.general.common.usernameLabel")}
-            htmlFor="downloaders.transmission.username"
-            error={errors.downloaders?.transmission?.username?.message}>
+            htmlFor="transmission.username">
             <Input
-              id="downloaders.transmission.username"
+              id="transmission.username"
               placeholder="admin"
               autoComplete="username"
-              {...register("downloaders.transmission.username")}
+              value={config.username}
+              onChange={(e) => onConfigChange({
+                ...config,
+                username: e.target.value
+              })}
             />
           </FormField>
 
           <FormField
             label={i18n.t("options.general.common.passwordLabel")}
-            htmlFor="downloaders.transmission.password"
-            error={errors.downloaders?.transmission?.password?.message}>
+            htmlFor="transmission.password">
             <Input
-              id="downloaders.transmission.password"
+              id="transmission.password"
               type="password"
               placeholder={i18n.t("options.general.transmission.passwordPlaceholder")}
               autoComplete="current-password"
-              {...register("downloaders.transmission.password")}
+              value={config.password}
+              onChange={(e) => onConfigChange({
+                ...config,
+                password: e.target.value
+              })}
             />
           </FormField>
         </div>
@@ -127,5 +131,3 @@ export function TransmissionCredentialsSection({
     </Card>
   )
 }
-
-

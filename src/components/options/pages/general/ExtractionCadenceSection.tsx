@@ -3,7 +3,6 @@ import type { JSX } from "react"
 
 import * as Collapsible from "@radix-ui/react-collapsible"
 import { HiChevronDown, HiChevronUp } from "react-icons/hi2"
-import { useFormContext } from "react-hook-form"
 
 import {
   Card,
@@ -14,25 +13,21 @@ import {
   Input
 } from "../../../ui"
 import { FormField } from "../../form/Field"
-import type {
-  SettingsFormInput,
-  SettingsFormValues
-} from "../../schema/settings-form"
+import type { BatchExecutionConfig } from "../../../../lib/batch-config/types"
 
 type ExtractionCadenceSectionProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  config: BatchExecutionConfig
+  onConfigChange: (config: BatchExecutionConfig) => void
 }
 
 export function ExtractionCadenceSection({
   open,
-  onOpenChange
+  onOpenChange,
+  config,
+  onConfigChange
 }: ExtractionCadenceSectionProps): JSX.Element {
-  const {
-    register,
-    formState: { errors }
-  } = useFormContext<SettingsFormInput, unknown, SettingsFormValues>()
-
   return (
     <Collapsible.Root open={open} onOpenChange={onOpenChange}>
       <Card>
@@ -63,40 +58,60 @@ export function ExtractionCadenceSection({
           <CardContent className="grid gap-5 border-t border-zinc-100 bg-zinc-50/50 md:grid-cols-2">
             <FormField
               label={i18n.t("options.general.extractionCadence.concurrencyLabel")}
-              htmlFor="concurrency"
-              error={errors.concurrency?.message}>
-              <Input id="concurrency" type="number" {...register("concurrency")} />
+              htmlFor="concurrency">
+              <Input
+                id="concurrency"
+                type="number"
+                value={config.concurrency}
+                onChange={(e) => onConfigChange({
+                  ...config,
+                  concurrency: parseInt(e.target.value, 10) || 1
+                })}
+              />
             </FormField>
             <FormField
               label={i18n.t("options.general.extractionCadence.retryCountLabel")}
-              htmlFor="retryCount"
-              error={errors.retryCount?.message}>
-              <Input id="retryCount" type="number" {...register("retryCount")} />
+              htmlFor="retryCount">
+              <Input
+                id="retryCount"
+                type="number"
+                value={config.retryCount}
+                onChange={(e) => onConfigChange({
+                  ...config,
+                  retryCount: parseInt(e.target.value, 10) || 0
+                })}
+              />
             </FormField>
             <FormField
               label={i18n.t("options.general.extractionCadence.injectTimeoutLabel")}
-              htmlFor="injectTimeoutMs"
-              error={errors.injectTimeoutMs?.message}>
+              htmlFor="injectTimeoutMs">
               <Input
                 id="injectTimeoutMs"
                 type="number"
                 min={3000}
                 max={60000}
                 step={500}
-                {...register("injectTimeoutMs")}
+                value={config.injectTimeoutMs}
+                onChange={(e) => onConfigChange({
+                  ...config,
+                  injectTimeoutMs: parseInt(e.target.value, 10) || 3000
+                })}
               />
             </FormField>
             <FormField
               label={i18n.t("options.general.extractionCadence.domSettleLabel")}
-              htmlFor="domSettleMs"
-              error={errors.domSettleMs?.message}>
+              htmlFor="domSettleMs">
               <Input
                 id="domSettleMs"
                 type="number"
                 min={200}
                 max={10000}
                 step={100}
-                {...register("domSettleMs")}
+                value={config.domSettleMs}
+                onChange={(e) => onConfigChange({
+                  ...config,
+                  domSettleMs: parseInt(e.target.value, 10) || 200
+                })}
               />
             </FormField>
           </CardContent>
@@ -105,5 +120,3 @@ export function ExtractionCadenceSection({
     </Collapsible.Root>
   )
 }
-
-

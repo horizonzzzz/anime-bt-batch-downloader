@@ -230,7 +230,9 @@
           "prefix": "If host access is already allowed and it still fails, disable",
           "suffix": ". Only do this when the WebUI is meant for an environment you trust."
         }
-      }
+      },
+      "saveDownloader": "Save downloader settings",
+      "saveBatchExecution": "Save batch execution settings"
     },
     "sites": {
       "badge": {

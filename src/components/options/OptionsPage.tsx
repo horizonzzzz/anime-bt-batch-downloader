@@ -1,6 +1,6 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
-import { FormProvider, useWatch } from "react-hook-form"
+import { getDownloaderMeta } from "../../lib/downloader"
 import {
   HashRouter,
   Navigate,
@@ -10,9 +10,7 @@ import {
   useNavigate
 } from "react-router-dom"
 
-import { getDownloaderMeta } from "../../lib/downloader"
 import type {
-  AppSettings,
   SubscriptionEntry,
   TestDownloaderConnectionResult
 } from "../../lib/shared/types"
@@ -22,13 +20,12 @@ import type { SourceConfig } from "../../lib/sources/config/types"
 import type { DownloaderConfig } from "../../lib/downloader/config/types"
 import type { BatchExecutionConfig } from "../../lib/batch-config/types"
 import type { BatchUiPreferences } from "../../lib/batch-preferences/types"
+import type { DownloaderId } from "../../lib/shared/types"
 import {
   DEFAULT_OPTIONS_ROUTE,
   getOptionsRoutes,
   getOptionsRouteMeta
 } from "./config/routes"
-import { useSettingsForm } from "./hooks/use-settings-form"
-import type { EditableSettingsPayload } from "./schema/settings-form"
 import { PageShell } from "./layout/PageShell"
 import { OptionsSidebar } from "./layout/OptionsSidebar"
 import { GeneralSettingsPage } from "./pages/general/GeneralSettingsPage"
@@ -37,18 +34,10 @@ import { HistoryPage } from "./pages/history/HistoryPage"
 import { OverviewPage } from "./pages/overview/OverviewPage"
 import { SitesPage } from "./pages/sites/SitesPage"
 import { SubscriptionsPage } from "./pages/subscriptions/SubscriptionsPage"
+import { DownloaderWorkbenchProvider } from "./pages/general/downloader-workbench-context"
 
-export type SettingsFormApi = {
-  loadAppSettings: () => Promise<AppSettings>
-  saveAppSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>
+export type OptionsApi = {
   testConnection: (config: DownloaderConfig) => Promise<TestDownloaderConnectionResult>
-}
-
-export type OptionsApi = SettingsFormApi & {
-  upsertSubscription: (subscription: SubscriptionEntry) => Promise<void>
-  deleteSubscription: (subscriptionId: string) => Promise<void>
-  getSubscriptionPolicy: () => Promise<SubscriptionPolicyConfig>
-  saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
   getFilterConfig: () => Promise<FilterConfig>
   saveFilterConfig: (config: FilterConfig) => Promise<FilterConfig>
   getSourceConfig: () => Promise<SourceConfig>
@@ -56,80 +45,17 @@ export type OptionsApi = SettingsFormApi & {
   getDownloaderConfig: () => Promise<DownloaderConfig>
   saveDownloaderConfig: (config: DownloaderConfig) => Promise<DownloaderConfig>
   getBatchExecutionConfig: () => Promise<BatchExecutionConfig>
-  saveBatchExecutionConfig: (config: Partial<BatchExecutionConfig>) => Promise<BatchExecutionConfig>
+  saveBatchExecutionConfig: (config: BatchExecutionConfig) => Promise<BatchExecutionConfig>
   getBatchUiPreferences: () => Promise<BatchUiPreferences>
   saveBatchUiPreferences: (preferences: Partial<BatchUiPreferences>) => Promise<BatchUiPreferences>
+  getSubscriptionPolicy: () => Promise<SubscriptionPolicyConfig>
+  saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
+  upsertSubscription: (subscription: SubscriptionEntry) => Promise<void>
+  deleteSubscription: (subscriptionId: string) => Promise<void>
 }
 
 type OptionsPageProps = {
   api: OptionsApi
-}
-
-type FormShellProps = {
-  activeMeta: ReturnType<typeof getOptionsRouteMeta>
-  form: ReturnType<typeof useSettingsForm>["form"]
-  status: ReturnType<typeof useSettingsForm>["status"]
-  saving: ReturnType<typeof useSettingsForm>["saving"]
-  connectionState: ReturnType<typeof useSettingsForm>["connectionState"]
-  connectionMessage: ReturnType<typeof useSettingsForm>["connectionMessage"]
-  testing: ReturnType<typeof useSettingsForm>["testing"]
-  handleSave: ReturnType<typeof useSettingsForm>["handleSave"]
-  handleTestConnection: ReturnType<typeof useSettingsForm>["handleTestConnection"]
-}
-
-function FormShell({
-  activeMeta,
-  form,
-  status,
-  saving,
-  connectionState,
-  connectionMessage,
-  testing,
-  handleSave,
-  handleTestConnection
-}: FormShellProps) {
-  return (
-    <FormProvider {...form}>
-      <PageShell activeMeta={activeMeta} status={status} saving={saving} onSubmit={handleSave}>
-        <Routes>
-          <Route path="/" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
-          <Route
-            path="/general"
-            element={
-              <GeneralSettingsPage
-                connectionMessage={connectionMessage}
-                connectionState={connectionState}
-                testing={testing}
-                onTestConnection={handleTestConnection}
-              />
-            }
-          />
-          <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
-        </Routes>
-      </PageShell>
-    </FormProvider>
-  )
-}
-
-function ViewShell({
-  activeMeta,
-  api
-}: {
-  activeMeta: ReturnType<typeof getOptionsRouteMeta>
-  api: OptionsApi
-}) {
-  return (
-    <PageShell activeMeta={activeMeta}>
-      <Routes>
-        <Route path="/sites" element={<SitesPage api={api} />} />
-        <Route path="/filters" element={<FiltersPage api={api} />} />
-        <Route path="/subscriptions" element={<SubscriptionsPage api={api} />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/overview" element={<OverviewPage />} />
-        <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
-      </Routes>
-    </PageShell>
-  )
 }
 
 function OptionsWorkspace({ api }: OptionsPageProps) {
@@ -140,58 +66,35 @@ function OptionsWorkspace({ api }: OptionsPageProps) {
     [location.pathname]
   )
   const localizedRoutes = useMemo(() => getOptionsRoutes(), [])
-  const formApi = useMemo<SettingsFormApi>(
-    () => ({
-      loadAppSettings: api.loadAppSettings,
-      saveAppSettings: api.saveAppSettings,
-      testConnection: api.testConnection
-    }),
-    [api]
-  )
+  const [currentDownloaderId, setCurrentDownloaderId] = useState<DownloaderId>("qbittorrent")
 
-  const {
-    form,
-    status,
-    connectionState,
-    connectionMessage,
-    saving,
-    testing,
-    handleSave,
-    handleTestConnection
-  } = useSettingsForm(formApi)
-  const currentDownloaderId = useWatch({
-    control: form.control,
-    name: "currentDownloaderId"
-  })
   const currentDownloaderName = getDownloaderMeta(currentDownloaderId).displayName
 
-  const routeContent =
-    activeMeta.mode === "form" ? (
-      <FormShell
-        activeMeta={activeMeta}
-        form={form}
-        status={status}
-        saving={saving}
-        connectionState={connectionState}
-        connectionMessage={connectionMessage}
-        testing={testing}
-        handleSave={handleSave}
-        handleTestConnection={handleTestConnection}
-      />
-    ) : (
-      <ViewShell activeMeta={activeMeta} api={api} />
-    )
-
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 lg:flex lg:items-start">
-      <OptionsSidebar
-        routes={localizedRoutes}
-        activePath={activeMeta.path}
-        currentDownloaderName={currentDownloaderName}
-        onNavigate={navigate}
-      />
-      {routeContent}
-    </div>
+    <DownloaderWorkbenchProvider api={api}>
+      <div className="min-h-screen bg-zinc-50 text-zinc-900 lg:flex lg:items-start">
+        <OptionsSidebar
+          routes={localizedRoutes}
+          activePath={activeMeta.path}
+          currentDownloaderName={currentDownloaderName}
+          onNavigate={navigate}
+        />
+        <PageShell activeMeta={activeMeta}>
+          <Routes>
+            <Route path="/" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
+            <Route path="/general" element={<GeneralSettingsPage api={api} onActiveDownloaderChange={(id) => {
+              setCurrentDownloaderId(id)
+            }} />} />
+            <Route path="/sites" element={<SitesPage api={api} />} />
+            <Route path="/filters" element={<FiltersPage api={api} />} />
+            <Route path="/subscriptions" element={<SubscriptionsPage api={api} />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/overview" element={<OverviewPage />} />
+            <Route path="*" element={<Navigate to={DEFAULT_OPTIONS_ROUTE} replace />} />
+          </Routes>
+        </PageShell>
+      </div>
+    </DownloaderWorkbenchProvider>
   )
 }
 

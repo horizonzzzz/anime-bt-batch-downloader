@@ -230,7 +230,9 @@
           "prefix": "如果浏览器权限已经允许且仍失败，再关闭",
           "suffix": "。仅建议在确认 WebUI 只面向你信任的环境时这样配置。"
         }
-      }
+      },
+      "saveDownloader": "保存下载器设置",
+      "saveBatchExecution": "保存批量执行设置"
     },
     "sites": {
       "badge": {

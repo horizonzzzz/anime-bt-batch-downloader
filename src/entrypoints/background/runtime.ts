@@ -24,7 +24,6 @@ import {
   getHistoryRecords,
   updateHistoryRecord
 } from "../../lib/history/storage"
-import { ensureSettings, getSettings, saveSettings } from "../../lib/settings"
 import {
   ensureFilterConfig,
   getFilterConfig,
@@ -59,7 +58,7 @@ import {
 import { i18n } from "../../lib/i18n"
 import { isOptionsRoutePath } from "../../lib/shared/options-routes"
 import { getBrowser } from "../../lib/shared/browser"
-import type { AppSettings, SourceId } from "../../lib/shared/types"
+import type { SourceId } from "../../lib/shared/types"
 import type { BatchEventPayload } from "../../lib/shared/types"
 import { extractSingleItem } from "../../lib/sources/extraction"
 import { getSourceAdapterForPage } from "../../lib/sources"
@@ -73,6 +72,7 @@ import {
   saveSubscriptionPolicyConfig,
   type SubscriptionPolicyConfig
 } from "../../lib/subscriptions"
+import { getSettings } from "../../lib/settings"
 
 import iconColor from "../../assets/icon.png"
 import iconGrayscale from "../../assets/icon-grayscale.png"
@@ -118,7 +118,6 @@ export function registerBackgroundRuntime() {
   })
 
   extensionBrowser.runtime.onInstalled.addListener(async () => {
-    await ensureSettings()
     await reconcileSubscriptionAlarm()
     const [activeTab] = await extensionBrowser.tabs.query({ active: true, lastFocusedWindow: true })
     if (activeTab?.id) {
@@ -188,42 +187,6 @@ export function registerBackgroundRuntime() {
     void (async () => {
       try {
         switch (runtimeMessage.type) {
-          case "GET_APP_SETTINGS":
-            sendResponse(
-              createRuntimeSuccessResponse("GET_APP_SETTINGS", {
-                settings: await getSettings()
-              })
-            )
-            return
-          case "SAVE_APP_SETTINGS":
-            const currentSettings = await getSettings()
-            const savedSettings = await saveSettings(runtimeMessage.settings ?? {})
-            if (didContentSyncRelevantSettingsChange(currentSettings, savedSettings)) {
-              await notifySupportedSourceTabsOfFilterChange()
-            }
-            await reconcileSubscriptionAlarm({
-              getSettings: async () => savedSettings,
-              alarms: extensionBrowser.alarms
-            })
-            if (didDisableSubscriptionNotificationEntryPoints(currentSettings, savedSettings)) {
-              await clearPendingSubscriptionNotifications({
-                clearBrowserNotification: (notificationId) =>
-                  extensionBrowser.notifications.clear(notificationId)
-              })
-            }
-            sendResponse(
-              createRuntimeSuccessResponse("SAVE_APP_SETTINGS", {
-                settings: savedSettings
-              })
-            )
-            return
-          case "TEST_DOWNLOADER_CONNECTION":
-            sendResponse(
-              createRuntimeSuccessResponse("TEST_DOWNLOADER_CONNECTION", {
-                result: await testDownloaderConnection(runtimeMessage.settings ?? null)
-              })
-            )
-            return
           case "GET_FILTER_CONFIG":
             sendResponse(
               createRuntimeSuccessResponse("GET_FILTER_CONFIG", {
@@ -259,6 +222,13 @@ export function registerBackgroundRuntime() {
             sendResponse(
               createRuntimeSuccessResponse("GET_DOWNLOADER_CONFIG", {
                 config: await getDownloaderConfig()
+              })
+            )
+            return
+          case "TEST_DOWNLOADER_CONNECTION":
+            sendResponse(
+              createRuntimeSuccessResponse("TEST_DOWNLOADER_CONNECTION", {
+                result: await testDownloaderConnection(runtimeMessage.settings ?? null)
               })
             )
             return
@@ -528,21 +498,11 @@ async function queryCurrentActiveTabContext(): Promise<{ id: number | null; url:
   }
 }
 
-function didContentSyncRelevantSettingsChange(
-  previousSettings: Pick<AppSettings, "enabledSources" | "filters">,
-  nextSettings: Pick<AppSettings, "enabledSources" | "filters">
-): boolean {
-  return JSON.stringify(previousSettings.enabledSources) !== JSON.stringify(nextSettings.enabledSources) ||
-    JSON.stringify(previousSettings.filters) !== JSON.stringify(nextSettings.filters)
-}
-
 function didDisableSubscriptionNotificationEntryPoints(
-  previousSettings: Pick<AppSettings, "subscriptionsEnabled" | "notificationsEnabled"> | Pick<SubscriptionPolicyConfig, "enabled" | "notificationsEnabled">,
-  nextSettings: Pick<AppSettings, "subscriptionsEnabled" | "notificationsEnabled"> | Pick<SubscriptionPolicyConfig, "enabled" | "notificationsEnabled">
+  previousSettings: Pick<SubscriptionPolicyConfig, "enabled" | "notificationsEnabled">,
+  nextSettings: Pick<SubscriptionPolicyConfig, "enabled" | "notificationsEnabled">
 ): boolean {
-  const previousEnabled = "enabled" in previousSettings ? previousSettings.enabled : previousSettings.subscriptionsEnabled
-  const nextEnabled = "enabled" in nextSettings ? nextSettings.enabled : nextSettings.subscriptionsEnabled
-  return (previousEnabled && !nextEnabled) ||
+  return (previousSettings.enabled && !nextSettings.enabled) ||
     (previousSettings.notificationsEnabled && !nextSettings.notificationsEnabled)
 }
 

@@ -2,7 +2,6 @@ import type { DownloaderAdapter, DownloaderTorrentFile } from "../downloader"
 import { getDownloaderAdapter } from "../downloader"
 import { getBrowser, getExtensionUrl } from "../shared/browser"
 import type {
-  AppSettings,
   BatchItem,
   ExtractionResult,
   SubscriptionEntry
@@ -41,7 +40,7 @@ let queuedSubscriptionMutation: Promise<void> = Promise.resolve()
 
 export type ExecuteSubscriptionScanDependencies = Omit<
   ScanSubscriptionsDependencies,
-  "appSettings" | "sourceConfig" | "subscriptions"
+  "subscriptionPolicy" | "sourceConfig" | "subscriptions"
 > & {
   getSubscriptionPolicy?: () => Promise<SubscriptionPolicyConfig>
   getSourceConfig?: () => Promise<SourceConfig>
@@ -57,8 +56,8 @@ export type ReconcileSubscriptionAlarmDependencies = {
 }
 
 export type SubscriptionCatalogCommandDependencies = {
-  getSettings?: () => Promise<AppSettings>
-  saveSettings?: (settings: Partial<AppSettings>) => Promise<AppSettings>
+  getSettings?: () => Promise<SubscriptionPolicyConfig>
+  saveSettings?: (settings: Partial<SubscriptionPolicyConfig>) => Promise<SubscriptionPolicyConfig>
 }
 
 export type DownloadSubscriptionHitsDependencies = {

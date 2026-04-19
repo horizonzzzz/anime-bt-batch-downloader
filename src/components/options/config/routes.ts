@@ -15,16 +15,12 @@ export type OptionsRouteId =
   | "history"
   | "overview"
 
-export type OptionsRouteMode = "form" | "view"
-
 export type OptionsRouteMeta = {
   id: OptionsRouteId
   path: OptionsRoutePath
   label: string
   title: string
   description: string
-  footerLabel: string
-  mode: OptionsRouteMode
 }
 
 const [
@@ -39,35 +35,29 @@ const [
 export const OPTIONS_ROUTES = [
   {
     id: "general",
-    path: GENERAL_ROUTE,
-    mode: "form"
+    path: GENERAL_ROUTE
   },
   {
     id: "sites",
-    path: SITES_ROUTE,
-    mode: "view"
+    path: SITES_ROUTE
   },
   {
     id: "filters",
-    path: FILTERS_ROUTE,
-    mode: "view"
+    path: FILTERS_ROUTE
   },
   {
     id: "subscriptions",
-    path: SUBSCRIPTIONS_ROUTE,
-    mode: "view"
+    path: SUBSCRIPTIONS_ROUTE
   },
   {
     id: "history",
-    path: HISTORY_ROUTE,
-    mode: "view"
+    path: HISTORY_ROUTE
   },
   {
     id: "overview",
-    path: OVERVIEW_ROUTE,
-    mode: "view"
+    path: OVERVIEW_ROUTE
   }
- ] as const satisfies ReadonlyArray<Pick<OptionsRouteMeta, "id" | "path" | "mode">>
+ ] as const satisfies ReadonlyArray<Pick<OptionsRouteMeta, "id" | "path">>
 
 function localizeRoute(route: (typeof OPTIONS_ROUTES)[number]): OptionsRouteMeta {
   const baseKey = `options.routes.${route.id}` as const
@@ -76,8 +66,7 @@ function localizeRoute(route: (typeof OPTIONS_ROUTES)[number]): OptionsRouteMeta
     ...route,
     label: i18n.t(`${baseKey}.label`),
     title: i18n.t(`${baseKey}.title`),
-    description: i18n.t(`${baseKey}.description`),
-    footerLabel: i18n.t(`${baseKey}.footerLabel`)
+    description: i18n.t(`${baseKey}.description`)
   }
 }
 
@@ -93,5 +82,3 @@ export function getOptionsRouteMeta(pathname: string) {
 
   return routeMetaByPath[pathname] ?? routeMetaByPath[DEFAULT_OPTIONS_ROUTE]
 }
-
-

@@ -1,5 +1,4 @@
 import type {
-  AppSettings,
   BatchEventPayload,
   BatchItem,
   SourceId,
@@ -69,9 +68,7 @@ export type RuntimeRequest =
   | { type: "CLEAR_HISTORY" }
   | { type: "DELETE_HISTORY_RECORD"; recordId: string }
   | { type: "RETRY_FAILED_ITEMS"; recordId: string; itemIds?: string[] }
-  | { type: "GET_APP_SETTINGS" }
-  | { type: "SAVE_APP_SETTINGS"; settings?: Partial<AppSettings> }
-  | { type: "TEST_DOWNLOADER_CONNECTION"; settings?: DownloaderConfig | null }
+  | { type: "TEST_DOWNLOADER_CONNECTION"; settings?: DownloaderConfig }
   | { type: "GET_DOWNLOADER_CONFIG" }
   | { type: "SAVE_DOWNLOADER_CONFIG"; config: DownloaderConfig }
   | { type: "GET_HISTORY_PAGE_CONTEXT" }
@@ -100,16 +97,6 @@ export type RuntimeRequestType = RuntimeRequest["type"]
 export type RuntimeErrorResponse = {
   ok: false
   error: string
-}
-
-export type GetAppSettingsSuccessResponse = {
-  ok: true
-  settings: AppSettings
-}
-
-export type SaveAppSettingsSuccessResponse = {
-  ok: true
-  settings: AppSettings
 }
 
 export type TestDownloaderConnectionSuccessResponse = {
@@ -245,8 +232,6 @@ export type RuntimeSuccessResponseMap = {
   CLEAR_HISTORY: ClearHistorySuccessResponse
   DELETE_HISTORY_RECORD: DeleteHistoryRecordSuccessResponse
   RETRY_FAILED_ITEMS: RetryFailedItemsSuccessResponse
-  GET_APP_SETTINGS: GetAppSettingsSuccessResponse
-  SAVE_APP_SETTINGS: SaveAppSettingsSuccessResponse
   TEST_DOWNLOADER_CONNECTION: TestDownloaderConnectionSuccessResponse
   GET_FILTER_CONFIG: GetFilterConfigSuccessResponse
   SAVE_FILTER_CONFIG: SaveFilterConfigSuccessResponse
@@ -283,8 +268,6 @@ export type GetHistoryResponse = RuntimeResponseFor<"GET_HISTORY">
 export type ClearHistoryResponse = RuntimeResponseFor<"CLEAR_HISTORY">
 export type DeleteHistoryRecordResponse = RuntimeResponseFor<"DELETE_HISTORY_RECORD">
 export type RetryFailedItemsResponse = RuntimeResponseFor<"RETRY_FAILED_ITEMS">
-export type GetAppSettingsResponse = RuntimeResponseFor<"GET_APP_SETTINGS">
-export type SaveAppSettingsResponse = RuntimeResponseFor<"SAVE_APP_SETTINGS">
 export type TestDownloaderConnectionResponse = RuntimeResponseFor<"TEST_DOWNLOADER_CONNECTION">
 export type GetPopupStateResponse = RuntimeResponseFor<"GET_POPUP_STATE">
 export type SetSourceEnabledResponse = RuntimeResponseFor<"SET_SOURCE_ENABLED">

@@ -2,7 +2,6 @@ import { i18n } from "../../../../lib/i18n"
 import type { JSX } from "react"
 
 import { HiOutlineArrowPath } from "react-icons/hi2"
-import { useFormContext } from "react-hook-form"
 
 import {
   Button,
@@ -14,13 +13,13 @@ import {
   Input
 } from "../../../ui"
 import { FormField } from "../../form/Field"
-import type { ConnectionState } from "../../hooks/use-settings-form"
-import type {
-  SettingsFormInput,
-  SettingsFormValues
-} from "../../schema/settings-form"
+import type { DownloaderProfile } from "../../../../lib/downloader/config/types"
+
+export type ConnectionState = "idle" | "success" | "error"
 
 type QbCredentialsSectionProps = {
+  config: DownloaderProfile
+  onConfigChange: (config: DownloaderProfile) => void
   connectionMessage: string
   connectionState: ConnectionState
   testing: boolean
@@ -38,16 +37,13 @@ function getConnectionStatusClassName(
 }
 
 export function QbCredentialsSection({
+  config,
+  onConfigChange,
   connectionMessage,
   connectionState,
   testing,
   onTestConnection
 }: QbCredentialsSectionProps): JSX.Element {
-  const {
-    register,
-    formState: { errors }
-  } = useFormContext<SettingsFormInput, unknown, SettingsFormValues>()
-
   return (
     <Card>
       <CardHeader>
@@ -61,40 +57,49 @@ export function QbCredentialsSection({
           <div className="md:col-span-2">
             <FormField
               label={i18n.t("options.general.qb.baseUrlLabel")}
-              htmlFor="downloaders.qbittorrent.baseUrl"
-              required
-              error={errors.downloaders?.qbittorrent?.baseUrl?.message}>
+              htmlFor="qbittorrent.baseUrl"
+              required>
               <Input
-                id="downloaders.qbittorrent.baseUrl"
-                placeholder="http://127.0.0.1:7474"
+                id="qbittorrent.baseUrl"
+                placeholder="http://127.0.0.1:17474"
                 autoComplete="url"
-                {...register("downloaders.qbittorrent.baseUrl")}
+                value={config.baseUrl}
+                onChange={(e) => onConfigChange({
+                  ...config,
+                  baseUrl: e.target.value
+                })}
               />
             </FormField>
           </div>
 
           <FormField
             label={i18n.t("options.general.common.usernameLabel")}
-            htmlFor="downloaders.qbittorrent.username"
-            error={errors.downloaders?.qbittorrent?.username?.message}>
+            htmlFor="qbittorrent.username">
             <Input
-              id="downloaders.qbittorrent.username"
+              id="qbittorrent.username"
               placeholder="admin"
               autoComplete="username"
-              {...register("downloaders.qbittorrent.username")}
+              value={config.username}
+              onChange={(e) => onConfigChange({
+                ...config,
+                username: e.target.value
+              })}
             />
           </FormField>
 
           <FormField
             label={i18n.t("options.general.common.passwordLabel")}
-            htmlFor="downloaders.qbittorrent.password"
-            error={errors.downloaders?.qbittorrent?.password?.message}>
+            htmlFor="qbittorrent.password">
             <Input
-              id="downloaders.qbittorrent.password"
+              id="qbittorrent.password"
               type="password"
               placeholder={i18n.t("options.general.qb.passwordPlaceholder")}
               autoComplete="current-password"
-              {...register("downloaders.qbittorrent.password")}
+              value={config.password}
+              onChange={(e) => onConfigChange({
+                ...config,
+                password: e.target.value
+              })}
             />
           </FormField>
         </div>
@@ -129,5 +134,3 @@ export function QbCredentialsSection({
     </Card>
   )
 }
-
-

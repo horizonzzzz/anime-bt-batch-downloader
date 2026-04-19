@@ -1,32 +1,33 @@
 import { i18n } from "../../lib/i18n"
-import type { OptionsApi } from "../../components/options/OptionsPage"
 import type { DownloaderConfig } from "../../lib/downloader/config/types"
 import type { BatchExecutionConfig } from "../../lib/batch-config/types"
 import type { BatchUiPreferences } from "../../lib/batch-preferences/types"
 import type { SubscriptionPolicyConfig } from "../../lib/subscriptions/policy/types"
+import type { TestDownloaderConnectionResult } from "../../lib/shared/types"
+import type { SubscriptionEntry } from "../../lib/shared/types"
+import type { FilterConfig } from "../../lib/filter-rules/types"
+import type { SourceConfig } from "../../lib/sources/config/types"
 import { sendRuntimeRequest } from "../../lib/shared/messages"
 
+export type OptionsApi = {
+  getFilterConfig: () => Promise<FilterConfig>
+  saveFilterConfig: (config: FilterConfig) => Promise<FilterConfig>
+  getSourceConfig: () => Promise<SourceConfig>
+  saveSourceConfig: (config: SourceConfig) => Promise<SourceConfig>
+  getDownloaderConfig: () => Promise<DownloaderConfig>
+  saveDownloaderConfig: (config: DownloaderConfig) => Promise<DownloaderConfig>
+  testConnection: (config: DownloaderConfig) => Promise<TestDownloaderConnectionResult>
+  getBatchExecutionConfig: () => Promise<BatchExecutionConfig>
+  saveBatchExecutionConfig: (config: BatchExecutionConfig) => Promise<BatchExecutionConfig>
+  getBatchUiPreferences: () => Promise<BatchUiPreferences>
+  saveBatchUiPreferences: (preferences: Partial<BatchUiPreferences>) => Promise<BatchUiPreferences>
+  getSubscriptionPolicy: () => Promise<SubscriptionPolicyConfig>
+  saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
+  upsertSubscription: (subscription: SubscriptionEntry) => Promise<void>
+  deleteSubscription: (subscriptionId: string) => Promise<void>
+}
+
 export const optionsApi: OptionsApi = {
-  async loadAppSettings() {
-    const response = await sendRuntimeRequest({ type: "GET_APP_SETTINGS" })
-    if (!response.ok) {
-      throw new Error(response.error || i18n.t("options.status.loadFailed"))
-    }
-
-    return response.settings
-  },
-  async saveAppSettings(settings) {
-    const response = await sendRuntimeRequest({
-      type: "SAVE_APP_SETTINGS",
-      settings
-    })
-
-    if (!response.ok) {
-      throw new Error(response.error || i18n.t("options.status.saveFailed"))
-    }
-
-    return response.settings
-  },
   async upsertSubscription(subscription) {
     const response = await sendRuntimeRequest({
       type: "UPSERT_SUBSCRIPTION",
@@ -147,7 +148,7 @@ export const optionsApi: OptionsApi = {
 
     return response.config
   },
-  async saveBatchExecutionConfig(config: Partial<BatchExecutionConfig>) {
+  async saveBatchExecutionConfig(config: BatchExecutionConfig) {
     const response = await sendRuntimeRequest({
       type: "SAVE_BATCH_EXECUTION_CONFIG",
       config

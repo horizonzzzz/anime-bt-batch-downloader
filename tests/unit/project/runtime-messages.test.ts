@@ -1,14 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 
 import {
   BATCH_EVENT,
   SOURCE_ENABLED_CHANGE_EVENT,
   createRuntimeErrorResponse,
   createRuntimeSuccessResponse,
-  sendRuntimeRequest
+  sendRuntimeRequest,
+  type RuntimeRequestType
 } from "../../../src/lib/shared/messages"
-import { DEFAULT_SETTINGS } from "../../../src/lib/settings/defaults"
 import type { PopupStateViewModel } from "../../../src/lib/shared/popup"
+
+import type { DownloaderId } from "../../../src/lib/shared/types"
 
 const runtimeSendMessage = vi.fn()
 
@@ -35,15 +37,38 @@ describe("runtime message helpers", () => {
     installChromeMock()
   })
 
-  it("delegates a runtime request to chrome.runtime.sendMessage and returns the response", async () => {
-    const response = createRuntimeSuccessResponse("GET_APP_SETTINGS", {
-      settings: DEFAULT_SETTINGS
+  it("does not expose GET_APP_SETTINGS anymore", () => {
+    expectTypeOf<Extract<RuntimeRequestType, "GET_APP_SETTINGS">>().toEqualTypeOf<never>()
+  })
+
+  it("does not expose SAVE_APP_SETTINGS anymore", () => {
+    expectTypeOf<Extract<RuntimeRequestType, "SAVE_APP_SETTINGS">>().toEqualTypeOf<never>()
+  })
+
+  it("delegates downloader config requests and returns the response", async () => {
+    const downloaderConfig = {
+      activeId: "qbittorrent" as DownloaderId,
+      profiles: {
+        qbittorrent: {
+          baseUrl: "http://127.0.0.1:17474",
+          username: "",
+          password: ""
+        },
+        transmission: {
+          baseUrl: "http://127.0.0.1:9091/transmission/rpc",
+          username: "",
+          password: ""
+        }
+      }
+    }
+    const response = createRuntimeSuccessResponse("GET_DOWNLOADER_CONFIG", {
+      config: downloaderConfig
     })
     runtimeSendMessage.mockResolvedValue(response)
 
-    await expect(sendRuntimeRequest({ type: "GET_APP_SETTINGS" })).resolves.toEqual(response)
+    await expect(sendRuntimeRequest({ type: "GET_DOWNLOADER_CONFIG" })).resolves.toEqual(response)
     expect(runtimeSendMessage).toHaveBeenCalledWith({
-      type: "GET_APP_SETTINGS"
+      type: "GET_DOWNLOADER_CONFIG"
     })
   })
 
@@ -99,7 +124,7 @@ describe("runtime message helpers", () => {
     await sendRuntimeRequest({
       type: "TEST_DOWNLOADER_CONNECTION",
       settings: {
-        activeId: "qbittorrent",
+        activeId: "qbittorrent" as DownloaderId,
         profiles: {
           qbittorrent: {
             baseUrl: "http://127.0.0.1:17474",

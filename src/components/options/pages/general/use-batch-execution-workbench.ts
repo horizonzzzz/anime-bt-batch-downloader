@@ -1,6 +1,3 @@
-// TODO: This hook is scaffolding for future UI integration of the batch execution workbench.
-// The general page currently uses the shared FormProvider. Integrate this hook when
-// refactoring to a dedicated batch execution configuration section.
 import { i18n } from "../../../../lib/i18n"
 import { useEffect, useState } from "react"
 

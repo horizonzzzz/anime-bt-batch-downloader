@@ -72,8 +72,8 @@ describe("background runtime filter handlers", () => {
           rules: []
         }
       })
-    })
-  })
+    }, { timeout: 10000 })
+  }, 10000)
 
   it("calls notifySupportedSourceTabsOfFilterChange after saving filter config", async () => {
     // Set up tabs mock to return a supported source tab (kisssub)

@@ -1,17 +1,18 @@
 import { i18n } from "../../../../lib/i18n"
 import type { JSX } from "react"
-
-import { useFormContext } from "react-hook-form"
+import type { DownloaderId } from "../../../../lib/shared/types"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, RadioGroup, RadioGroupItem } from "../../../ui"
-import type { SettingsFormInput, SettingsFormValues } from "../../schema/settings-form"
 
-export function DownloaderSelectorSection(): JSX.Element {
-  const { register, watch, setValue } = useFormContext<SettingsFormInput, unknown, SettingsFormValues>()
-  const selectedDownloaderId = watch("currentDownloaderId")
+type DownloaderSelectorSectionProps = {
+  activeId: DownloaderId
+  onActiveIdChange: (id: DownloaderId) => void
+}
 
-  const currentDownloaderIdField = register("currentDownloaderId")
-
+export function DownloaderSelectorSection({
+  activeId,
+  onActiveIdChange
+}: DownloaderSelectorSectionProps): JSX.Element {
   return (
     <Card>
       <CardHeader>
@@ -22,18 +23,8 @@ export function DownloaderSelectorSection(): JSX.Element {
       </CardHeader>
       <CardContent>
         <RadioGroup
-          value={selectedDownloaderId}
-          onValueChange={(value) => {
-            currentDownloaderIdField.onChange({
-              target: {
-                value
-              }
-            })
-            setValue("currentDownloaderId", value as SettingsFormValues["currentDownloaderId"], {
-              shouldDirty: true,
-              shouldTouch: true
-            })
-          }}
+          value={activeId}
+          onValueChange={(value) => onActiveIdChange(value as DownloaderId)}
           className="grid gap-3"
         >
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 shadow-sm transition hover:border-blue-300">
@@ -60,5 +51,3 @@ export function DownloaderSelectorSection(): JSX.Element {
     </Card>
   )
 }
-
-

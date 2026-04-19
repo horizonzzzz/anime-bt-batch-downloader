@@ -114,29 +114,8 @@ const {
   ...formEditableSettings
 } = editableSettings
 
-type TestOptionsApi = OptionsApi & {
-  loadSettings: OptionsApi["loadAppSettings"]
-  saveSettings: OptionsApi["saveAppSettings"]
-}
-
-function createOptionsApi(overrides: Partial<TestOptionsApi> = {}): TestOptionsApi {
-  const loadSettings =
-    overrides.loadSettings ??
-    overrides.loadAppSettings ??
-    vi.fn().mockResolvedValue(settings)
-  const saveSettings =
-    overrides.saveSettings ??
-    overrides.saveAppSettings ??
-    vi.fn().mockImplementation(async (nextSettings) => ({
-      ...settings,
-      ...nextSettings
-    }))
-
+function createOptionsApi(overrides: Partial<OptionsApi> = {}): OptionsApi {
   return {
-    loadAppSettings: loadSettings,
-    saveAppSettings: saveSettings,
-    loadSettings,
-    saveSettings,
     getFilterConfig: vi.fn().mockResolvedValue({ rules: [] }),
     saveFilterConfig: vi.fn().mockImplementation(async (config) => config),
     getSourceConfig: vi.fn().mockResolvedValue(sourceConfig),
@@ -503,9 +482,7 @@ describe("OptionsPage", () => {
     async () => {
       const user = userEvent.setup()
       await setLastSchedulerRunAt("2026-04-14T09:30:00.000Z")
-      const api = createOptionsApi({
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
-      })
+      const api = createOptionsApi()
 
       render(<OptionsPage api={api} />)
 
@@ -529,7 +506,6 @@ describe("OptionsPage", () => {
       await waitFor(() => {
         expect(api.upsertSubscription).toHaveBeenCalledTimes(1)
       })
-      expect(api.saveSettings).not.toHaveBeenCalled()
       expect(api.upsertSubscription).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "ACG Medalist",
@@ -591,9 +567,7 @@ describe("OptionsPage", () => {
     "manages Bangumi.moe subscription delivery mode without using app-settings save payload",
     async () => {
       const user = userEvent.setup()
-      const api = createOptionsApi({
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
-      })
+      const api = createOptionsApi()
 
       render(<OptionsPage api={api} />)
 
@@ -608,7 +582,6 @@ describe("OptionsPage", () => {
       await user.click(screen.getByTestId("subscription-source-tag-bangumimoe"))
       await user.click(screen.getByRole("button", { name: "保存订阅" }))
 
-      expect(api.saveSettings).not.toHaveBeenCalled()
       expect(api.upsertSubscription).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "Bangumi Medalist",
@@ -621,17 +594,11 @@ describe("OptionsPage", () => {
   )
 
   it(
-    "keeps app-settings save payload free of subscription definitions and runtime fields",
+    "keeps subscription domain saves independent from other settings domains",
     async () => {
       const user = userEvent.setup()
       await seedSubscriptionFixture()
-      const api = createOptionsApi({
-        loadSettings: vi.fn().mockResolvedValue({
-          ...settings,
-          subscriptionsEnabled: true
-        }),
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
-      })
+      const api = createOptionsApi()
 
       render(<OptionsPage api={api} />)
 
@@ -651,7 +618,6 @@ describe("OptionsPage", () => {
       await user.type(titleQueryInput, "Bang Dream")
       await user.click(screen.getByRole("button", { name: "保存订阅" }))
 
-      expect(api.saveSettings).not.toHaveBeenCalled()
       expect(api.upsertSubscription).toHaveBeenCalledWith(
         expect.objectContaining({
           id: "sub-1",
@@ -665,9 +631,7 @@ describe("OptionsPage", () => {
   it("formats subscription source summaries in English without Chinese separators", async () => {
     const user = userEvent.setup()
     ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"
-    const api = createOptionsApi({
-      saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
-    })
+    const api = createOptionsApi()
 
     render(<OptionsPage api={api} />)
 
@@ -891,12 +855,17 @@ describe("OptionsPage", () => {
 
   it("shows the new default concurrency and retry values when saved settings are incomplete", async () => {
     const api = createOptionsApi({
-      loadSettings: vi.fn().mockResolvedValue({})
+      getBatchExecutionConfig: vi.fn().mockResolvedValue({
+        concurrency: 3,
+        retryCount: 3,
+        injectTimeoutMs: 15000,
+        domSettleMs: 500
+      })
     })
 
     render(<OptionsPage api={api} />)
 
-    expect(await screen.findByDisplayValue("http://127.0.0.1:7474")).toBeInTheDocument()
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
     expect(screen.getByLabelText("并发数")).toHaveValue(3)
     expect(screen.getByLabelText("重试次数")).toHaveValue(3)
   })
@@ -907,10 +876,7 @@ describe("OptionsPage", () => {
     async () => {
       const user = userEvent.setup()
       const api = createOptionsApi({
-        saveAppSettings: vi.fn().mockImplementation(async (nextSettings) => ({
-          ...settings,
-          ...nextSettings
-        })),
+        saveDownloaderConfig: vi.fn().mockImplementation(async (config) => config),
         saveSourceConfig: vi.fn().mockImplementation(async (config) => config)
       })
 
@@ -922,13 +888,13 @@ describe("OptionsPage", () => {
       await user.clear(usernameField)
       await user.type(usernameField, "operator")
 
-      // Save general settings first
-      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+      // Save downloader config with the dedicated button
+      await user.click(screen.getByRole("button", { name: "保存下载器设置" }))
 
       await waitFor(() => {
-        expect(api.saveAppSettings).toHaveBeenCalledWith(
+        expect(api.saveDownloaderConfig).toHaveBeenCalledWith(
           expect.objectContaining({
-            downloaders: expect.objectContaining({
+            profiles: expect.objectContaining({
               qbittorrent: expect.objectContaining({
                 username: "operator"
               })
@@ -976,15 +942,13 @@ describe("OptionsPage", () => {
     20000
   )
 
-  it("disables the save button while persisting settings", async () => {
+  it("disables the downloader save button while persisting settings", async () => {
     const user = userEvent.setup()
-    let resolveSave:
-      | ((value: typeof settings) => void)
-      | undefined
+    let resolveSave: ((value: DownloaderConfig) => void) | undefined
     const api = createOptionsApi({
-      saveSettings: vi.fn().mockImplementation(
+      saveDownloaderConfig: vi.fn().mockImplementation(
         () =>
-          new Promise<typeof settings>((resolve) => {
+          new Promise<DownloaderConfig>((resolve) => {
             resolveSave = resolve
           })
       )
@@ -994,17 +958,17 @@ describe("OptionsPage", () => {
 
     expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
 
-    const saveButton = screen.getByRole("button", { name: "保存所有设置" })
+    const saveButton = screen.getByRole("button", { name: "保存下载器设置" })
     expect(saveButton).not.toBeDisabled()
 
     await user.click(saveButton)
 
-    expect(api.saveSettings).toHaveBeenCalledTimes(1)
+    expect(api.saveDownloaderConfig).toHaveBeenCalledTimes(1)
     await waitFor(() => {
       expect(saveButton).toBeDisabled()
     })
 
-    resolveSave?.(settings)
+    resolveSave?.(downloaderConfig)
 
     await waitFor(() => {
       expect(saveButton).not.toBeDisabled()
@@ -1220,7 +1184,7 @@ describe("OptionsPage", () => {
     async () => {
       const user = userEvent.setup()
       const api = createOptionsApi({
-        saveSettings: vi.fn().mockImplementation(async (nextSettings) => nextSettings)
+        saveDownloaderConfig: vi.fn().mockImplementation(async (config) => config)
       })
 
       render(<OptionsPage api={api} />)
@@ -1235,23 +1199,20 @@ describe("OptionsPage", () => {
       expect(transmissionBaseUrlField).toHaveValue("")
 
       await user.click(screen.getByRole("radio", { name: "qBittorrent" }))
-      await user.click(screen.getByRole("button", { name: "保存所有设置" }))
+      await user.click(screen.getByRole("button", { name: "保存下载器设置" }))
 
       await waitFor(() => {
-        expect(api.saveSettings).toHaveBeenCalledWith({
-          ...formEditableSettings,
-          currentDownloaderId: "qbittorrent",
-          downloaders: {
-            ...formEditableSettings.downloaders,
-            transmission: {
-              ...formEditableSettings.downloaders.transmission,
-              baseUrl: ""
-            }
-          }
-        })
+        expect(api.saveDownloaderConfig).toHaveBeenCalledWith(
+          expect.objectContaining({
+            activeId: "qbittorrent",
+            profiles: expect.objectContaining({
+              transmission: expect.objectContaining({
+                baseUrl: ""
+              })
+            })
+          })
+        )
       })
-
-      expect(screen.getByRole("status")).toHaveTextContent("设置已保存。")
     },
     10000
   )
