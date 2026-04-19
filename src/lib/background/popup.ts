@@ -6,8 +6,10 @@ import { getSourceConfig, saveSourceConfig } from "../sources/config"
 import { resolveSourceEnabled } from "../sources/config/selectors"
 import { getDownloaderConfig } from "../downloader/config/storage"
 import {
+  CONTENT_SETTINGS_CHANGED_EVENT,
   FILTERS_UPDATED_EVENT,
   SOURCE_ENABLED_CHANGE_EVENT,
+  type ContentSettingsChangedMessage,
   type FiltersUpdatedMessage,
   type SourceEnabledChangeMessage
 } from "../shared/messages"
@@ -54,10 +56,16 @@ type NotifyActiveTabOfSourceEnabledChangeDependencies = {
   sendMessageToTab: (tabId: number, message: SourceEnabledChangeMessage) => Promise<void>
 }
 
-type NotifySupportedSourceTabsOfFilterChangeDependencies = {
+type NotifySupportedSourceTabsDependencies<TMessage extends { type: string }> = {
   queryTabs: () => Promise<Array<{ id?: number; url?: string | null }>>
-  sendMessageToTab: (tabId: number, message: FiltersUpdatedMessage) => Promise<void>
+  sendMessageToTab: (tabId: number, message: TMessage) => Promise<void>
 }
+
+type NotifySupportedSourceTabsOfFilterChangeDependencies =
+  NotifySupportedSourceTabsDependencies<FiltersUpdatedMessage>
+
+type NotifySupportedSourceTabsOfContentSettingsChangeDependencies =
+  NotifySupportedSourceTabsDependencies<ContentSettingsChangedMessage>
 
 const DEFAULT_BUILD_POPUP_STATE_DEPENDENCIES: BuildPopupStateDependencies = {
   getSourceConfig,
@@ -118,6 +126,14 @@ const DEFAULT_NOTIFY_ACTIVE_TAB_OF_SOURCE_ENABLED_CHANGE_DEPENDENCIES: NotifyAct
   }
 
 const DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_FILTER_CHANGE_DEPENDENCIES: NotifySupportedSourceTabsOfFilterChangeDependencies =
+  {
+    queryTabs: async () => getBrowser().tabs.query({}),
+    sendMessageToTab: async (tabId, message) => {
+      await getBrowser().tabs.sendMessage(tabId, message)
+    }
+  }
+
+const DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_CONTENT_SETTINGS_CHANGE_DEPENDENCIES: NotifySupportedSourceTabsOfContentSettingsChangeDependencies =
   {
     queryTabs: async () => getBrowser().tabs.query({}),
     sendMessageToTab: async (tabId, message) => {
@@ -205,6 +221,37 @@ export async function notifyActiveTabOfSourceEnabledChange(
 export async function notifySupportedSourceTabsOfFilterChange(
   dependencies: NotifySupportedSourceTabsOfFilterChangeDependencies = DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_FILTER_CHANGE_DEPENDENCIES
 ) {
+  await notifySupportedSourceTabs(
+    {
+      type: FILTERS_UPDATED_EVENT
+    },
+    dependencies
+  )
+}
+
+export async function notifySupportedSourceTabsOfContentSettingsChange(
+  dependencies: NotifySupportedSourceTabsOfContentSettingsChangeDependencies = DEFAULT_NOTIFY_SUPPORTED_SOURCE_TABS_OF_CONTENT_SETTINGS_CHANGE_DEPENDENCIES
+) {
+  await notifySupportedSourceTabs(
+    {
+      type: CONTENT_SETTINGS_CHANGED_EVENT
+    },
+    dependencies
+  )
+}
+
+async function notifySupportedSourceTabs(
+  message: FiltersUpdatedMessage,
+  dependencies: NotifySupportedSourceTabsOfFilterChangeDependencies
+): Promise<void>
+async function notifySupportedSourceTabs(
+  message: ContentSettingsChangedMessage,
+  dependencies: NotifySupportedSourceTabsOfContentSettingsChangeDependencies
+): Promise<void>
+async function notifySupportedSourceTabs<TMessage extends { type: string }>(
+  message: TMessage,
+  dependencies: NotifySupportedSourceTabsDependencies<TMessage>
+) {
   const tabs = await dependencies.queryTabs()
 
   await Promise.all(
@@ -219,9 +266,7 @@ export async function notifySupportedSourceTabsOfFilterChange(
           return
         }
 
-        await dependencies.sendMessageToTab(tab.id, {
-          type: FILTERS_UPDATED_EVENT
-        })
+        await dependencies.sendMessageToTab(tab.id, message)
       } catch {
         // Ignore unsupported tabs, malformed URLs, and tabs without an active content-script receiver.
       }

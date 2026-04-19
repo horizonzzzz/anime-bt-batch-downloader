@@ -6,6 +6,7 @@ type RuntimeMessageListener = Parameters<typeof fakeBrowser.runtime.onMessage.ad
 const {
   activeJobsMock,
   buildPopupStateMock,
+  notifySupportedSourceTabsOfContentSettingsChangeMock,
   notifyActiveTabOfSourceEnabledChangeMock,
   openOptionsPageForRouteMock,
   getSourceConfigMock,
@@ -14,6 +15,7 @@ const {
 } = vi.hoisted(() => ({
   activeJobsMock: new Map<number, unknown>(),
   buildPopupStateMock: vi.fn(),
+  notifySupportedSourceTabsOfContentSettingsChangeMock: vi.fn(),
   notifyActiveTabOfSourceEnabledChangeMock: vi.fn(),
   openOptionsPageForRouteMock: vi.fn(),
   getSourceConfigMock: vi.fn(),
@@ -32,6 +34,8 @@ vi.mock("../../../src/lib/background", async () => {
       startBatchDownload: vi.fn()
     }),
     buildPopupState: buildPopupStateMock,
+    notifySupportedSourceTabsOfContentSettingsChange:
+      notifySupportedSourceTabsOfContentSettingsChangeMock,
     notifyActiveTabOfSourceEnabledChange: notifyActiveTabOfSourceEnabledChangeMock,
     openOptionsPageForRoute: openOptionsPageForRouteMock,
     setSourceEnabledForPopup: setSourceEnabledForPopupMock,
@@ -155,6 +159,7 @@ describe("background source config runtime boundary", () => {
         deliveryMode: "magnet"
       }
     })
+    expect(notifySupportedSourceTabsOfContentSettingsChangeMock).toHaveBeenCalledTimes(1)
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,

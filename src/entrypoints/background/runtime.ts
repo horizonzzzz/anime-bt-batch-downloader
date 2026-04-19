@@ -6,8 +6,7 @@ import {
   downloadSubscriptionHits,
   executeSubscriptionScan,
   fetchTorrentForUpload,
-  notifySupportedSourceTabsOfFilterChange,
-  notifyActiveTabOfSourceEnabledChange,
+  notifySupportedSourceTabsOfContentSettingsChange,
   openOptionsPageForRoute,
   reconcileSubscriptionAlarm,
   retryFailedItems,
@@ -196,7 +195,7 @@ export function registerBackgroundRuntime() {
             return
           case "SAVE_FILTER_CONFIG":
             const savedFilterConfig = await saveFilterConfig(runtimeMessage.config)
-            await notifySupportedSourceTabsOfFilterChange()
+            await notifySupportedSourceTabsOfContentSettingsChange()
             sendResponse(
               createRuntimeSuccessResponse("SAVE_FILTER_CONFIG", {
                 config: savedFilterConfig
@@ -212,6 +211,7 @@ export function registerBackgroundRuntime() {
             return
           case "SAVE_SOURCE_CONFIG":
             const savedSourceConfig = await saveSourceConfig(runtimeMessage.config)
+            await notifySupportedSourceTabsOfContentSettingsChange()
             sendResponse(
               createRuntimeSuccessResponse("SAVE_SOURCE_CONFIG", {
                 config: savedSourceConfig
@@ -339,7 +339,7 @@ export function registerBackgroundRuntime() {
             }
 
             await setSourceEnabledForPopup(message.sourceId, message.enabled)
-            await notifyActiveTabOfSourceEnabledChange(message.sourceId, message.enabled)
+            await notifySupportedSourceTabsOfContentSettingsChange()
             sendResponse(
               createRuntimeSuccessResponse("SET_SOURCE_ENABLED", {
                 sourceId: message.sourceId,

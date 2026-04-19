@@ -12,6 +12,7 @@ import { SelectionCheckbox } from "../../components/selection-checkbox"
 import { i18n } from "../../lib/i18n"
 import {
   BATCH_EVENT,
+  CONTENT_SETTINGS_CHANGED_EVENT,
   CONTENT_SCRIPT_READY_EVENT,
   FILTERS_UPDATED_EVENT,
   SCAN_SUBSCRIPTION_LIST_REQUEST,
@@ -168,7 +169,12 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
       }
 
       if (message.type === FILTERS_UPDATED_EVENT) {
-        void handleFiltersUpdated()
+        void handleContentSettingsChanged()
+        return
+      }
+
+      if (message.type === CONTENT_SETTINGS_CHANGED_EVENT) {
+        void handleContentSettingsChanged()
         return
       }
 
@@ -409,7 +415,7 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
     deactivateSource({ preserveRunningState: true })
   }
 
-  async function handleFiltersUpdated() {
+  async function handleContentSettingsChanged() {
     if (!matchedPageSource) {
       return
     }
@@ -417,7 +423,7 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
     try {
       await synchronizeContentSettings()
     } catch (error) {
-      console.error("[Anime BT Batch] Failed to refresh filter settings.", error)
+      console.error("[Anime BT Batch] Failed to refresh content settings.", error)
     }
   }
 

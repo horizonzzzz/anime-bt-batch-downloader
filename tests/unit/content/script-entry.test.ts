@@ -540,7 +540,7 @@ describe("content script runtime", () => {
 
     const listener = runtimeAddListener.mock.calls[0]?.[0]
     listener?.({
-      type: "ANIME_BT_FILTERS_UPDATED_EVENT"
+      type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
     })
 
     await vi.waitFor(() => {

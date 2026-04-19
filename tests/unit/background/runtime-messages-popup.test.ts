@@ -9,13 +9,13 @@ type TabsActivatedListener = Parameters<typeof fakeBrowser.tabs.onActivated.addL
 const {
   activeJobsMock,
   buildPopupStateMock,
-  notifyActiveTabOfSourceEnabledChangeMock,
+  notifySupportedSourceTabsOfContentSettingsChangeMock,
   openOptionsPageForRouteMock,
   setSourceEnabledForPopupMock
 } = vi.hoisted(() => ({
   activeJobsMock: new Map<number, unknown>(),
   buildPopupStateMock: vi.fn(),
-  notifyActiveTabOfSourceEnabledChangeMock: vi.fn(),
+  notifySupportedSourceTabsOfContentSettingsChangeMock: vi.fn(),
   openOptionsPageForRouteMock: vi.fn(),
   setSourceEnabledForPopupMock: vi.fn()
 }))
@@ -35,7 +35,8 @@ vi.mock("../../../src/lib/background", async () => {
       startBatchDownload: vi.fn()
     }),
     buildPopupState: buildPopupStateMock,
-    notifyActiveTabOfSourceEnabledChange: notifyActiveTabOfSourceEnabledChangeMock,
+    notifySupportedSourceTabsOfContentSettingsChange:
+      notifySupportedSourceTabsOfContentSettingsChangeMock,
     openOptionsPageForRoute: openOptionsPageForRouteMock,
     setSourceEnabledForPopup: setSourceEnabledForPopupMock,
     fetchTorrentForUpload: vi.fn(),
@@ -142,7 +143,7 @@ describe("background popup runtime boundary", () => {
     expect(setSourceEnabledForPopupMock).not.toHaveBeenCalled()
   })
 
-  it("syncs the active tab after a valid source toggle request succeeds", async () => {
+  it("broadcasts content-settings refresh after a valid source toggle request succeeds", async () => {
     const listener = onMessageAddListener.mock.calls[0]?.[0]
     const sendResponse = vi.fn()
 
@@ -168,7 +169,7 @@ describe("background popup runtime boundary", () => {
         deliveryMode: "magnet"
       }
     })
-    notifyActiveTabOfSourceEnabledChangeMock.mockResolvedValue(undefined)
+    notifySupportedSourceTabsOfContentSettingsChangeMock.mockResolvedValue(undefined)
 
     listener?.(
       {
@@ -185,7 +186,7 @@ describe("background popup runtime boundary", () => {
     })
 
     expect(setSourceEnabledForPopupMock).toHaveBeenCalledWith("kisssub", false)
-    expect(notifyActiveTabOfSourceEnabledChangeMock).toHaveBeenCalledWith("kisssub", false)
+    expect(notifySupportedSourceTabsOfContentSettingsChangeMock).toHaveBeenCalledTimes(1)
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
       sourceId: "kisssub",
@@ -227,7 +228,7 @@ describe("background popup runtime boundary", () => {
     })
 
     expect(setSourceEnabledForPopupMock).not.toHaveBeenCalled()
-    expect(notifyActiveTabOfSourceEnabledChangeMock).not.toHaveBeenCalled()
+    expect(notifySupportedSourceTabsOfContentSettingsChangeMock).not.toHaveBeenCalled()
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
       error: "当前页面正在执行批量下载，暂时不能禁用该站点。"

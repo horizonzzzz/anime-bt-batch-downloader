@@ -1,10 +1,7 @@
-import { SOURCE_IDS } from "../catalog"
 import { isSupportedDeliveryMode } from "../delivery"
 import type { DeliveryMode, SourceId } from "../../shared/types"
 import type { SourceConfig, KisssubScriptConfig } from "./types"
 import { DEFAULT_SOURCE_CONFIG } from "./defaults"
-
-const KISSSUB_SCRIPT_URL_REGEX = /^\/\/[\w.-]+\.acgscript\.com\/script\/[\w.-]+\/[\w.-]+\.js\?[\w.-]+$/
 
 export function sanitizeSourceConfig(raw: unknown): SourceConfig {
   const record = typeof raw === "object" && raw ? (raw as Record<string, unknown>) : {}
@@ -54,11 +51,6 @@ function normalizeKisssubScript(raw: unknown, fallback: KisssubScriptConfig): Ki
   const revision = String(record.revision ?? "").trim()
 
   if (!url || !revision) {
-    return fallback
-  }
-
-  // Validate URL format matches expected acgscript pattern
-  if (!KISSSUB_SCRIPT_URL_REGEX.test(url)) {
     return fallback
   }
 

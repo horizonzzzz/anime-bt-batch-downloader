@@ -50,6 +50,52 @@ describe("source config storage", () => {
     expect(reloaded.kisssub.script.revision).toBe("20260418.1")
   })
 
+  it("preserves user-entered https kisssub script URLs when saving", async () => {
+    const saved = await saveSourceConfig({
+      ...DEFAULT_SOURCE_CONFIG,
+      kisssub: {
+        ...DEFAULT_SOURCE_CONFIG.kisssub,
+        script: {
+          url: "https://mirror.example.com/helpers/kisssub-helper.js",
+          revision: "custom-rev"
+        }
+      }
+    })
+
+    expect(saved.kisssub.script).toEqual({
+      url: "https://mirror.example.com/helpers/kisssub-helper.js",
+      revision: "custom-rev"
+    })
+
+    const reloaded = await getSourceConfig()
+    expect(reloaded.kisssub.script).toEqual({
+      url: "https://mirror.example.com/helpers/kisssub-helper.js",
+      revision: "custom-rev"
+    })
+  })
+
+  it("preserves previously stored custom kisssub script URLs on load", async () => {
+    await fakeBrowser.storage.local.set({
+      source_config: {
+        ...DEFAULT_SOURCE_CONFIG,
+        kisssub: {
+          ...DEFAULT_SOURCE_CONFIG.kisssub,
+          script: {
+            url: "https://mirror.example.com/helpers/kisssub-helper.js",
+            revision: "custom-rev"
+          }
+        }
+      }
+    })
+
+    const config = await getSourceConfig()
+
+    expect(config.kisssub.script).toEqual({
+      url: "https://mirror.example.com/helpers/kisssub-helper.js",
+      revision: "custom-rev"
+    })
+  })
+
   it("persists source enablement changes independently of app settings", async () => {
     const saved = await saveSourceConfig({
       ...DEFAULT_SOURCE_CONFIG,

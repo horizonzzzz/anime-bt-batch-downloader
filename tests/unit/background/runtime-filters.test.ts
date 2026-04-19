@@ -75,7 +75,7 @@ describe("background runtime filter handlers", () => {
     }, { timeout: 10000 })
   }, 10000)
 
-  it("calls notifySupportedSourceTabsOfFilterChange after saving filter config", async () => {
+  it("broadcasts a content-settings refresh after saving filter config", async () => {
     // Set up tabs mock to return a supported source tab (kisssub)
     queryTabsMock.mockImplementationOnce(async () => [
       {
@@ -117,7 +117,7 @@ describe("background runtime filter handlers", () => {
     // Verify notification was sent to the supported tab
     await vi.waitFor(() => {
       expect(sendMessageMock).toHaveBeenCalledWith(123, {
-        type: "ANIME_BT_FILTERS_UPDATED_EVENT"
+        type: "ANIME_BT_CONTENT_SETTINGS_CHANGED_EVENT"
       })
     })
   })
