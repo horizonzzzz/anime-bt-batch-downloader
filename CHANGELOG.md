@@ -2,6 +2,18 @@
 
 All notable release changes for `Anime BT Batch Downloader` are tracked here. GitHub Release pages should reuse the matching version section from this file.
 
+## 2.2.0-beta.2
+
+### Fixes
+
+- Fixed dedicated settings-domain migrations and storage sanitization so legacy downloader, source, filter, batch, and subscription-policy data continue to load correctly after the options/config split. (`935474b`, `a40140f`, `ee7a3d6`, `081cffd`, `52248b5`, `fffcbab`, `d8f463d`)
+- Fixed runtime settings follow-through by restoring popup/content sync, preserving custom KissSub scripts, serializing content refreshes, and making general settings saves atomic across coordinated writes. (`f80e86c`, `ab4562f`, `0c9d91d`)
+
+### Refactor
+
+- Refactored settings persistence into dedicated `filter_config`, `source_config`, `downloader_config`, `batch_execution_config`, `batch_ui_preferences`, and `subscription_policy_config` domains, removing legacy shared-settings plumbing from the runtime. (`c69ba5b`, `bde46ea`, `7977aa3`, `b37a338`, `38b7ebd`, `555cd13`, `a50307f`, `e201fd2`)
+- Refactored the options workspace around per-domain workbenches, unified save actions/footer behavior, and dedicated background query surfaces for overview and batch runtime context. (`ad51619`, `667cd73`, `b74c005`)
+
 ## 2.2.0-beta.1
 
 ### Features
