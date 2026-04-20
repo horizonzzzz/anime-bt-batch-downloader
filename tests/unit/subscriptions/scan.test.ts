@@ -283,6 +283,33 @@ describe("background fetcher registry", () => {
     ])
   })
 
+  it("fetches Bangumi candidates through the API-backed source fetcher", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          torrents: [
+            {
+              _id: "69e5c31584f11a93b597ac80",
+              title: "[LoliHouse] Medalist - 01 [1080p]",
+              magnet: "magnet:?xt=urn:btih:AAA111"
+            }
+          ]
+        }),
+        { status: 200 }
+      )
+    )
+
+    await expect(
+      scanSubscriptionCandidatesFromSource("bangumimoe", { fetchImpl })
+    ).resolves.toEqual([
+      expect.objectContaining({
+        sourceId: "bangumimoe",
+        detailUrl: "https://bangumi.moe/torrent/69e5c31584f11a93b597ac80",
+        magnetUrl: "magnet:?xt=urn:btih:AAA111"
+      })
+    ])
+  })
+
   it("returns an empty list for sources without a registered subscription fetcher", async () => {
     const fetchImpl = vi.fn()
 
