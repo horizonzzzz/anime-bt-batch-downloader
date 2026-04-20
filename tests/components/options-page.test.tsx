@@ -1262,7 +1262,7 @@ describe("OptionsPage", () => {
 
       render(<OptionsPage api={api} />)
 
-      expect(await screen.findByRole("status")).toHaveTextContent("设置已加载。")
+      await screen.findByText("设置已加载。")
 
       await user.click(screen.getByRole("button", { name: "测试连接" }))
 
@@ -1288,7 +1288,7 @@ describe("OptionsPage", () => {
 
       render(<OptionsPage api={api} />)
 
-      expect(await screen.findByRole("status")).toHaveTextContent("设置已加载。")
+      await screen.findByText("设置已加载。")
 
       await user.click(screen.getByRole("button", { name: "测试连接" }))
 

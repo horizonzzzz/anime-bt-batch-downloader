@@ -573,7 +573,7 @@
         "sourceTitle": "Source scope",
         "sourceDescription": "Choose which supported sites this subscription should scan.",
         "sourceCount": "$1 site(s) selected",
-        "sourceHint": "ACG.RIP and Bangumi.moe currently support background list scanning. At least one site must remain selected.",
+        "sourceHint": "ACG.RIP and Bangumi.moe currently support background subscription polling. At least one site must remain selected.",
         "mustDescription": "Optional advanced conditions that must all match.",
         "mustEmpty": "No advanced must conditions yet.",
         "addMust": "Add must condition",
