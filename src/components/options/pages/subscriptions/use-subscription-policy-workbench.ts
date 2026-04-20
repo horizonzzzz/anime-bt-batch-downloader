@@ -1,5 +1,6 @@
 import { i18n } from "../../../../lib/i18n"
 import { DEFAULT_SUBSCRIPTION_POLICY_CONFIG } from "../../../../lib/subscriptions/policy/defaults"
+import { normalizeSubscriptionPollingInterval } from "../../../../lib/subscriptions/policy/index"
 import type { SubscriptionPolicyConfig } from "../../../../lib/subscriptions/policy/types"
 import { useCallback, useEffect, useState } from "react"
 
@@ -58,9 +59,16 @@ export function useSubscriptionPolicyWorkbench(api: OptionsApi) {
     }
   }, [api])
 
-  const savePolicy = useCallback(async () => {
+  const savePolicy = useCallback(async (nextPolicy: SubscriptionPolicyConfig = policy) => {
     if (!policyReady) {
       return
+    }
+
+    const normalizedPolicy = {
+      ...nextPolicy,
+      pollingIntervalMinutes: normalizeSubscriptionPollingInterval(
+        nextPolicy.pollingIntervalMinutes
+      )
     }
 
     setSaving(true)
@@ -70,7 +78,7 @@ export function useSubscriptionPolicyWorkbench(api: OptionsApi) {
     })
 
     try {
-      const saved = await api.saveSubscriptionPolicy(policy)
+      const saved = await api.saveSubscriptionPolicy(normalizedPolicy)
       setPolicy(saved)
       setStatus({
         tone: "success",

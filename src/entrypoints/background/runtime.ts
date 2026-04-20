@@ -129,8 +129,8 @@ export function registerBackgroundRuntime() {
       return
     }
 
-    void executeSubscriptionScan().catch(() => {
-      // Alarm-triggered scans are best-effort and should not surface unhandled rejections.
+    void executeSubscriptionScan().catch((error) => {
+      console.warn("Subscription alarm scan failed.", error)
     })
   })
 
@@ -151,8 +151,8 @@ export function registerBackgroundRuntime() {
         interactive: true
       })
       await downloadSubscriptionHits({ roundId })
-    })().catch(() => {
-      // Notification click downloads are best-effort and should not crash the runtime.
+    })().catch((error) => {
+      console.warn("Subscription notification click download failed.", error)
     })
   })
 

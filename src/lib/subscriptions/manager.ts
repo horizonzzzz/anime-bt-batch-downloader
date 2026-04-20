@@ -58,6 +58,7 @@ export class SubscriptionManager {
     return downloadSubscriptionNotificationHits(
       {
         subscriptionPolicy: this.input.subscriptionPolicy,
+        sourceConfig: this.input.sourceConfig,
         roundId: request.roundId
       },
       {

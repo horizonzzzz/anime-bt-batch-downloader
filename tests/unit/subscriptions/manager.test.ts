@@ -235,4 +235,68 @@ describe("SubscriptionManager", () => {
     ])
     await expect(listNotificationRounds()).resolves.toEqual([])
   })
+
+  it("filters notification hits using the manager source-config snapshot", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(
+      createSubscription({
+        sourceIds: ["bangumimoe"]
+      })
+    )
+    await subscriptionDb.notificationRounds.put({
+      id: "subscription-round:20260414093000000",
+      createdAt: now,
+      hits: [createHit()]
+    })
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [
+          {
+            url: "magnet:?xt=urn:btih:AAA111",
+            status: "submitted" as const
+          }
+        ]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const manager = new SubscriptionManager({
+      subscriptionPolicy: createSubscriptionPolicy(),
+      sourceConfig: createSourceConfig({
+        bangumimoe: {
+          ...DEFAULT_SOURCE_CONFIG.bangumimoe,
+          enabled: false
+        }
+      })
+    })
+    const result = await manager.downloadFromNotification(
+      { roundId: "subscription-round:20260414093000000" },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(
+          async (): Promise<DownloaderTorrentFile> => ({
+            filename: "medalist-01.torrent",
+            blob: new Blob(["torrent"])
+          })
+        ),
+        extractSingleItem: vi.fn(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.totalHits).toBe(0)
+    expect(result.attemptedHits).toBe(0)
+    expect(downloader.authenticate).not.toHaveBeenCalled()
+    await expect(listNotificationRounds()).resolves.toEqual([])
+  })
 })

@@ -18,7 +18,6 @@ import type {
 import type { SourceConfig } from "../sources/config/types"
 import type { ExtractionContext } from "../sources/types"
 import type { SubscriptionPolicyConfig } from "./policy/types"
-import { getSourceConfig } from "../sources/config"
 import { resolveSourceEnabled } from "../sources/config/selectors"
 import { getBatchExecutionConfig } from "../batch-config/storage"
 import { getDownloaderConfig } from "../downloader/config/storage"
@@ -65,6 +64,7 @@ type SubmissionStatusByHitId = Record<
 export async function downloadSubscriptionNotificationHits(
   input: {
     subscriptionPolicy: SubscriptionPolicyConfig
+    sourceConfig: SourceConfig
     roundId: string
   },
   dependencies: SubscriptionNotificationDownloadDependencies
@@ -86,10 +86,9 @@ export async function downloadSubscriptionNotificationHits(
     return createEmptyDownloadSubscriptionHitsResult()
   }
 
-  const sourceConfig = await getSourceConfig()
   const batchExecutionConfig = await getBatchExecutionConfig()
   const downloaderConfig = await (dependencies.getDownloaderConfig ?? getDownloaderConfig)()
-  const extractionContext = buildExtractionContextFromConfigs(batchExecutionConfig, sourceConfig)
+  const extractionContext = buildExtractionContextFromConfigs(batchExecutionConfig, input.sourceConfig)
   const hits = notificationRound.hits.map((hit) => ({ ...hit }))
   const subscriptions = await listSubscriptionsByIds([
     ...new Set(hits.map((hit) => hit.subscriptionId))
@@ -102,7 +101,7 @@ export async function downloadSubscriptionNotificationHits(
       isSubscriptionHitDownloadable(
         hit,
         subscriptionById.get(hit.subscriptionId),
-        sourceConfig
+        input.sourceConfig
       )
     )
     .map((hit) => ({ ...hit }))
@@ -133,7 +132,7 @@ export async function downloadSubscriptionNotificationHits(
     const classified = await prepareSubscriptionHit(
       hit,
       subscriptionById.get(hit.subscriptionId),
-      sourceConfig,
+      input.sourceConfig,
       seenHashes,
       seenUrls,
       dependencies.extractSingleItem,

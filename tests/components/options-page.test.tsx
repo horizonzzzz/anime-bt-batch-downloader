@@ -647,6 +647,39 @@ describe("OptionsPage", () => {
     })
   })
 
+  it("clamps the subscription polling interval before save and syncs the input value", async () => {
+    const user = userEvent.setup()
+    const saveSubscriptionPolicy = vi.fn().mockImplementation(async (config) => config)
+    const api = createOptionsApi({
+      saveSubscriptionPolicy
+    })
+
+    window.location.hash = "#/subscriptions"
+    render(<OptionsPage api={api} />)
+
+    const pollingIntervalInput = await screen.findByRole("spinbutton", {
+      name: "轮询间隔（分钟）"
+    })
+    fireEvent.change(pollingIntervalInput, {
+      target: {
+        value: "200"
+      }
+    })
+
+    expect(pollingIntervalInput).toHaveValue(200)
+
+    await user.click(screen.getByRole("button", { name: "保存订阅设置" }))
+
+    await waitFor(() => {
+      expect(saveSubscriptionPolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pollingIntervalMinutes: 120
+        })
+      )
+    })
+    expect(screen.getByRole("spinbutton", { name: "轮询间隔（分钟）" })).toHaveValue(120)
+  })
+
   it(
     "manages Bangumi.moe subscription delivery mode without using app-settings save payload",
     async () => {

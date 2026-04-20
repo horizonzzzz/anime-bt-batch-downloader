@@ -368,7 +368,30 @@ describe("background runtime subscription boundary", () => {
     expect(fakeBrowser.permissions.request).not.toHaveBeenCalled()
   })
 
-  it("swallows subscription notification click download errors", async () => {
+  it("logs alarm-triggered subscription scan failures", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    executeSubscriptionScanMock.mockRejectedValue(new Error("scan failed"))
+    const listener = onAlarmAddListener.mock.calls[0]?.[0]
+
+    expect(() => {
+      listener?.({
+        name: "subscription-poll"
+      })
+    }).not.toThrow()
+
+    await vi.waitFor(() => {
+      expect(executeSubscriptionScanMock).toHaveBeenCalledTimes(1)
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Subscription alarm scan failed.",
+        expect.objectContaining({
+          message: "scan failed"
+        })
+      )
+    })
+  })
+
+  it("logs subscription notification click download errors", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     downloadSubscriptionHitsMock.mockRejectedValue(new Error("downloader offline"))
     const listener = onClickedAddListener.mock.calls[0]?.[0]
 
@@ -378,6 +401,12 @@ describe("background runtime subscription boundary", () => {
 
     await vi.waitFor(() => {
       expect(downloadSubscriptionHitsMock).toHaveBeenCalledTimes(1)
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Subscription notification click download failed.",
+        expect.objectContaining({
+          message: "downloader offline"
+        })
+      )
     })
   })
 })

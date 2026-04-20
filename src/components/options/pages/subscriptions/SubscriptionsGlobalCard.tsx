@@ -1,4 +1,8 @@
 import { i18n } from "../../../../lib/i18n"
+import {
+  MAX_SUBSCRIPTION_POLLING_INTERVAL_MINUTES,
+  MIN_SUBSCRIPTION_POLLING_INTERVAL_MINUTES
+} from "../../../../lib/subscriptions/policy/index"
 
 import { Badge, Card, Input, Label, Switch } from "../../../ui"
 import {
@@ -8,7 +12,7 @@ import {
 
 type SubscriptionsGlobalCardProps = {
   subscriptionsEnabled: boolean
-  pollingIntervalMinutes: number
+  pollingIntervalMinutes: string
   notificationsEnabled: boolean
   notificationDownloadActionEnabled: boolean
   configuredCount: number
@@ -20,7 +24,8 @@ type SubscriptionsGlobalCardProps = {
   loading?: boolean
   saving?: boolean
   onSubscriptionsEnabledChange: (enabled: boolean) => void
-  onPollingIntervalMinutesChange: (minutes: number) => void
+  onPollingIntervalMinutesChange: (minutes: string) => void
+  onPollingIntervalMinutesBlur: () => void
   onNotificationsEnabledChange: (enabled: boolean) => void
   onNotificationDownloadActionEnabledChange: (enabled: boolean) => void
 }
@@ -40,6 +45,7 @@ export function SubscriptionsGlobalCard({
   saving = false,
   onSubscriptionsEnabledChange,
   onPollingIntervalMinutesChange,
+  onPollingIntervalMinutesBlur,
   onNotificationsEnabledChange,
   onNotificationDownloadActionEnabledChange
 }: SubscriptionsGlobalCardProps) {
@@ -99,14 +105,13 @@ export function SubscriptionsGlobalCard({
                 id="subscription-polling-interval"
                 className="mt-3"
                 type="number"
-                min={5}
-                max={120}
+                min={MIN_SUBSCRIPTION_POLLING_INTERVAL_MINUTES}
+                max={MAX_SUBSCRIPTION_POLLING_INTERVAL_MINUTES}
                 step={5}
                 value={pollingIntervalMinutes}
                 disabled={controlsDisabled}
-                onChange={(event) =>
-                  onPollingIntervalMinutesChange(Number.parseInt(event.target.value || "0", 10))
-                }
+                onBlur={onPollingIntervalMinutesBlur}
+                onChange={(event) => onPollingIntervalMinutesChange(event.target.value)}
               />
               <p className="mt-2 text-xs leading-5 text-zinc-500">
                 {i18n.t("options.subscriptions.global.pollingIntervalHint")}

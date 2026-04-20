@@ -1,5 +1,6 @@
 import { i18n } from "../../../../lib/i18n"
-import { useMemo, useState } from "react"
+import { normalizeSubscriptionPollingInterval } from "../../../../lib/subscriptions/policy/index"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { HiOutlineArrowPath, HiOutlinePlus } from "react-icons/hi2"
 
@@ -57,12 +58,19 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
     saving: policySaving,
     savePolicy
   } = useSubscriptionPolicyWorkbench(api)
+  const [pollingIntervalInput, setPollingIntervalInput] = useState(
+    String(policy.pollingIntervalMinutes)
+  )
   const [editingSubscriptionId, setEditingSubscriptionId] = useState<string | null>(null)
   const [creatingSubscription, setCreatingSubscription] = useState(false)
   const [pendingDeleteSubscriptionId, setPendingDeleteSubscriptionId] = useState<string | null>(null)
   const pendingDeleteSubscription = subscriptionRows.find(
     (row) => row.subscription.id === pendingDeleteSubscriptionId
   )?.subscription
+
+  useEffect(() => {
+    setPollingIntervalInput(String(policy.pollingIntervalMinutes))
+  }, [policy.pollingIntervalMinutes])
 
   const initialSubscription = useMemo(() => {
     if (!editingSubscriptionId) {
@@ -93,6 +101,17 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
       enabled
     })
   }
+
+  const syncPollingIntervalInput = useCallback((value: string) => {
+    const normalizedValue = normalizeSubscriptionPollingInterval(value)
+    setPolicy((current) => ({
+      ...current,
+      pollingIntervalMinutes: normalizedValue
+    }))
+    setPollingIntervalInput(String(normalizedValue))
+
+    return normalizedValue
+  }, [setPolicy])
   const footerConfig = useMemo(() => {
     return {
       description: i18n.t("options.footer.currentPageDescription"),
@@ -102,7 +121,13 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
           size="lg"
           className="min-w-[168px] sm:min-w-[208px]"
           disabled={loading || policyLoading || policySaving}
-          onClick={() => void savePolicy()}>
+          onClick={() => {
+            const nextPolicy = {
+              ...policy,
+              pollingIntervalMinutes: syncPollingIntervalInput(pollingIntervalInput)
+            }
+            void savePolicy(nextPolicy)
+          }}>
           {policySaving ? (
             <HiOutlineArrowPath className="h-4 w-4 animate-spin" aria-hidden="true" />
           ) : null}
@@ -112,7 +137,15 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
         </Button>
       )
     }
-  }, [loading, policyLoading, policySaving, savePolicy])
+  }, [
+    loading,
+    policy,
+    policyLoading,
+    policySaving,
+    pollingIntervalInput,
+    savePolicy,
+    syncPollingIntervalInput
+  ])
 
   useOptionsPageFooter(footerConfig)
   const visibleStatus =
@@ -134,7 +167,7 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
 
       <SubscriptionsGlobalCard
         subscriptionsEnabled={policy.enabled}
-        pollingIntervalMinutes={policy.pollingIntervalMinutes}
+        pollingIntervalMinutes={pollingIntervalInput}
         notificationsEnabled={policy.notificationsEnabled}
         notificationDownloadActionEnabled={policy.notificationDownloadActionEnabled}
         configuredCount={summary.configuredCount}
@@ -151,12 +184,10 @@ export function SubscriptionsPage({ api }: SubscriptionsPageProps) {
             enabled: enabled
           }))
         }
-        onPollingIntervalMinutesChange={(minutes) =>
-          setPolicy((current) => ({
-            ...current,
-            pollingIntervalMinutes: Number.isFinite(minutes) ? minutes : 30
-          }))
-        }
+        onPollingIntervalMinutesChange={setPollingIntervalInput}
+        onPollingIntervalMinutesBlur={() => {
+          syncPollingIntervalInput(pollingIntervalInput)
+        }}
         onNotificationsEnabledChange={(enabled) =>
           setPolicy((current) => ({
             ...current,

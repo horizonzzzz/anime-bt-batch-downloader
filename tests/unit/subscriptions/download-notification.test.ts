@@ -4,11 +4,13 @@ import type {
   SubscriptionEntry,
   SubscriptionHitRecord
 } from "../../../src/lib/shared/types"
+import type { SourceConfig } from "../../../src/lib/sources/config/types"
 import type { DownloaderAdapter, DownloaderTorrentFile } from "../../../src/lib/downloader"
 import type { SubscriptionPolicyConfig } from "../../../src/lib/subscriptions/policy/types"
 import type { DownloaderConfig } from "../../../src/lib/downloader/config/types"
 import { DEFAULT_SUBSCRIPTION_POLICY_CONFIG } from "../../../src/lib/subscriptions/policy/defaults"
 import { DEFAULT_DOWNLOADER_CONFIG } from "../../../src/lib/downloader/config/defaults"
+import { DEFAULT_SOURCE_CONFIG } from "../../../src/lib/sources/config/defaults"
 import { resetSubscriptionDb, subscriptionDb } from "../../../src/lib/subscriptions/db"
 import { downloadSubscriptionNotificationHits } from "../../../src/lib/subscriptions/download-notification"
 import { listNotificationRounds } from "../../../src/lib/subscriptions/runtime-query"
@@ -25,6 +27,13 @@ function createSubscriptionPolicy(overrides: Partial<SubscriptionPolicyConfig> =
 function createDownloaderConfig(overrides: Partial<DownloaderConfig> = {}): DownloaderConfig {
   return {
     ...DEFAULT_DOWNLOADER_CONFIG,
+    ...overrides
+  }
+}
+
+function createSourceConfig(overrides: Partial<SourceConfig> = {}): SourceConfig {
+  return {
+    ...DEFAULT_SOURCE_CONFIG,
     ...overrides
   }
 }
@@ -115,6 +124,7 @@ describe("downloadSubscriptionNotificationHits", () => {
     const result = await downloadSubscriptionNotificationHits(
       {
         subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig(),
         roundId: "subscription-round:20260414093000000"
       },
       {
@@ -164,6 +174,7 @@ describe("downloadSubscriptionNotificationHits", () => {
         subscriptionPolicy: createSubscriptionPolicy({
           notificationsEnabled: false
         }),
+        sourceConfig: createSourceConfig(),
         roundId: "subscription-round:20260414093000000"
       },
       {
@@ -226,6 +237,7 @@ describe("downloadSubscriptionNotificationHits", () => {
     const result = await downloadSubscriptionNotificationHits(
       {
         subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig(),
         roundId: "subscription-round:20260414093000000"
       },
       {
