@@ -411,4 +411,66 @@ describe("downloadSubscriptionNotificationHits", () => {
       })
     )
   })
+
+  it("marks the hit as failed when hidden detail extraction throws an exception", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription({
+      sourceIds: ["bangumimoe"]
+    }))
+    await subscriptionDb.notificationRounds.put({
+      id: "subscription-round:20260414093000000",
+      createdAt: now,
+      hits: [createHit({
+        magnetUrl: "",
+        torrentUrl: "",
+        detailUrl: "https://bangumi.moe/torrent/100"
+      })]
+    })
+
+    const extractSingleItem = vi.fn(async () => {
+      throw new Error("Timed out waiting for the detail tab to finish loading.")
+    })
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({ entries: [] })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadSubscriptionNotificationHits(
+      {
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig(),
+        roundId: "subscription-round:20260414093000000"
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem,
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.failedCount).toBe(1)
+    expect(result.submittedCount).toBe(0)
+    expect(await subscriptionDb.notificationRounds.get("subscription-round:20260414093000000")).toEqual(
+      expect.objectContaining({
+        hits: [
+          expect.objectContaining({
+            id: "hit-1",
+            downloadStatus: "failed",
+            downloadedAt: null
+          })
+        ]
+      })
+    )
+  })
 })

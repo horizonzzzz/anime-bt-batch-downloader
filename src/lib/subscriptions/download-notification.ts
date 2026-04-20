@@ -323,8 +323,25 @@ async function prepareSubscriptionHit(
     return classifyExtractionResult(hit.sourceId, preparedResult, sourceConfig, seenHashes, seenUrls)
   }
 
-  const extractedResult = await extractSingleItem(batchItem, context)
-  return classifyExtractionResult(hit.sourceId, extractedResult, sourceConfig, seenHashes, seenUrls)
+  try {
+    const extractedResult = await extractSingleItem(batchItem, context)
+    return classifyExtractionResult(hit.sourceId, extractedResult, sourceConfig, seenHashes, seenUrls)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Hidden detail extraction failed."
+    return {
+      ok: false,
+      title: hit.title,
+      detailUrl: hit.detailUrl,
+      hash: "",
+      magnetUrl: "",
+      torrentUrl: "",
+      status: "failed",
+      deliveryMode: "",
+      submitUrl: "",
+      message,
+      failureReason: message
+    }
+  }
 }
 
 async function submitPreparedHits(
