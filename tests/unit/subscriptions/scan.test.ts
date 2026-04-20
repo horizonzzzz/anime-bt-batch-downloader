@@ -261,176 +261,37 @@ describe("scanSubscriptions", () => {
   })
 })
 
-describe("scanSubscriptionCandidatesFromSource", () => {
-  beforeEach(() => {
-    resetContentScriptReadyRegistry()
-  })
-
-  it("requests candidates from the content runtime instead of executeScript", async () => {
-    const mockSendMessageToTab = vi.fn(async () => ({
-      ok: true as const,
-      candidates: [
-        {
-          sourceId: "acgrip" as const,
-          title: "[LoliHouse] Medalist - 01 [1080p]",
-          detailUrl: "https://acg.rip/t/100",
-          magnetUrl: "",
-          torrentUrl: "https://acg.rip/t/100.torrent",
-          subgroup: ""
-        }
-      ]
-    }))
-
-    const mockGetAdapterById = vi.fn(() => ({
-      id: "acgrip" as const,
-      displayName: "ACG.RIP",
-      supportedDeliveryModes: ["magnet", "torrent-url"] as DeliveryMode[],
-      defaultDeliveryMode: "torrent-url" as DeliveryMode,
-      subscriptionListScan: {
-        listPageUrl: "https://acg.rip/"
-      },
-      matchesListPage: vi.fn(() => false),
-      matchesDetailUrl: vi.fn((url: URL) => /\/t\/\d+$/i.test(url.pathname)),
-      getDetailAnchors: vi.fn(() => []),
-      getBatchItemFromAnchor: vi.fn(() => null),
-      extractSingleItem: vi.fn(async () => ({ ok: false, title: "", detailUrl: "", hash: "", magnetUrl: "", torrentUrl: "", failureReason: "" }))
-    }))
-
-    const mockRunWithListPageTab = vi.fn(async (_listPageUrl: string, run: (tabId: number) => Promise<any>) => {
-      return run(12)
-    })
-
-    await scanSubscriptionCandidatesFromSource("acgrip", {
-      getAdapterById: mockGetAdapterById,
-      runWithListPageTab: mockRunWithListPageTab,
-      sendMessageToTab: mockSendMessageToTab,
-      waitForContentScriptReady: vi.fn(async () => {})
-    })
-
-    expect(mockSendMessageToTab).toHaveBeenCalledWith(12, {
-      type: SCAN_SUBSCRIPTION_LIST_REQUEST,
-      sourceId: "acgrip"
-    })
-  })
-
-  it("waits for content script ready signal before requesting scan", async () => {
-    const mockWaitForReady = vi.fn(async () => {})
-    const mockSendMessageToTab = vi.fn(async () => ({
-      ok: true as const,
-      candidates: []
-    }))
-
-    const mockGetAdapterById = vi.fn(() => ({
-      id: "acgrip" as const,
-      displayName: "ACG.RIP",
-      supportedDeliveryModes: ["magnet", "torrent-url"] as DeliveryMode[],
-      defaultDeliveryMode: "torrent-url" as DeliveryMode,
-      subscriptionListScan: {
-        listPageUrl: "https://acg.rip/"
-      },
-      matchesListPage: vi.fn(() => false),
-      matchesDetailUrl: vi.fn((url: URL) => /\/t\/\d+$/i.test(url.pathname)),
-      getDetailAnchors: vi.fn(() => []),
-      getBatchItemFromAnchor: vi.fn(() => null),
-      extractSingleItem: vi.fn(async () => ({ ok: false, title: "", detailUrl: "", hash: "", magnetUrl: "", torrentUrl: "", failureReason: "" }))
-    }))
-
-    const mockRunWithListPageTab = vi.fn(async (_listPageUrl: string, run: (tabId: number) => Promise<any>) => {
-      return run(12)
-    })
-
-    await scanSubscriptionCandidatesFromSource("acgrip", {
-      getAdapterById: mockGetAdapterById,
-      runWithListPageTab: mockRunWithListPageTab,
-      sendMessageToTab: mockSendMessageToTab,
-      waitForContentScriptReady: mockWaitForReady
-    })
-
-    expect(mockWaitForReady).toHaveBeenCalledWith(12, "acgrip")
-    expect(mockSendMessageToTab).toHaveBeenCalledAfter(mockWaitForReady)
-  })
-
-  it("handles scan errors from content runtime", async () => {
-    const mockSendMessageToTab = vi.fn(async () => ({
-      ok: false as const,
-      error: "Failed to parse list page structure"
-    }))
-
-    const mockGetAdapterById = vi.fn(() => ({
-      id: "acgrip" as const,
-      displayName: "ACG.RIP",
-      supportedDeliveryModes: ["magnet", "torrent-url"] as DeliveryMode[],
-      defaultDeliveryMode: "torrent-url" as DeliveryMode,
-      subscriptionListScan: {
-        listPageUrl: "https://acg.rip/"
-      },
-      matchesListPage: vi.fn(() => false),
-      matchesDetailUrl: vi.fn((url: URL) => /\/t\/\d+$/i.test(url.pathname)),
-      getDetailAnchors: vi.fn(() => []),
-      getBatchItemFromAnchor: vi.fn(() => null),
-      extractSingleItem: vi.fn(async () => ({ ok: false, title: "", detailUrl: "", hash: "", magnetUrl: "", torrentUrl: "", failureReason: "" }))
-    }))
-
-    const mockRunWithListPageTab = vi.fn(async (_listPageUrl: string, run: (tabId: number) => Promise<any>) => {
-      return run(12)
-    })
+describe("background fetcher registry", () => {
+  it("fetches ACG.RIP subscription candidates through the background fetcher registry", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        `<table><tr><td><a href="/t/100">[LoliHouse] Medalist - 01 [1080p]</a></td><td><a href="/t/100.torrent">Torrent</a></td></tr></table>`,
+        { status: 200 }
+      )
+    )
 
     await expect(
       scanSubscriptionCandidatesFromSource("acgrip", {
-        getAdapterById: mockGetAdapterById,
-        runWithListPageTab: mockRunWithListPageTab,
-        sendMessageToTab: mockSendMessageToTab,
-        waitForContentScriptReady: vi.fn(async () => {})
-      })
-    ).rejects.toThrow("Failed to parse list page structure")
-  })
-
-  it("consumes a ready signal that arrived before source-scan started waiting", async () => {
-    const mockSendMessageToTab = vi.fn(async () => ({
-      ok: true as const,
-      candidates: [
-        {
-          sourceId: "acgrip" as const,
-          title: "[LoliHouse] Medalist - 01 [1080p]",
-          detailUrl: "https://acg.rip/t/100",
-          magnetUrl: "",
-          torrentUrl: "https://acg.rip/t/100.torrent",
-          subgroup: ""
-        }
-      ]
-    }))
-
-    const mockGetAdapterById = vi.fn(() => ({
-      id: "acgrip" as const,
-      displayName: "ACG.RIP",
-      supportedDeliveryModes: ["magnet", "torrent-url"] as DeliveryMode[],
-      defaultDeliveryMode: "torrent-url" as DeliveryMode,
-      subscriptionListScan: {
-        listPageUrl: "https://acg.rip/"
-      },
-      matchesListPage: vi.fn(() => false),
-      matchesDetailUrl: vi.fn((url: URL) => /\/t\/\d+$/i.test(url.pathname)),
-      getDetailAnchors: vi.fn(() => []),
-      getBatchItemFromAnchor: vi.fn(() => null),
-      extractSingleItem: vi.fn(async () => ({ ok: false, title: "", detailUrl: "", hash: "", magnetUrl: "", torrentUrl: "", failureReason: "" }))
-    }))
-
-    const mockRunWithListPageTab = vi.fn(async (_listPageUrl: string, run: (tabId: number) => Promise<any>) => {
-      markContentScriptReady(12, "acgrip")
-      return run(12)
-    })
-
-    await expect(
-      scanSubscriptionCandidatesFromSource("acgrip", {
-        getAdapterById: mockGetAdapterById,
-        runWithListPageTab: mockRunWithListPageTab,
-        sendMessageToTab: mockSendMessageToTab
+        fetchImpl
       })
     ).resolves.toEqual([
       expect.objectContaining({
         sourceId: "acgrip",
-        detailUrl: "https://acg.rip/t/100"
+        detailUrl: "https://acg.rip/t/100",
+        torrentUrl: "https://acg.rip/t/100.torrent"
       })
     ])
+  })
+
+  it("returns an empty list for sources without a registered subscription fetcher", async () => {
+    const fetchImpl = vi.fn()
+
+    await expect(
+      scanSubscriptionCandidatesFromSource("kisssub", {
+        fetchImpl
+      })
+    ).resolves.toEqual([])
+
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })

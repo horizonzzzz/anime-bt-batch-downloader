@@ -40,6 +40,8 @@ export {
 export { SubscriptionManager } from "./manager"
 export { scanSubscriptions } from "./scan"
 export { scanSubscriptionCandidatesFromSource } from "./source-scan"
+export { getSubscriptionSourceFetcherById } from "./source-fetch"
+export type { SubscriptionSourceFetcher, SubscriptionSourceFetchFunction } from "./source-fetch/types"
 export {
   clearContentScriptReadyForTab,
   markContentScriptReady,
