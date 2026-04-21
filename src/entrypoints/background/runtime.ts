@@ -302,6 +302,11 @@ export function registerBackgroundRuntime() {
             )
             return
           case "CREATE_SUBSCRIPTION":
+            if (!isValidCreateSubscriptionPayload(runtimeMessage)) {
+              sendResponse(createRuntimeErrorResponse("Invalid CREATE_SUBSCRIPTION payload"))
+              return
+            }
+
             await createSubscriptionCommand(runtimeMessage.subscription)
             sendResponse(createRuntimeSuccessResponse("CREATE_SUBSCRIPTION", {}))
             return
@@ -310,6 +315,11 @@ export function registerBackgroundRuntime() {
             sendResponse(createRuntimeSuccessResponse("UPSERT_SUBSCRIPTION", {}))
             return
           case "SET_SUBSCRIPTION_ENABLED":
+            if (!isValidSetSubscriptionEnabledPayload(runtimeMessage)) {
+              sendResponse(createRuntimeErrorResponse("Invalid SET_SUBSCRIPTION_ENABLED payload"))
+              return
+            }
+
             await setSubscriptionEnabledCommand(
               runtimeMessage.subscriptionId,
               runtimeMessage.enabled
@@ -487,6 +497,64 @@ function isValidPopupSourceTogglePayload(message: {
   enabled: boolean
 } {
   return isValidSourceId(message.sourceId) && typeof message.enabled === "boolean"
+}
+
+function isValidCreateSubscriptionPayload(message: {
+  [key: string]: unknown
+}): message is {
+  subscription: {
+    id: string
+    name: string
+    enabled: boolean
+    deletedAt: string | null
+    sourceIds: unknown[]
+    titleQuery: string
+    subgroupQuery: string
+    advanced: {
+      must: unknown[]
+      any: unknown[]
+    }
+    createdAt: string
+    baselineCreatedAt: string
+  }
+} {
+  const subscription = message.subscription
+  if (!isPlainObject(subscription)) {
+    return false
+  }
+
+  const advanced = subscription.advanced
+
+  return isNonEmptyString(subscription.id) &&
+    isNonEmptyString(subscription.name) &&
+    typeof subscription.enabled === "boolean" &&
+    (subscription.deletedAt === null || typeof subscription.deletedAt === "string") &&
+    Array.isArray(subscription.sourceIds) &&
+    subscription.sourceIds.length > 0 &&
+    typeof subscription.titleQuery === "string" &&
+    typeof subscription.subgroupQuery === "string" &&
+    isPlainObject(advanced) &&
+    Array.isArray(advanced.must) &&
+    Array.isArray(advanced.any) &&
+    typeof subscription.createdAt === "string" &&
+    typeof subscription.baselineCreatedAt === "string"
+}
+
+function isValidSetSubscriptionEnabledPayload(message: {
+  [key: string]: unknown
+}): message is {
+  subscriptionId: string
+  enabled: boolean
+} {
+  return isNonEmptyString(message.subscriptionId) && typeof message.enabled === "boolean"
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0
 }
 
 async function queryCurrentActiveTabContext(): Promise<{ id: number | null; url: string | null }> {

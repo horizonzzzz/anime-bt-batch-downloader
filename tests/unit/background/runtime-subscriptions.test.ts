@@ -311,6 +311,45 @@ describe("background runtime subscription boundary", () => {
     })
   })
 
+  it("rejects malformed CREATE_SUBSCRIPTION runtime payloads", async () => {
+    createSubscriptionCommandMock.mockResolvedValue(undefined)
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "CREATE_SUBSCRIPTION",
+        subscription: {
+          id: "",
+          name: "Incomplete",
+          enabled: "yes",
+          sourceIds: [],
+          titleQuery: "Medalist",
+          subgroupQuery: "",
+          advanced: {
+            must: [],
+            any: []
+          },
+          createdAt: "2026-04-14T09:30:00.000Z",
+          baselineCreatedAt: "2026-04-14T09:30:00.000Z",
+          deletedAt: null
+        }
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(createSubscriptionCommandMock).not.toHaveBeenCalled()
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      error: "Invalid CREATE_SUBSCRIPTION payload"
+    })
+  })
+
   it("supports SET_SUBSCRIPTION_ENABLED runtime messages", async () => {
     setSubscriptionEnabledCommandMock.mockResolvedValue(undefined)
     const listener = onMessageAddListener.mock.calls[0]?.[0]
@@ -333,6 +372,32 @@ describe("background runtime subscription boundary", () => {
     expect(setSubscriptionEnabledCommandMock).toHaveBeenCalledWith("sub-1", false)
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true
+    })
+  })
+
+  it("rejects malformed SET_SUBSCRIPTION_ENABLED runtime payloads", async () => {
+    setSubscriptionEnabledCommandMock.mockResolvedValue(undefined)
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "SET_SUBSCRIPTION_ENABLED",
+        subscriptionId: "sub-1",
+        enabled: "false"
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(setSubscriptionEnabledCommandMock).not.toHaveBeenCalled()
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      error: "Invalid SET_SUBSCRIPTION_ENABLED payload"
     })
   })
 
