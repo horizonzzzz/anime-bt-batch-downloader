@@ -9,8 +9,10 @@ import {
   listActiveSubscriptions,
   listSubscriptionsByIdsIncludingDeleted,
   listSubscriptionsIncludingDeleted,
+  replaceSubscriptionCatalog,
   setSubscriptionRecordEnabled,
-  softDeleteSubscriptionRecord
+  softDeleteSubscriptionRecord,
+  upsertSubscription
 } from "../../../src/lib/subscriptions/catalog-repository"
 import {
   resetSubscriptionDb,
@@ -199,6 +201,89 @@ describe("subscription catalog repository", () => {
     ])
     await expect(listActiveSubscriptions()).resolves.toEqual([
       expect.objectContaining({ id: "sub-1", enabled: false, deletedAt: null })
+    ])
+  })
+
+  it("does not allow stale upserts to undelete a tombstoned subscription", async () => {
+    await createSubscriptionRecord(createSubscription())
+    await softDeleteSubscriptionRecord("sub-1", "2026-04-18T00:00:00.000Z")
+
+    await expect(
+      upsertSubscription(createSubscription({ id: "sub-1", name: "Revived Medalist" }))
+    ).rejects.toThrow("Cannot update tombstoned subscription: sub-1")
+
+    await expect(subscriptionDb.subscriptions.get("sub-1")).resolves.toEqual(
+      expect.objectContaining({
+        id: "sub-1",
+        name: "Medalist",
+        enabled: false,
+        deletedAt: "2026-04-18T00:00:00.000Z"
+      })
+    )
+  })
+
+  it("does not allow replace catalog to undelete a tombstoned subscription", async () => {
+    await createSubscriptionRecord(createSubscription())
+    await softDeleteSubscriptionRecord("sub-1", "2026-04-18T00:00:00.000Z")
+
+    await expect(
+      replaceSubscriptionCatalog([
+        createSubscription({ id: "sub-1", name: "Revived Medalist" })
+      ])
+    ).rejects.toThrow("Cannot replace tombstoned subscription: sub-1")
+
+    await expect(subscriptionDb.subscriptions.get("sub-1")).resolves.toEqual(
+      expect.objectContaining({
+        id: "sub-1",
+        name: "Medalist",
+        enabled: false,
+        deletedAt: "2026-04-18T00:00:00.000Z"
+      })
+    )
+  })
+
+  it("preserves omitted tombstoned rows when replacing the active catalog", async () => {
+    await createSubscriptionRecord(createSubscription({ id: "sub-1" }))
+    await createSubscriptionRecord(
+      createSubscription({
+        id: "sub-2",
+        name: "Frieren",
+        titleQuery: "frieren",
+        createdAt: "2026-04-02T00:00:00.000Z",
+        baselineCreatedAt: "2026-04-02T00:00:00.000Z"
+      })
+    )
+    await softDeleteSubscriptionRecord("sub-1", "2026-04-18T00:00:00.000Z")
+
+    await replaceSubscriptionCatalog([
+      createSubscription({
+        id: "sub-2",
+        name: "Frieren Updated",
+        titleQuery: "frieren updated",
+        createdAt: "2026-04-02T00:00:00.000Z",
+        baselineCreatedAt: "2026-04-02T00:00:00.000Z"
+      }),
+      createSubscription({
+        id: "sub-3",
+        name: "Apothecary",
+        titleQuery: "apothecary",
+        createdAt: "2026-04-03T00:00:00.000Z",
+        baselineCreatedAt: "2026-04-03T00:00:00.000Z"
+      })
+    ])
+
+    await expect(listSubscriptionsIncludingDeleted()).resolves.toEqual([
+      expect.objectContaining({ id: "sub-3", deletedAt: null }),
+      expect.objectContaining({
+        id: "sub-2",
+        name: "Frieren Updated",
+        deletedAt: null
+      }),
+      expect.objectContaining({
+        id: "sub-1",
+        enabled: false,
+        deletedAt: "2026-04-18T00:00:00.000Z"
+      })
     ])
   })
 })

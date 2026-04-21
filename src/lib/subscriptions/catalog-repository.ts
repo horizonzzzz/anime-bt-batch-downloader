@@ -121,6 +121,8 @@ export async function listSubscriptionsByIds(ids: string[]): Promise<Subscriptio
 export async function replaceSubscriptionCatalog(
   nextSubscriptions: SubscriptionEntry[]
 ): Promise<void> {
+  assertActiveCatalogInput(nextSubscriptions)
+
   const nextById = new Map(
     nextSubscriptions.map((subscription) => [
       subscription.id,
@@ -142,6 +144,11 @@ export async function replaceSubscriptionCatalog(
       )
 
       for (const subscription of nextById.values()) {
+        const previous = previousById.get(subscription.id)
+        if (previous && previous.deletedAt !== null) {
+          throw new Error(`Cannot replace tombstoned subscription: ${subscription.id}`)
+        }
+
         await subscriptionDb.subscriptions.put(subscription)
       }
 
@@ -171,6 +178,11 @@ export async function replaceSubscriptionCatalog(
 
 export async function upsertSubscription(subscription: SubscriptionEntry): Promise<void> {
   const normalizedSubscription = normalizeSubscriptionRecord(subscription)
+  if (normalizedSubscription.deletedAt !== null) {
+    throw new Error(
+      `Cannot upsert tombstoned subscription: ${normalizedSubscription.id}`
+    )
+  }
 
   await subscriptionDb.transaction(
     "rw",
@@ -179,6 +191,11 @@ export async function upsertSubscription(subscription: SubscriptionEntry): Promi
     async () => {
       const previous = await subscriptionDb.subscriptions.get(normalizedSubscription.id)
       const normalizedPrevious = previous ? normalizeSubscriptionRecord(previous) : null
+      if (normalizedPrevious?.deletedAt !== null) {
+        throw new Error(
+          `Cannot update tombstoned subscription: ${normalizedSubscription.id}`
+        )
+      }
 
       await subscriptionDb.subscriptions.put(normalizedSubscription)
 
@@ -200,6 +217,17 @@ function normalizeSubscriptionRecord(subscription: SubscriptionEntry): Subscript
   return {
     ...subscription,
     deletedAt: subscription.deletedAt ?? null
+  }
+}
+
+function assertActiveCatalogInput(subscriptions: SubscriptionEntry[]): void {
+  for (const subscription of subscriptions) {
+    const normalizedSubscription = normalizeSubscriptionRecord(subscription)
+    if (normalizedSubscription.deletedAt !== null) {
+      throw new Error(
+        `Active catalog input cannot include tombstoned subscription: ${normalizedSubscription.id}`
+      )
+    }
   }
 }
 
