@@ -181,7 +181,8 @@ async function seedSubscriptionFixture() {
       any: []
     },
     createdAt: "2026-04-13T00:00:00.000Z",
-    baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+    baselineCreatedAt: "2026-04-13T00:00:00.000Z",
+    deletedAt: null
   }
 
   await upsertSubscription(subscription)

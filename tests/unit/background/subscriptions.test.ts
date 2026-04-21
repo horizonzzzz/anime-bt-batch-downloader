@@ -44,6 +44,7 @@ function createSubscription(
     },
     createdAt: "2026-04-01T00:00:00.000Z",
     baselineCreatedAt: "2026-04-01T00:00:00.000Z",
+    deletedAt: null,
     ...overrides
   }
 }

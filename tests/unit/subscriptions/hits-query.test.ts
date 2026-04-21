@@ -26,7 +26,8 @@ async function seedTestFixture() {
       any: []
     },
     createdAt: "2026-04-13T00:00:00.000Z",
-    baselineCreatedAt: "2026-04-13T00:00:00.000Z"
+    baselineCreatedAt: "2026-04-13T00:00:00.000Z",
+    deletedAt: null
   }
 
   const subscription2: SubscriptionEntry = {
@@ -42,7 +43,8 @@ async function seedTestFixture() {
       any: []
     },
     createdAt: "2026-04-14T00:00:00.000Z",
-    baselineCreatedAt: "2026-04-14T00:00:00.000Z"
+    baselineCreatedAt: "2026-04-14T00:00:00.000Z",
+    deletedAt: null
   }
 
   await upsertSubscription(subscription1)

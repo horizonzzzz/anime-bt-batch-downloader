@@ -111,7 +111,7 @@ export async function softDeleteSubscriptionRecord(
 }
 
 export async function listSubscriptions(): Promise<SubscriptionEntry[]> {
-  return listActiveSubscriptions()
+  return listSubscriptionsIncludingDeleted()
 }
 
 export async function listSubscriptionsByIds(ids: string[]): Promise<SubscriptionEntry[]> {
