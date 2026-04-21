@@ -1205,6 +1205,60 @@ test("subscription hits workbench shows highlighted state when round parameter i
   }
 })
 
+test("subscription hits workbench shows deleted badge for tombstoned subscriptions", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const seedPage = await extension.context.newPage()
+    await seedPage.goto(`chrome-extension://${extension.extensionId}/options.html`)
+    await seedSubscriptionHitsWorkbench(seedPage)
+    await seedPage.evaluate(async () => {
+      const subscriptionDbVersion = 20
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("anime-bt-subscription-state", subscriptionDbVersion)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => resolve(request.result)
+      })
+
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(["subscriptions"], "readwrite")
+        tx.objectStore("subscriptions").put({
+          id: "sub-1",
+          name: "Medalist",
+          enabled: false,
+          sourceIds: ["acgrip"],
+          multiSiteModeEnabled: false,
+          titleQuery: "Medalist",
+          subgroupQuery: "",
+          advanced: { must: [], any: [] },
+          createdAt: "2026-04-21T08:00:00.000Z",
+          baselineCreatedAt: "2026-04-21T08:00:00.000Z",
+          deletedAt: "2026-04-21T10:00:00.000Z"
+        })
+
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+        tx.onabort = () => reject(tx.error)
+      })
+
+      db.close()
+    })
+    await seedPage.close()
+
+    const workbenchPage = await openSubscriptionHitsWorkbench(extension)
+    const deletedGroup = workbenchPage.getByTestId("subscription-hit-group-sub-1")
+
+    await expect(deletedGroup).toBeVisible()
+    await expect(
+      deletedGroup.getByText(/^(Deleted|已删除)$/)
+    ).toBeVisible()
+
+    await workbenchPage.close()
+  } finally {
+    await extension.close()
+  }
+})
+
 test("manual download updates hit status in subscription hits workbench", async () => {
   const extension = await launchExtensionContext()
 

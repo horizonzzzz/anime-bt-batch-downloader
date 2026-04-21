@@ -21,7 +21,10 @@ The extension injects selection UI into supported list pages, reuses direct magn
     - page interactions write through the dedicated filter workbench, and the quick test bench exercises the same include-only filter engine used by the runtime
   - `Subscriptions`
     - rendered as a first-class workspace backed by persisted subscription definitions, dedicated `subscription_policy_config`, and Dexie-backed scheduler, polling, notification, and bounded recent-hit runtime state
-    - supports grouped multi-source scans for subscription-capable sites, runtime status visibility, and notification-round retention for recent matched hits
+    - supports creating, duplicating, enabling, disabling, and deleting subscriptions, plus grouped multi-source scans for subscription-capable sites, runtime status visibility, and notification-round retention for recent matched hits
+    - does not currently support editing an existing subscription definition in place; changes require creating or duplicating a new definition instead
+    - deleting a subscription removes it from the active catalog but preserves historical hits, which remain visible in `options.html#/subscription-hits` with a deleted marker
+    - disabling a subscription or disabling a source stops future scanning only and does not block downloading historical hits that were already retained
   - `Batch History`
   - `Source Overview`
 - Supported popup surface responsibilities:
@@ -39,6 +42,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `options.html#/sites`
   - `options.html#/filters`
   - `options.html#/subscriptions`
+  - `options.html#/subscription-hits`
   - `options.html#/history`
   - `options.html#/overview`
 - Supported downloader targets: `qBittorrent WebUI` and `Transmission RPC`
