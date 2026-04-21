@@ -4,6 +4,7 @@ import {
   deleteSubscriptionDefinition,
   createBatchDownloadManager,
   downloadSubscriptionHits,
+  downloadSubscriptionHitsBySelection,
   executeSubscriptionScan,
   fetchTorrentForUpload,
   notifySupportedSourceTabsOfContentSettingsChange,
@@ -423,6 +424,13 @@ export function registerBackgroundRuntime() {
               })
             }
             sendResponse(createRuntimeSuccessResponse("SAVE_SUBSCRIPTION_POLICY", { config: savedConfig }))
+            return
+          }
+          case "DOWNLOAD_SUBSCRIPTION_HITS": {
+            const result = await downloadSubscriptionHitsBySelection({
+              hitIds: runtimeMessage.hitIds
+            })
+            sendResponse(createRuntimeSuccessResponse("DOWNLOAD_SUBSCRIPTION_HITS", { result }))
             return
           }
           default:

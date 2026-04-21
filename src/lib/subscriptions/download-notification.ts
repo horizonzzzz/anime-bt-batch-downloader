@@ -18,6 +18,7 @@ import type {
 import type { SourceConfig } from "../sources/config/types"
 import type { ExtractionContext } from "../sources/types"
 import type { SubscriptionPolicyConfig } from "./policy/types"
+import type { SubscriptionHitStoreRow } from "./store-types"
 import { resolveSourceEnabled } from "../sources/config/selectors"
 import { getBatchExecutionConfig } from "../batch-config/storage"
 import { getDownloaderConfig } from "../downloader/config/storage"
@@ -61,42 +62,34 @@ type SubmissionStatusByHitId = Record<
   }
 >
 
-export async function downloadSubscriptionNotificationHits(
-  input: {
-    subscriptionPolicy: SubscriptionPolicyConfig
-    sourceConfig: SourceConfig
-    roundId: string
-  },
+export type DownloadPreparedHitsInput = {
+  hits: SubscriptionHitRecord[]
+  subscriptionPolicy: SubscriptionPolicyConfig
+  sourceConfig: SourceConfig
+}
+
+export type DownloadPreparedHitsResult = {
+  attemptedHits: number
+  submittedCount: number
+  duplicateCount: number
+  failedCount: number
+  statuses: SubmissionStatusByHitId
+}
+
+export async function downloadPreparedSubscriptionHits(
+  input: DownloadPreparedHitsInput,
   dependencies: SubscriptionNotificationDownloadDependencies
-): Promise<DownloadSubscriptionHitsResult> {
-  const normalizedRoundId = parseSubscriptionNotificationRoundId(input.roundId)
-  if (!normalizedRoundId) {
-    throw new Error(
-      `Invalid subscription notification round id: ${String(input.roundId ?? "")}`
-    )
-  }
-
-  const notificationRound = await getNotificationRound(normalizedRoundId)
-  if (!notificationRound) {
-    throw new Error(`Subscription notification round not found: ${normalizedRoundId}`)
-  }
-
-  if (!canDownloadSubscriptionNotifications(input.subscriptionPolicy)) {
-    await persistDownloadState(notificationRound.id, [])
-    return createEmptyDownloadSubscriptionHitsResult()
-  }
-
+): Promise<DownloadPreparedHitsResult> {
   const batchExecutionConfig = await getBatchExecutionConfig()
   const downloaderConfig = await (dependencies.getDownloaderConfig ?? getDownloaderConfig)()
   const extractionContext = buildExtractionContextFromConfigs(batchExecutionConfig, input.sourceConfig)
-  const hits = notificationRound.hits.map((hit) => ({ ...hit }))
   const subscriptions = await listSubscriptionsByIds([
-    ...new Set(hits.map((hit) => hit.subscriptionId))
+    ...new Set(input.hits.map((hit) => hit.subscriptionId))
   ])
   const subscriptionById = new Map(
     subscriptions.map((subscription) => [subscription.id, subscription] as const)
   )
-  const actionableHits = hits
+  const actionableHits = input.hits
     .filter((hit) =>
       isSubscriptionHitDownloadable(
         hit,
@@ -104,20 +97,16 @@ export async function downloadSubscriptionNotificationHits(
         input.sourceConfig
       )
     )
-    .map((hit) => ({ ...hit }))
-  const pendingHits = actionableHits.filter(
-    (hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate"
-  )
+    .filter((hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate")
   const attemptedAt = dependencies.now?.() ?? new Date().toISOString()
 
-  if (pendingHits.length === 0) {
-    await persistDownloadState(notificationRound.id, actionableHits)
+  if (actionableHits.length === 0) {
     return {
-      totalHits: actionableHits.length,
       attemptedHits: 0,
       submittedCount: 0,
       duplicateCount: 0,
-      failedCount: 0
+      failedCount: 0,
+      statuses: {}
     }
   }
 
@@ -128,7 +117,7 @@ export async function downloadSubscriptionNotificationHits(
   let duplicateCount = 0
   let failedCount = 0
 
-  for (const hit of pendingHits) {
+  for (const hit of actionableHits) {
     const classified = await prepareSubscriptionHit(
       hit,
       subscriptionById.get(hit.subscriptionId),
@@ -187,13 +176,102 @@ export async function downloadSubscriptionNotificationHits(
     }
   }
 
-  const nextHits = actionableHits.map((hit) => {
+  await persistDownloadStatusesToSubscriptionHits(actionableHits, statuses)
+
+  return {
+    attemptedHits: actionableHits.length,
+    submittedCount: Object.values(statuses).filter((status) => status.downloadStatus === "submitted").length,
+    duplicateCount,
+    failedCount,
+    statuses
+  }
+}
+
+async function persistDownloadStatusesToSubscriptionHits(
+  hits: SubscriptionHitRecord[],
+  statuses: SubmissionStatusByHitId
+): Promise<void> {
+  if (hits.length === 0) {
+    return
+  }
+
+  const nextRows: SubscriptionHitStoreRow[] = []
+
+  for (const hit of hits) {
     const status = statuses[hit.id]
+    if (status) {
+      nextRows.push({
+        ...hit,
+        downloadStatus: status.downloadStatus,
+        downloadedAt: status.downloadedAt,
+        resolvedAt: status.downloadedAt
+      })
+    }
+  }
+
+  if (nextRows.length > 0) {
+    await subscriptionDb.subscriptionHits.bulkPut(nextRows)
+  }
+}
+
+export async function downloadSubscriptionNotificationHits(
+  input: {
+    subscriptionPolicy: SubscriptionPolicyConfig
+    sourceConfig: SourceConfig
+    roundId: string
+  },
+  dependencies: SubscriptionNotificationDownloadDependencies
+): Promise<DownloadSubscriptionHitsResult> {
+  const normalizedRoundId = parseSubscriptionNotificationRoundId(input.roundId)
+  if (!normalizedRoundId) {
+    throw new Error(
+      `Invalid subscription notification round id: ${String(input.roundId ?? "")}`
+    )
+  }
+
+  const notificationRound = await getNotificationRound(normalizedRoundId)
+  if (!notificationRound) {
+    throw new Error(`Subscription notification round not found: ${normalizedRoundId}`)
+  }
+
+  if (!canDownloadSubscriptionNotifications(input.subscriptionPolicy)) {
+    await persistDownloadState(notificationRound.id, [])
+    return createEmptyDownloadSubscriptionHitsResult()
+  }
+
+  const subscriptions = await listSubscriptionsByIds([
+    ...new Set(notificationRound.hits.map((hit) => hit.subscriptionId))
+  ])
+  const subscriptionById = new Map(
+    subscriptions.map((subscription) => [subscription.id, subscription] as const)
+  )
+  const actionableHits = notificationRound.hits
+    .filter((hit) =>
+      isSubscriptionHitDownloadable(
+        hit,
+        subscriptionById.get(hit.subscriptionId),
+        input.sourceConfig
+      )
+    )
+    .map((hit) => ({ ...hit }))
+
+  const result = await downloadPreparedSubscriptionHits(
+    {
+      hits: actionableHits,
+      subscriptionPolicy: input.subscriptionPolicy,
+      sourceConfig: input.sourceConfig
+    },
+    dependencies
+  )
+
+  const nextHits = actionableHits.map((hit) => {
+    const status = result.statuses[hit.id]
     return status
       ? {
           ...hit,
           downloadStatus: status.downloadStatus,
-          downloadedAt: status.downloadedAt
+          downloadedAt: status.downloadedAt,
+          resolvedAt: status.downloadedAt
         }
       : hit
   })
@@ -202,10 +280,10 @@ export async function downloadSubscriptionNotificationHits(
 
   return {
     totalHits: actionableHits.length,
-    attemptedHits: pendingHits.length,
-    submittedCount: Object.values(statuses).filter((status) => status.downloadStatus === "submitted").length,
-    duplicateCount,
-    failedCount
+    attemptedHits: result.attemptedHits,
+    submittedCount: result.submittedCount,
+    duplicateCount: result.duplicateCount,
+    failedCount: result.failedCount
   }
 }
 

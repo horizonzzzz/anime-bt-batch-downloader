@@ -98,3 +98,14 @@ export type {
   SubscriptionMatchResult,
   SubscriptionQuery
 } from "./types"
+export {
+  downloadSubscriptionHitsById,
+  type DownloadSubscriptionHitsByIdInput,
+  type DownloadSubscriptionHitsByIdResult
+} from "./download-hits"
+export {
+  downloadPreparedSubscriptionHits,
+  type DownloadPreparedHitsInput,
+  type DownloadPreparedHitsResult,
+  type SubscriptionNotificationDownloadDependencies
+} from "./download-notification"

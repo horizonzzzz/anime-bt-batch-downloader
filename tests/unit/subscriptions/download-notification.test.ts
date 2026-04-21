@@ -12,7 +12,7 @@ import { DEFAULT_SUBSCRIPTION_POLICY_CONFIG } from "../../../src/lib/subscriptio
 import { DEFAULT_DOWNLOADER_CONFIG } from "../../../src/lib/downloader/config/defaults"
 import { DEFAULT_SOURCE_CONFIG } from "../../../src/lib/sources/config/defaults"
 import { resetSubscriptionDb, subscriptionDb } from "../../../src/lib/subscriptions/db"
-import { downloadSubscriptionNotificationHits } from "../../../src/lib/subscriptions/download-notification"
+import { downloadSubscriptionNotificationHits, downloadPreparedSubscriptionHits } from "../../../src/lib/subscriptions/download-notification"
 import { listNotificationRounds } from "../../../src/lib/subscriptions/runtime-query"
 
 function createSubscriptionPolicy(overrides: Partial<SubscriptionPolicyConfig> = {}): SubscriptionPolicyConfig {
@@ -472,6 +472,326 @@ describe("downloadSubscriptionNotificationHits", () => {
             downloadedAt: null
           })
         ]
+      })
+    )
+  })
+})
+
+describe("downloadPreparedSubscriptionHits", () => {
+  beforeEach(async () => {
+    await resetSubscriptionDb()
+  })
+
+  afterEach(async () => {
+    await resetSubscriptionDb()
+  })
+
+  it("only processes hits passed in the input array", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription())
+    await subscriptionDb.subscriptionHits.bulkPut([
+      createHit({ id: "hit-1" }),
+      createHit({ id: "hit-2", magnetUrl: "magnet:?xt=urn:btih:AAA222" }),
+      createHit({ id: "hit-3", magnetUrl: "magnet:?xt=urn:btih:AAA333" })
+    ])
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [{ url: "magnet:?xt=urn:btih:AAA111", status: "submitted" as const }]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadPreparedSubscriptionHits(
+      {
+        hits: [createHit({ id: "hit-1" })],
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig()
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem: vi.fn(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.attemptedHits).toBe(1)
+    expect(result.submittedCount).toBe(1)
+    expect(downloader.addUrls).toHaveBeenCalledTimes(1)
+    expect(downloader.addUrls).toHaveBeenCalledWith(
+      expect.any(Object),
+      ["magnet:?xt=urn:btih:AAA111"],
+      undefined
+    )
+  })
+
+  it("skips hits with status submitted or duplicate", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription())
+    await subscriptionDb.subscriptionHits.bulkPut([
+      createHit({ id: "hit-1", downloadStatus: "submitted", downloadedAt: "2026-04-13T09:30:00.000Z" }),
+      createHit({ id: "hit-2", downloadStatus: "duplicate", downloadedAt: "2026-04-13T09:30:00.000Z" }),
+      createHit({ id: "hit-3", downloadStatus: "idle" })
+    ])
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [{ url: "magnet:?xt=urn:btih:AAA333", status: "submitted" as const }]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadPreparedSubscriptionHits(
+      {
+        hits: [
+          createHit({ id: "hit-1", downloadStatus: "submitted" }),
+          createHit({ id: "hit-2", downloadStatus: "duplicate" }),
+          createHit({ id: "hit-3", downloadStatus: "idle", magnetUrl: "magnet:?xt=urn:btih:AAA333" })
+        ],
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig()
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem: vi.fn(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.attemptedHits).toBe(1)
+    expect(result.submittedCount).toBe(1)
+    expect(downloader.authenticate).toHaveBeenCalledTimes(1)
+  })
+
+  it("marks successful submissions as submitted with resolvedAt timestamp", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription())
+    await subscriptionDb.subscriptionHits.put(createHit())
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [{ url: "magnet:?xt=urn:btih:AAA111", status: "submitted" as const }]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadPreparedSubscriptionHits(
+      {
+        hits: [createHit()],
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig()
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem: vi.fn(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.submittedCount).toBe(1)
+    expect(result.statuses["hit-1"]).toEqual({
+      downloadStatus: "submitted",
+      downloadedAt: now
+    })
+    expect(await subscriptionDb.subscriptionHits.get("hit-1")).toEqual(
+      expect.objectContaining({
+        id: "hit-1",
+        downloadStatus: "submitted",
+        downloadedAt: now,
+        resolvedAt: now
+      })
+    )
+  })
+
+  it("marks duplicate submissions as duplicate with resolvedAt timestamp", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription())
+    await subscriptionDb.subscriptionHits.put(createHit())
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [{ url: "magnet:?xt=urn:btih:AAA111", status: "duplicate" as const }]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadPreparedSubscriptionHits(
+      {
+        hits: [createHit()],
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig()
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem: vi.fn(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.duplicateCount).toBe(1)
+    expect(result.submittedCount).toBe(0)
+    expect(result.statuses["hit-1"]).toEqual({
+      downloadStatus: "duplicate",
+      downloadedAt: now
+    })
+    expect(await subscriptionDb.subscriptionHits.get("hit-1")).toEqual(
+      expect.objectContaining({
+        id: "hit-1",
+        downloadStatus: "duplicate",
+        downloadedAt: now,
+        resolvedAt: now
+      })
+    )
+  })
+
+  it("marks failed extraction as failed without resolvedAt timestamp", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription())
+    await subscriptionDb.subscriptionHits.put(createHit({
+      magnetUrl: "",
+      torrentUrl: "",
+      detailUrl: "https://bangumi.moe/torrent/100"
+    }))
+
+    const extractSingleItem = vi.fn(async () => ({
+      ok: false,
+      title: "[LoliHouse] Medalist - 01 [1080p]",
+      detailUrl: "https://bangumi.moe/torrent/100",
+      hash: "",
+      magnetUrl: "",
+      torrentUrl: "",
+      failureReason: "No download links found"
+    }))
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({ entries: [] })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadPreparedSubscriptionHits(
+      {
+        hits: [createHit({ magnetUrl: "", torrentUrl: "" })],
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig()
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem,
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.failedCount).toBe(1)
+    expect(result.statuses["hit-1"]).toEqual({
+      downloadStatus: "failed",
+      downloadedAt: null
+    })
+    expect(await subscriptionDb.subscriptionHits.get("hit-1")).toEqual(
+      expect.objectContaining({
+        id: "hit-1",
+        downloadStatus: "failed",
+        downloadedAt: null,
+        resolvedAt: null
+      })
+    )
+  })
+
+  it("marks failed submission as failed without resolvedAt timestamp", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+
+    await subscriptionDb.subscriptions.put(createSubscription())
+    await subscriptionDb.subscriptionHits.put(createHit())
+
+    const downloader: DownloaderAdapter = {
+      id: "qbittorrent",
+      displayName: "qBittorrent",
+      authenticate: vi.fn(async () => undefined),
+      addUrls: vi.fn(async () => ({
+        entries: [{ url: "magnet:?xt=urn:btih:AAA111", status: "failed" as const }]
+      })),
+      addTorrentFiles: vi.fn(async () => undefined),
+      testConnection: vi.fn(async () => ({
+        baseUrl: "http://localhost:8080",
+        version: "5.0.0"
+      }))
+    }
+
+    const result = await downloadPreparedSubscriptionHits(
+      {
+        hits: [createHit()],
+        subscriptionPolicy: createSubscriptionPolicy(),
+        sourceConfig: createSourceConfig()
+      },
+      {
+        downloader,
+        fetchTorrentForUpload: vi.fn(),
+        extractSingleItem: vi.fn(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        now: () => now
+      }
+    )
+
+    expect(result.failedCount).toBe(1)
+    expect(result.statuses["hit-1"]).toEqual({
+      downloadStatus: "failed",
+      downloadedAt: null
+    })
+    expect(await subscriptionDb.subscriptionHits.get("hit-1")).toEqual(
+      expect.objectContaining({
+        id: "hit-1",
+        downloadStatus: "failed",
+        downloadedAt: null,
+        resolvedAt: null
       })
     )
   })

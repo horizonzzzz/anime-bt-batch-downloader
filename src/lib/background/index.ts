@@ -14,6 +14,7 @@ export {
   clearPendingSubscriptionNotifications,
   deleteSubscriptionDefinition,
   downloadSubscriptionHits,
+  downloadSubscriptionHitsBySelection,
   executeSubscriptionScan,
   reconcileSubscriptionAlarm,
   replaceSubscriptionDefinitions,

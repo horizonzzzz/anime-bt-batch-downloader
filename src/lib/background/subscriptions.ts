@@ -25,12 +25,15 @@ import {
   replaceSubscriptionCatalog,
   SubscriptionManager,
   upsertSubscription,
+  downloadSubscriptionHitsById,
+  type DownloadSubscriptionHitsByIdResult,
   type DownloadSubscriptionHitsRequest,
   type DownloadSubscriptionHitsResult,
   type ScanSubscriptionsDependencies,
   type ScanSubscriptionsResult,
   type SubscriptionAlarmApi,
-  type SubscriptionRoundNotificationPayload
+  type SubscriptionRoundNotificationPayload,
+  type SubscriptionNotificationDownloadDependencies
 } from "../subscriptions"
 import { i18n } from "../i18n"
 import { fetchTorrentForUpload } from "./torrent-file"
@@ -202,6 +205,36 @@ export async function downloadSubscriptionHits(
       getDownloaderConfig: dependencies.getDownloaderConfig ?? getDownloaderConfig,
       now: dependencies.now
     })
+  })
+}
+
+export async function downloadSubscriptionHitsBySelection(
+  request: { hitIds: string[] },
+  dependencies: DownloadSubscriptionHitsDependencies = {}
+): Promise<DownloadSubscriptionHitsByIdResult> {
+  return enqueueSubscriptionMutation(async () => {
+    const subscriptionPolicy = await (dependencies.getSubscriptionPolicy ?? getSubscriptionPolicyConfig)()
+    const sourceConfig = await (dependencies.getSourceConfig ?? getSourceConfig)()
+    const downloaderConfig = await (dependencies.getDownloaderConfig ?? getDownloaderConfig)()
+    const getDownloaderImpl =
+      dependencies.getDownloader ??
+      ((config: DownloaderConfig) => getDownloaderAdapter(config.activeId))
+
+    return downloadSubscriptionHitsById(
+      {
+        hitIds: request.hitIds,
+        subscriptionPolicy,
+        sourceConfig
+      },
+      {
+        downloader: getDownloaderImpl(downloaderConfig),
+        fetchTorrentForUpload:
+          dependencies.fetchTorrentForUpload ?? defaultFetchTorrentForUpload,
+        extractSingleItem: dependencies.extractSingleItem ?? defaultExtractSingleItem,
+        getDownloaderConfig: () => Promise.resolve(downloaderConfig),
+        now: dependencies.now
+      }
+    )
   })
 }
 

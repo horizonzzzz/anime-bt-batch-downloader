@@ -63,6 +63,7 @@ export type RuntimeRequest =
   | { type: "DELETE_SUBSCRIPTION"; subscriptionId: string }
   | { type: "GET_SUBSCRIPTION_POLICY" }
   | { type: "SAVE_SUBSCRIPTION_POLICY"; config: SubscriptionPolicyConfig }
+  | { type: "DOWNLOAD_SUBSCRIPTION_HITS"; hitIds: string[] }
 
 export type RuntimeRequestType = RuntimeRequest["type"]
 
@@ -199,6 +200,18 @@ export type SaveSubscriptionPolicySuccessResponse = {
   config: SubscriptionPolicyConfig
 }
 
+export type DownloadSubscriptionHitsSuccessResponse = {
+  ok: true
+  result: DownloadSubscriptionHitsResult
+}
+
+export type DownloadSubscriptionHitsResult = {
+  attemptedHits: number
+  submittedHits: number
+  duplicateHits: number
+  failedHits: number
+}
+
 export type RuntimeSuccessResponseMap = {
   GET_HISTORY: GetHistorySuccessResponse
   CLEAR_HISTORY: ClearHistorySuccessResponse
@@ -226,6 +239,7 @@ export type RuntimeSuccessResponseMap = {
   DELETE_SUBSCRIPTION: DeleteSubscriptionSuccessResponse
   GET_SUBSCRIPTION_POLICY: GetSubscriptionPolicySuccessResponse
   SAVE_SUBSCRIPTION_POLICY: SaveSubscriptionPolicySuccessResponse
+  DOWNLOAD_SUBSCRIPTION_HITS: DownloadSubscriptionHitsSuccessResponse
 }
 
 export type RuntimeSuccessResponseFor<TType extends RuntimeRequestType> =
@@ -261,6 +275,7 @@ export type SaveBatchUiPreferencesResponse = RuntimeResponseFor<"SAVE_BATCH_UI_P
 export type GetContentScriptStateResponse = RuntimeResponseFor<"GET_CONTENT_SCRIPT_STATE">
 export type GetSubscriptionPolicyResponse = RuntimeResponseFor<"GET_SUBSCRIPTION_POLICY">
 export type SaveSubscriptionPolicyResponse = RuntimeResponseFor<"SAVE_SUBSCRIPTION_POLICY">
+export type DownloadSubscriptionHitsResponse = RuntimeResponseFor<"DOWNLOAD_SUBSCRIPTION_HITS">
 export type RuntimeResponse = RuntimeResponseFor<RuntimeRequestType>
 
 export function createRuntimeSuccessResponse<TType extends RuntimeRequestType>(
