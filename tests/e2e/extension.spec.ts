@@ -781,3 +781,200 @@ test("history page shows empty state when no records exist", async () => {
     await extension.close()
   }
 })
+
+async function seedSubscriptionHitsWorkbench(page: import("@playwright/test").Page) {
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("anime-bt-subscription-state", 2)
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result)
+      request.onupgradeneeded = () => {
+        reject(new Error("Expected subscription database schema to exist."))
+      }
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(
+        ["subscriptions", "subscriptionHits", "subscriptionRuntime", "notificationRounds", "subscriptionMeta"],
+        "readwrite"
+      )
+
+      tx.objectStore("subscriptions").put({
+        id: "sub-1",
+        name: "Medalist",
+        enabled: true,
+        sourceIds: ["acgrip"],
+        multiSiteModeEnabled: false,
+        titleQuery: "Medalist",
+        subgroupQuery: "",
+        advanced: { must: [], any: [] },
+        createdAt: "2026-04-21T08:00:00.000Z",
+        baselineCreatedAt: "2026-04-21T08:00:00.000Z"
+      })
+
+      tx.objectStore("subscriptionHits").put({
+        id: "hit-1",
+        subscriptionId: "sub-1",
+        sourceId: "acgrip",
+        title: "[LoliHouse] Medalist - 01 [1080p]",
+        normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+        subgroup: "LoliHouse",
+        detailUrl: "https://acg.rip/t/100",
+        magnetUrl: "magnet:?xt=urn:btih:AAA111",
+        torrentUrl: "",
+        discoveredAt: "2026-04-21T09:30:00.000Z",
+        downloadedAt: null,
+        downloadStatus: "idle",
+        readAt: null,
+        resolvedAt: null
+      })
+
+      tx.objectStore("notificationRounds").put({
+        id: "subscription-round:20260421093000000",
+        createdAt: "2026-04-21T09:30:00.000Z",
+        hits: [
+          {
+            id: "hit-1",
+            subscriptionId: "sub-1",
+            sourceId: "acgrip",
+            title: "[LoliHouse] Medalist - 01 [1080p]",
+            normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+            subgroup: "LoliHouse",
+            detailUrl: "https://acg.rip/t/100",
+            magnetUrl: "magnet:?xt=urn:btih:AAA111",
+            torrentUrl: "",
+            discoveredAt: "2026-04-21T09:30:00.000Z",
+            downloadedAt: null,
+            downloadStatus: "idle",
+            readAt: null,
+            resolvedAt: null
+          }
+        ]
+      })
+
+      tx.objectStore("subscriptionMeta").put({
+        id: "policy",
+        enabled: true,
+        pollingIntervalMinutes: 30,
+        notificationsEnabled: true,
+        notificationDownloadAction: "workbench"
+      })
+
+      tx.objectStore("subscriptionRuntime").put({
+        id: "runtime",
+        lastSchedulerRunAt: "2026-04-21T09:30:00.000Z",
+        notificationActionState: "enabled"
+      })
+
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+
+    db.close()
+  })
+}
+
+async function openSubscriptionHitsWorkbench(
+  extension: Awaited<ReturnType<typeof launchExtensionContext>>,
+  options?: {
+    roundId?: string
+  }
+) {
+  const route = options?.roundId
+    ? `/subscription-hits?round=${encodeURIComponent(options.roundId)}`
+    : "/subscription-hits"
+  const page = await extension.context.newPage()
+  await page.goto(`chrome-extension://${extension.extensionId}/options.html#${route}`)
+  await expect(page).toHaveURL(/options\.html#\/subscription-hits/)
+  await expect(page.getByTestId("subscription-hits-workbench")).toBeVisible()
+  return page
+}
+
+test("subscription hits workbench renders with seeded data", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const page = await extension.context.newPage()
+    await page.goto(`chrome-extension://${extension.extensionId}/options.html`)
+    await seedSubscriptionHitsWorkbench(page)
+    await page.close()
+
+    const workbenchPage = await openSubscriptionHitsWorkbench(extension)
+
+    await expect(workbenchPage.getByTestId("subscription-hits-workbench")).toBeVisible()
+
+    await expect(workbenchPage.getByTestId("subscription-hit-group-sub-1")).toBeVisible()
+
+    await expect(workbenchPage.getByTestId("subscription-hit-row-hit-1")).toBeVisible()
+    await expect(workbenchPage.getByText("[LoliHouse] Medalist - 01 [1080p]")).toBeVisible()
+
+    await expect(workbenchPage.getByTestId("hit-status-hit-1")).toBeVisible()
+
+    const checkbox = workbenchPage.locator(`[data-testid="subscription-hit-row-hit-1"] input[type="checkbox"]`)
+    await expect(checkbox).toBeVisible()
+    await expect(checkbox).not.toBeChecked()
+
+    await workbenchPage.close()
+  } finally {
+    await extension.close()
+  }
+})
+
+test("subscription hits workbench shows highlighted state when round parameter is present", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const seedPage = await extension.context.newPage()
+    await seedPage.goto(`chrome-extension://${extension.extensionId}/options.html`)
+    await seedSubscriptionHitsWorkbench(seedPage)
+    await seedPage.close()
+
+    const workbenchPage = await openSubscriptionHitsWorkbench(extension, {
+      roundId: "subscription-round:20260421093000000"
+    })
+
+    await expect(workbenchPage.getByTestId("subscription-hits-workbench")).toBeVisible()
+
+    const hitRow = workbenchPage.getByTestId("subscription-hit-row-hit-1")
+
+    await expect(hitRow).toBeVisible()
+
+    const hasHighlightedClass = await hitRow.evaluate((el) => {
+      return el.classList.contains("bg-yellow-50") && el.classList.contains("border-l-4")
+    })
+    expect(hasHighlightedClass).toBe(true)
+
+    await workbenchPage.close()
+  } finally {
+    await extension.close()
+  }
+})
+
+test("manual download updates hit status in subscription hits workbench", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const seedPage = await extension.context.newPage()
+    await seedPage.goto(`chrome-extension://${extension.extensionId}/options.html`)
+    await seedSubscriptionHitsWorkbench(seedPage)
+    await seedPage.close()
+
+    const workbenchPage = await openSubscriptionHitsWorkbench(extension)
+
+    await expect(workbenchPage.getByTestId("subscription-hits-workbench")).toBeVisible()
+    await expect(workbenchPage.getByTestId("subscription-hit-row-hit-1")).toBeVisible()
+
+    const checkbox = workbenchPage.locator(`[data-testid="subscription-hit-row-hit-1"] input[type="checkbox"]`)
+    await checkbox.check()
+    await expect(checkbox).toBeChecked()
+
+    const downloadButton = workbenchPage.getByTestId("subscription-hit-row-hit-1").getByRole("button", { name: /下载/ })
+    await expect(downloadButton).toBeVisible()
+    await expect(downloadButton).toBeEnabled()
+
+    await workbenchPage.close()
+  } finally {
+    await extension.close()
+  }
+})
