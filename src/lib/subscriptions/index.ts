@@ -73,10 +73,19 @@ export type {
   SubscriptionAlarmApi
 } from "./scheduler"
 export type { SubscriptionRoundNotificationPayload } from "./notifications"
+export {
+  createSubscriptionHitId,
+  getSubscriptionHitById,
+  listSubscriptionHits,
+  listSubscriptionHitsByIds,
+  listSubscriptionHitsBySubscriptionId,
+  upsertSubscriptionHits
+} from "./hit-repository"
 export type {
   NotificationRoundRow,
   SubscriptionDashboardRow,
   SubscriptionHitRow,
+  SubscriptionHitStoreRow,
   SubscriptionMetaRow,
   SubscriptionRuntimeRow,
   SubscriptionRuntimeStatusEntry,

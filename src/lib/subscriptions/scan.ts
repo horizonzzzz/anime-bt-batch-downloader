@@ -281,7 +281,9 @@ function createSubscriptionHitRecord(
     torrentUrl: candidate.torrentUrl,
     discoveredAt,
     downloadedAt: null,
-    downloadStatus: "idle"
+    downloadStatus: "idle",
+    readAt: null,
+    resolvedAt: null
   }
 }
 

@@ -200,7 +200,9 @@ async function seedSubscriptionFixture() {
         torrentUrl: "",
         discoveredAt: "2026-04-14T08:00:00.000Z",
         downloadedAt: null,
-        downloadStatus: "idle"
+        downloadStatus: "idle",
+        readAt: null,
+        resolvedAt: null
       }
     ]
   })
@@ -220,7 +222,9 @@ async function seedSubscriptionFixture() {
         torrentUrl: "",
         discoveredAt: "2026-04-14T08:00:00.000Z",
         downloadedAt: null,
-        downloadStatus: "idle"
+        downloadStatus: "idle",
+        readAt: null,
+        resolvedAt: null
       }
     ]
   })

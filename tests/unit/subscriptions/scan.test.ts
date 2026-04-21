@@ -78,7 +78,9 @@ function createStoredHit(index: number) {
     torrentUrl: `https://acg.rip/t/${index}.torrent`,
     discoveredAt: `2026-04-14T07:${String(index).padStart(2, "0")}:00.000Z`,
     downloadedAt: null,
-    downloadStatus: "idle" as const
+    downloadStatus: "idle" as const,
+    readAt: null,
+    resolvedAt: null
   }
 }
 

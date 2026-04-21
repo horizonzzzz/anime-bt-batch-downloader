@@ -76,6 +76,8 @@ function createHit(
     discoveredAt: "2026-04-14T09:30:00.000Z",
     downloadedAt: null,
     downloadStatus: "idle",
+    readAt: null,
+    resolvedAt: null,
     ...overrides
   }
 }

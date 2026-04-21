@@ -40,6 +40,8 @@ function createHit(overrides: Partial<SubscriptionHitRecord> = {}): Subscription
     discoveredAt: "2026-04-14T08:00:00.000Z",
     downloadedAt: null,
     downloadStatus: "idle",
+    readAt: null,
+    resolvedAt: null,
     ...overrides
   }
 }

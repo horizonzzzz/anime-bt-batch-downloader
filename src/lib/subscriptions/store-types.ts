@@ -1,5 +1,7 @@
 import type { SubscriptionEntry, SubscriptionHitRecord } from "../shared/types"
 
+export type SubscriptionHitStoreRow = SubscriptionHitRecord
+
 export type SubscriptionRuntimeRow = {
   subscriptionId: string
   lastScanAt: string | null

@@ -62,6 +62,8 @@ export type SubscriptionHitRecord = {
   discoveredAt: string
   downloadedAt: string | null
   downloadStatus: "idle" | "submitted" | "duplicate" | "failed"
+  readAt: string | null
+  resolvedAt: string | null
 }
 
 export type SubscriptionRuntimeState = {

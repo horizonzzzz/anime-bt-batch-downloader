@@ -3,6 +3,7 @@ import Dexie, { type Table } from "dexie"
 import type { SubscriptionEntry } from "../shared/types"
 import type {
   NotificationRoundRow,
+  SubscriptionHitStoreRow,
   SubscriptionMetaRow,
   SubscriptionRuntimeRow
 } from "./store-types"
@@ -12,6 +13,7 @@ export class SubscriptionDatabase extends Dexie {
   subscriptionRuntime!: Table<SubscriptionRuntimeRow, string>
   notificationRounds!: Table<NotificationRoundRow, string>
   subscriptionMeta!: Table<SubscriptionMetaRow, string>
+  subscriptionHits!: Table<SubscriptionHitStoreRow, string>
 
   constructor() {
     super("anime-bt-subscription-state")
@@ -21,7 +23,15 @@ export class SubscriptionDatabase extends Dexie {
       subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
       notificationRounds: "id, createdAt",
       subscriptionMeta: "key"
-      })
+    })
+
+    this.version(2).stores({
+      subscriptions: "id, enabled, *sourceIds, createdAt",
+      subscriptionRuntime: "subscriptionId, lastScanAt, lastMatchedAt",
+      notificationRounds: "id, createdAt",
+      subscriptionMeta: "key",
+      subscriptionHits: "id, subscriptionId, sourceId, discoveredAt, downloadStatus, readAt"
+    })
   }
 }
 
