@@ -74,8 +74,7 @@ describe("background runtime subscription policy handlers", () => {
     getSubscriptionPolicyConfigMock.mockResolvedValue({
       enabled: false,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: true
     })
     saveSubscriptionPolicyConfigMock.mockImplementation(async (config) => config)
     installBrowserSpies()
@@ -89,8 +88,7 @@ describe("background runtime subscription policy handlers", () => {
     const policyConfig = {
       enabled: true,
       pollingIntervalMinutes: 15,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: false
+      notificationsEnabled: true
     }
     getSubscriptionPolicyConfigMock.mockResolvedValueOnce(policyConfig)
 
@@ -119,8 +117,7 @@ describe("background runtime subscription policy handlers", () => {
     const newConfig = {
       enabled: true,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: true
     }
     saveSubscriptionPolicyConfigMock.mockResolvedValueOnce(newConfig)
 
@@ -151,14 +148,12 @@ describe("background runtime subscription policy handlers", () => {
     const previousConfig = {
       enabled: true,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: true
     }
     const newConfig = {
       enabled: false,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: true
     }
     getSubscriptionPolicyConfigMock.mockResolvedValueOnce(previousConfig)
     saveSubscriptionPolicyConfigMock.mockResolvedValueOnce(newConfig)
@@ -185,14 +180,12 @@ describe("background runtime subscription policy handlers", () => {
     const previousConfig = {
       enabled: true,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: true
     }
     const newConfig = {
       enabled: true,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: false,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: false
     }
     getSubscriptionPolicyConfigMock.mockResolvedValueOnce(previousConfig)
     saveSubscriptionPolicyConfigMock.mockResolvedValueOnce(newConfig)
@@ -219,14 +212,12 @@ describe("background runtime subscription policy handlers", () => {
     const previousConfig = {
       enabled: true,
       pollingIntervalMinutes: 30,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: false
+      notificationsEnabled: true
     }
     const newConfig = {
       enabled: true,
       pollingIntervalMinutes: 45,
-      notificationsEnabled: true,
-      notificationDownloadActionEnabled: true
+      notificationsEnabled: true
     }
     getSubscriptionPolicyConfigMock.mockResolvedValueOnce(previousConfig)
     saveSubscriptionPolicyConfigMock.mockResolvedValueOnce(newConfig)
