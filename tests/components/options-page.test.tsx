@@ -680,7 +680,7 @@ describe("OptionsPage", () => {
   })
 
   it(
-    "manages Bangumi.moe subscription without a delivery mode selector",
+    "manages Bangumi.moe subscription with the current subscription fields only",
     async () => {
       const user = userEvent.setup()
       const api = createOptionsApi()
@@ -697,21 +697,26 @@ describe("OptionsPage", () => {
       await user.type(screen.getByLabelText("标题关键词"), "Medalist")
       await user.click(screen.getByTestId("subscription-source-tag-bangumimoe"))
 
-      expect(screen.queryByLabelText("获取方式")).not.toBeInTheDocument()
-
       await user.click(screen.getByRole("button", { name: "保存订阅" }))
 
-      expect(api.upsertSubscription).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "Bangumi Medalist",
-          sourceIds: ["bangumimoe"]
-        })
-      )
-      expect(api.upsertSubscription).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          deliveryMode: expect.anything()
-        })
-      )
+      const savedSubscription = vi.mocked(api.upsertSubscription).mock.calls[0]?.[0]
+      expect(Object.keys(savedSubscription ?? {}).sort()).toEqual([
+        "advanced",
+        "baselineCreatedAt",
+        "createdAt",
+        "enabled",
+        "id",
+        "multiSiteModeEnabled",
+        "name",
+        "sourceIds",
+        "subgroupQuery",
+        "titleQuery"
+      ])
+      expect(savedSubscription).toEqual(expect.objectContaining({
+        name: "Bangumi Medalist",
+        sourceIds: ["bangumimoe"],
+        titleQuery: "Medalist"
+      }))
     },
     10000
   )

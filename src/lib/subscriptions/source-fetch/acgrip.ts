@@ -4,13 +4,45 @@ import type { SubscriptionSourceFetchFunction, SubscriptionSourceFetcher } from 
 const ACG_RIP_LIST_URL = "https://acg.rip/"
 const DETAIL_PATTERN = /href="([^"]*\/t\/\d+)"[^>]*>([^<]+)</giu
 const TORRENT_PATTERN = /href="([^"]*\/t\/\d+\.torrent)"/giu
+const NAMED_HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: "\"",
+  apos: "'",
+  "#39": "'"
+}
 
 function normalize(value: string | null | undefined) {
-  return String(value ?? "").replace(/\s+/g, " ").trim()
+  return decodeHtmlEntities(String(value ?? ""))
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function absolutize(path: string) {
   return new URL(path, ACG_RIP_LIST_URL).href
+}
+
+function decodeHtmlEntities(value: string) {
+  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/giu, (entity, token: string) => {
+    const normalizedToken = token.toLowerCase()
+    const namedEntity = NAMED_HTML_ENTITIES[normalizedToken]
+    if (namedEntity) {
+      return namedEntity
+    }
+
+    if (normalizedToken.startsWith("#x")) {
+      const codePoint = Number.parseInt(normalizedToken.slice(2), 16)
+      return Number.isNaN(codePoint) ? entity : String.fromCodePoint(codePoint)
+    }
+
+    if (normalizedToken.startsWith("#")) {
+      const codePoint = Number.parseInt(normalizedToken.slice(1), 10)
+      return Number.isNaN(codePoint) ? entity : String.fromCodePoint(codePoint)
+    }
+
+    return entity
+  })
 }
 
 export async function fetchAcgRipSubscriptionCandidates(

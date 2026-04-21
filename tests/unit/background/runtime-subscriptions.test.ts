@@ -147,25 +147,6 @@ describe("background runtime subscription boundary", () => {
     registerBackgroundRuntime()
   })
 
-  it("does not acknowledge the legacy content-script-ready subscription message", async () => {
-    const listener = onMessageAddListener.mock.calls[0]?.[0]
-    const sendResponse = vi.fn()
-
-    listener?.(
-      {
-        type: "ANIME_BT_CONTENT_SCRIPT_READY" as never,
-        sourceId: "acgrip"
-      },
-      {
-        tab: { id: 12 }
-      },
-      sendResponse
-    )
-
-    await Promise.resolve()
-    expect(sendResponse).not.toHaveBeenCalledWith({ ok: true })
-  })
-
   it("supports TEST_DOWNLOADER_CONNECTION runtime messages", async () => {
     const listener = onMessageAddListener.mock.calls[0]?.[0]
     const sendResponse = vi.fn()

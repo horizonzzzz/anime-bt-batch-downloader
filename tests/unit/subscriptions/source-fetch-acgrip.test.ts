@@ -79,6 +79,26 @@ describe("fetchAcgRipSubscriptionCandidates", () => {
     ])
   })
 
+  it("decodes HTML entities in fetched titles", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        `<table><tr><td><a href="/t/100">[北宇治字幕组&amp;LoliHouse] Medalist - 01</a></td><td><a href="/t/100.torrent">Torrent</a></td></tr></table>`,
+        { status: 200 }
+      )
+    )
+
+    await expect(fetchAcgRipSubscriptionCandidates(fetchImpl)).resolves.toEqual([
+      {
+        sourceId: "acgrip",
+        title: "[北宇治字幕组&LoliHouse] Medalist - 01",
+        detailUrl: "https://acg.rip/t/100",
+        magnetUrl: "",
+        torrentUrl: "https://acg.rip/t/100.torrent",
+        subgroup: ""
+      }
+    ])
+  })
+
   it("handles empty HTML response", async () => {
     const fetchImpl = vi.fn(async () => new Response("", { status: 200 }))
 

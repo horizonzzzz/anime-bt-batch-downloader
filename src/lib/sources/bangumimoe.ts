@@ -86,9 +86,6 @@ export const bangumiMoeSourceAdapter: SourceAdapter = {
   displayName: "Bangumi.moe",
   supportedDeliveryModes: getSupportedDeliveryModes("bangumimoe"),
   defaultDeliveryMode: DEFAULT_SOURCE_DELIVERY_MODES.bangumimoe,
-  subscriptionListScan: {
-    listPageUrl: "https://bangumi.moe/"
-  },
   matchesListPage(url) {
     if (!matchesHost(url) || this.matchesDetailUrl(url)) {
       return false

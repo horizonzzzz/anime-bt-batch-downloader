@@ -45,21 +45,30 @@ function createHit(overrides: Partial<SubscriptionHitRecord> = {}): Subscription
 }
 
 describe("subscription workbench helpers", () => {
-  it("creates and normalizes subscription drafts without a delivery mode field", () => {
+  it("creates and normalizes subscription drafts with only the current subscription fields", () => {
     const draft = createSubscriptionDraft()
 
-    expect(draft).toEqual(
-      expect.objectContaining({
-        sourceIds: ["acgrip"],
-        titleQuery: "",
-        subgroupQuery: "",
-        advanced: {
-          must: [],
-          any: []
-        }
-      })
-    )
-    expect("deliveryMode" in draft).toBe(false)
+    expect(Object.keys(draft).sort()).toEqual([
+      "advanced",
+      "baselineCreatedAt",
+      "createdAt",
+      "enabled",
+      "id",
+      "multiSiteModeEnabled",
+      "name",
+      "sourceIds",
+      "subgroupQuery",
+      "titleQuery"
+    ])
+    expect(draft).toEqual(expect.objectContaining({
+      sourceIds: ["acgrip"],
+      titleQuery: "",
+      subgroupQuery: "",
+      advanced: {
+        must: [],
+        any: []
+      }
+    }))
 
     const normalized = normalizeSubscriptionDraft({
       ...draft,
@@ -67,14 +76,23 @@ describe("subscription workbench helpers", () => {
       titleQuery: "Medalist"
     })
 
-    expect(normalized).toEqual(
-      expect.objectContaining({
-        name: "Medalist",
-        sourceIds: ["acgrip"],
-        titleQuery: "Medalist"
-      })
-    )
-    expect("deliveryMode" in normalized).toBe(false)
+    expect(Object.keys(normalized).sort()).toEqual([
+      "advanced",
+      "baselineCreatedAt",
+      "createdAt",
+      "enabled",
+      "id",
+      "multiSiteModeEnabled",
+      "name",
+      "sourceIds",
+      "subgroupQuery",
+      "titleQuery"
+    ])
+    expect(normalized).toEqual(expect.objectContaining({
+      name: "Medalist",
+      sourceIds: ["acgrip"],
+      titleQuery: "Medalist"
+    }))
   })
 
   it("summarizes the newest retained hit instead of the oldest one", () => {
