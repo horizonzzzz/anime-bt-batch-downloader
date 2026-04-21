@@ -233,6 +233,12 @@ export async function downloadSubscriptionNotificationHits(
     throw new Error(`Subscription notification round not found: ${normalizedRoundId}`)
   }
 
+  // If notification downloads are globally disabled, prune pending rounds immediately.
+  if (!input.subscriptionPolicy.notificationsEnabled) {
+    await subscriptionDb.notificationRounds.delete(notificationRound.id)
+    return createEmptyDownloadSubscriptionHitsResult()
+  }
+
   const subscriptions = await listSubscriptionsByIds([
     ...new Set(notificationRound.hits.map((hit) => hit.subscriptionId))
   ])
