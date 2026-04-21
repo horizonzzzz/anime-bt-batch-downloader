@@ -436,6 +436,11 @@ export function registerBackgroundRuntime() {
             return
           }
           case "DOWNLOAD_SUBSCRIPTION_HITS": {
+            if (!isValidDownloadSubscriptionHitsPayload(runtimeMessage)) {
+              sendResponse(createRuntimeErrorResponse("Invalid DOWNLOAD_SUBSCRIPTION_HITS payload"))
+              return
+            }
+
             const result = await downloadSubscriptionHitsBySelection({
               hitIds: runtimeMessage.hitIds,
               roundId: runtimeMessage.roundId ?? null
@@ -557,6 +562,19 @@ function isValidSetSubscriptionEnabledPayload(message: {
   enabled: boolean
 } {
   return isNonEmptyString(message.subscriptionId) && typeof message.enabled === "boolean"
+}
+
+function isValidDownloadSubscriptionHitsPayload(message: {
+  [key: string]: unknown
+}): message is {
+  hitIds: string[]
+  roundId?: string | null
+} {
+  return Array.isArray(message.hitIds) &&
+    message.hitIds.every((hitId) => isNonEmptyString(hitId)) &&
+    (typeof message.roundId === "undefined" ||
+      message.roundId === null ||
+      typeof message.roundId === "string")
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

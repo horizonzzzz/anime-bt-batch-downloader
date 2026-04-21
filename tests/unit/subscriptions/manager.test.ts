@@ -238,7 +238,7 @@ describe("SubscriptionManager", () => {
     await expect(listNotificationRounds()).resolves.toEqual([])
   })
 
-  it("filters notification hits using the manager source-config snapshot", async () => {
+  it("allows historical notification hits even when the manager source-config snapshot disables the source", async () => {
     const now = "2026-04-14T09:30:00.000Z"
 
     await subscriptionDb.subscriptions.put(
@@ -296,9 +296,10 @@ describe("SubscriptionManager", () => {
       }
     )
 
-    expect(result.totalHits).toBe(0)
-    expect(result.attemptedHits).toBe(0)
-    expect(downloader.authenticate).not.toHaveBeenCalled()
+    expect(result.totalHits).toBe(1)
+    expect(result.attemptedHits).toBe(1)
+    expect(result.submittedCount).toBe(1)
+    expect(downloader.authenticate).toHaveBeenCalledTimes(1)
     await expect(listNotificationRounds()).resolves.toEqual([])
   })
 })

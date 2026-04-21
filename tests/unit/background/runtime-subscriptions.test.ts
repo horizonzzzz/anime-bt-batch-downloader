@@ -19,6 +19,7 @@ const {
   createSubscriptionCommandMock,
   deleteSubscriptionDefinitionMock,
   downloadSubscriptionHitsMock,
+  downloadSubscriptionHitsBySelectionMock,
   executeSubscriptionScanMock,
   getSubscriptionPolicyConfigMock,
   reconcileSubscriptionAlarmMock,
@@ -29,6 +30,7 @@ const {
   createSubscriptionCommandMock: vi.fn(),
   deleteSubscriptionDefinitionMock: vi.fn(),
   downloadSubscriptionHitsMock: vi.fn(),
+  downloadSubscriptionHitsBySelectionMock: vi.fn(),
   executeSubscriptionScanMock: vi.fn(),
   getSubscriptionPolicyConfigMock: vi.fn(),
   reconcileSubscriptionAlarmMock: vi.fn(),
@@ -61,6 +63,7 @@ vi.mock("../../../src/lib/background", async () => {
     createSubscriptionCommand: createSubscriptionCommandMock,
     deleteSubscriptionDefinition: deleteSubscriptionDefinitionMock,
     downloadSubscriptionHits: downloadSubscriptionHitsMock,
+    downloadSubscriptionHitsBySelection: downloadSubscriptionHitsBySelectionMock,
     executeSubscriptionScan: executeSubscriptionScanMock,
     reconcileSubscriptionAlarm: reconcileSubscriptionAlarmMock,
     retryFailedItems: vi.fn(),
@@ -506,6 +509,76 @@ describe("background runtime subscription boundary", () => {
     expect(deleteSubscriptionDefinitionMock).toHaveBeenCalledWith("sub-1")
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true
+    })
+  })
+
+  it("supports DOWNLOAD_SUBSCRIPTION_HITS runtime messages", async () => {
+    downloadSubscriptionHitsBySelectionMock.mockResolvedValue({
+      attemptedHits: 1,
+      submittedHits: 1,
+      duplicateHits: 0,
+      failedHits: 0
+    })
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "DOWNLOAD_SUBSCRIPTION_HITS",
+        hitIds: ["hit-1"],
+        roundId: "subscription-round:20260414093000000"
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(downloadSubscriptionHitsBySelectionMock).toHaveBeenCalledWith({
+      hitIds: ["hit-1"],
+      roundId: "subscription-round:20260414093000000"
+    })
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: true,
+      result: {
+        attemptedHits: 1,
+        submittedHits: 1,
+        duplicateHits: 0,
+        failedHits: 0
+      }
+    })
+  })
+
+  it("rejects malformed DOWNLOAD_SUBSCRIPTION_HITS runtime payloads", async () => {
+    downloadSubscriptionHitsBySelectionMock.mockResolvedValue({
+      attemptedHits: 0,
+      submittedHits: 0,
+      duplicateHits: 0,
+      failedHits: 0
+    })
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "DOWNLOAD_SUBSCRIPTION_HITS",
+        hitIds: "hit-1",
+        roundId: null
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(downloadSubscriptionHitsBySelectionMock).not.toHaveBeenCalled()
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      error: "Invalid DOWNLOAD_SUBSCRIPTION_HITS payload"
     })
   })
 
