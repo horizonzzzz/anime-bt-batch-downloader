@@ -145,8 +145,20 @@ function createOptionsApi(overrides: Partial<OptionsApi> = {}): OptionsApi {
     saveBatchUiPreferences: vi.fn().mockImplementation(async (preferences) => preferences),
     getSubscriptionPolicy: vi.fn().mockResolvedValue(subscriptionPolicy),
     saveSubscriptionPolicy: vi.fn().mockImplementation(async (config) => config),
+    createSubscription: vi.fn().mockImplementation(async (subscription) => {
+      await upsertSubscription(subscription)
+    }),
     upsertSubscription: vi.fn().mockImplementation(async (subscription) => {
       await upsertSubscription(subscription)
+    }),
+    setSubscriptionEnabled: vi.fn().mockImplementation(async (subscriptionId, enabled) => {
+      const subscription = await subscriptionDb.subscriptions.get(subscriptionId)
+      if (subscription) {
+        await upsertSubscription({
+          ...subscription,
+          enabled
+        })
+      }
     }),
     deleteSubscription: vi.fn().mockImplementation(async (subscriptionId) => {
       await deleteSubscription(subscriptionId)
