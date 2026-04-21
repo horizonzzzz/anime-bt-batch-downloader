@@ -2,6 +2,21 @@
 
 All notable release changes for `Anime BT Batch Downloader` are tracked here. GitHub Release pages should reuse the matching version section from this file.
 
+## 2.2.0-beta.3
+
+### Features
+
+- Added background-based subscription candidate fetching for `acg.rip` and `bangumi.moe`, plus delayed detail extraction until retained-hit download time so subscription scans no longer depend on content tabs. (`a4f2921`, `12e8a06`, `29042b5`)
+
+### Fixes
+
+- Fixed subscription follow-through by tightening retained-notification handling, recovering from extraction exceptions during hit preparation, and removing leftover scan/runtime residue after the tab-scan removal. (`5bf4fe5`, `e756465`, `e65a58a`, `f692ecf`)
+- Fixed the options overview capability summary so relocated subscription stats still render correctly after the subscription-scan pipeline changes. (`9956661`)
+
+### Refactor
+
+- Refactored the subscription scan pipeline to remove the content-tab scan protocol and the obsolete subscription delivery-mode setting, replacing them with focused background source fetchers and aligned test coverage. (`28e42a6`, `c4fc303`, `2615a0b`, `db230bb`)
+
 ## 2.2.0-beta.2
 
 ### Fixes
