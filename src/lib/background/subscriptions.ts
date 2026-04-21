@@ -212,7 +212,7 @@ export async function downloadSubscriptionHits(
 }
 
 export async function downloadSubscriptionHitsBySelection(
-  request: { hitIds: string[] },
+  request: { hitIds: string[]; roundId?: string | null },
   dependencies: DownloadSubscriptionHitsDependencies = {}
 ): Promise<DownloadSubscriptionHitsByIdResult> {
   return enqueueSubscriptionMutation(async () => {
@@ -227,6 +227,7 @@ export async function downloadSubscriptionHitsBySelection(
     return downloadSubscriptionHitsById(
       {
         hitIds: request.hitIds,
+        roundId: request.roundId,
         subscriptionPolicy,
         sourceConfig
       },

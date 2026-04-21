@@ -632,6 +632,34 @@ describe("OptionsPage", () => {
     })
   })
 
+  it("passes current round context when downloading from a highlighted workbench view", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    await seedSubscriptionFixture()
+    window.location.hash = "#/subscription-hits?round=subscription-round:20260414093000000"
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByTestId("subscription-hits-workbench")).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByTestId("subscription-hit-row-hit-1")).toHaveAttribute("data-highlighted", "true")
+    })
+
+    await user.click(
+      within(screen.getByTestId("subscription-hit-row-hit-1")).getByRole("button", {
+        name: "下载 [LoliHouse] Medalist - 01 [1080p]"
+      })
+    )
+
+    await waitFor(() => {
+      expect(api.downloadSubscriptionHits).toHaveBeenCalledWith({
+        hitIds: ["hit-1"],
+        roundId: "subscription-round:20260414093000000"
+      })
+    })
+  })
+
   it(
     "saves filter config via the dedicated save button",
     async () => {

@@ -64,7 +64,10 @@ export type OptionsApi = {
   saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
   upsertSubscription: (subscription: SubscriptionEntry) => Promise<void>
   deleteSubscription: (subscriptionId: string) => Promise<void>
-  downloadSubscriptionHits: (hitIds: string[]) => Promise<{
+  downloadSubscriptionHits: (request: {
+    hitIds: string[]
+    roundId?: string | null
+  }) => Promise<{
     attemptedHits: number
     submittedHits: number
     duplicateHits: number

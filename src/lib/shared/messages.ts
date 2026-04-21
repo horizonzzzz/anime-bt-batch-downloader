@@ -63,7 +63,7 @@ export type RuntimeRequest =
   | { type: "DELETE_SUBSCRIPTION"; subscriptionId: string }
   | { type: "GET_SUBSCRIPTION_POLICY" }
   | { type: "SAVE_SUBSCRIPTION_POLICY"; config: SubscriptionPolicyConfig }
-  | { type: "DOWNLOAD_SUBSCRIPTION_HITS"; hitIds: string[] }
+  | { type: "DOWNLOAD_SUBSCRIPTION_HITS"; hitIds: string[]; roundId?: string | null }
 
 export type RuntimeRequestType = RuntimeRequest["type"]
 

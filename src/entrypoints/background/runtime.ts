@@ -419,7 +419,8 @@ export function registerBackgroundRuntime() {
           }
           case "DOWNLOAD_SUBSCRIPTION_HITS": {
             const result = await downloadSubscriptionHitsBySelection({
-              hitIds: runtimeMessage.hitIds
+              hitIds: runtimeMessage.hitIds,
+              roundId: runtimeMessage.roundId ?? null
             })
             sendResponse(createRuntimeSuccessResponse("DOWNLOAD_SUBSCRIPTION_HITS", { result }))
             return

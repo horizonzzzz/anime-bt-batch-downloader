@@ -191,7 +191,10 @@ export function useSubscriptionHitsWorkbench(api: OptionsApi, initialRoundId?: s
     })
 
     try {
-      const result = await api.downloadSubscriptionHits(hitIds)
+      const result = await api.downloadSubscriptionHits({
+        hitIds,
+        roundId: input.roundId
+      })
       setStatus({
         tone: "success",
         message: i18n.t("options.subscriptionHits.downloadSuccess", [
@@ -221,7 +224,10 @@ export function useSubscriptionHitsWorkbench(api: OptionsApi, initialRoundId?: s
     })
 
     try {
-      const result = await api.downloadSubscriptionHits([hitId])
+      const result = await api.downloadSubscriptionHits({
+        hitIds: [hitId],
+        roundId: input.roundId
+      })
       setStatus({
         tone: "success",
         message: i18n.t("options.subscriptionHits.downloadSuccess", [

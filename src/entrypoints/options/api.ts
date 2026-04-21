@@ -32,7 +32,10 @@ export type OptionsApi = {
   saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
   upsertSubscription: (subscription: SubscriptionEntry) => Promise<void>
   deleteSubscription: (subscriptionId: string) => Promise<void>
-  downloadSubscriptionHits: (hitIds: string[]) => Promise<{
+  downloadSubscriptionHits: (request: {
+    hitIds: string[]
+    roundId?: string | null
+  }) => Promise<{
     attemptedHits: number
     submittedHits: number
     duplicateHits: number
@@ -209,10 +212,11 @@ export const optionsApi: OptionsApi = {
 
     return response.preferences
   },
-  async downloadSubscriptionHits(hitIds: string[]) {
+  async downloadSubscriptionHits(request) {
     const response = await sendRuntimeRequest({
       type: "DOWNLOAD_SUBSCRIPTION_HITS",
-      hitIds
+      hitIds: request.hitIds,
+      roundId: request.roundId ?? null
     })
 
     if (!response.ok) {

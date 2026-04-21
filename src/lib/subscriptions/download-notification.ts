@@ -25,7 +25,10 @@ import { getDownloaderConfig } from "../downloader/config/storage"
 import { buildExtractionContextFromConfigs } from "../background/job-state"
 import { listSubscriptionsByIds } from "./catalog-repository"
 import { subscriptionDb } from "./db"
-import { getNotificationRound } from "./notification-round-repository"
+import {
+  getNotificationRound,
+  persistNotificationRoundDownloadState
+} from "./notification-round-repository"
 import { parseSubscriptionNotificationRoundId } from "./notifications"
 
 export type DownloadSubscriptionHitsRequest = {
@@ -275,7 +278,7 @@ export async function downloadSubscriptionNotificationHits(
     dependencies
   )
 
-  await persistDownloadState(notificationRound.id, result.updatedHits)
+  await persistNotificationRoundDownloadState(notificationRound.id, result.updatedHits)
 
   return {
     totalHits: actionableHits.length,
@@ -294,35 +297,6 @@ function createEmptyDownloadSubscriptionHitsResult(): DownloadSubscriptionHitsRe
     duplicateCount: 0,
     failedCount: 0
   }
-}
-
-async function persistDownloadState(
-  roundId: string,
-  hits: SubscriptionHitRecord[]
-): Promise<void> {
-  await subscriptionDb.transaction(
-    "rw",
-    subscriptionDb.notificationRounds,
-    async () => {
-      const retainedHits = hits
-        .filter((hit) => hit.downloadStatus !== "submitted" && hit.downloadStatus !== "duplicate")
-
-      if (retainedHits.length === 0) {
-        await subscriptionDb.notificationRounds.delete(roundId)
-        return
-      }
-
-      const round = await subscriptionDb.notificationRounds.get(roundId)
-      if (!round) {
-        return
-      }
-
-      await subscriptionDb.notificationRounds.put({
-        ...round,
-        hits: retainedHits
-      })
-    }
-  )
 }
 
 async function updateRuntimeRowsForDownloadedHits(
