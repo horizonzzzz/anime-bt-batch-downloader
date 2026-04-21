@@ -90,7 +90,8 @@ export function createSubscriptionDraft(
         any: []
       },
       createdAt: now,
-      baselineCreatedAt: now
+      baselineCreatedAt: now,
+      deletedAt: null
     }
   }
 
@@ -106,7 +107,8 @@ export function createSubscriptionDraft(
     advanced: {
       must: subscription.advanced.must.map((condition) => ({ ...condition })),
       any: subscription.advanced.any.map((condition) => ({ ...condition }))
-    }
+    },
+    deletedAt: null
   }
 }
 
@@ -123,7 +125,8 @@ export function duplicateSubscriptionDraft(
     },
     id: createDuplicateId(subscription.id, now),
     createdAt: now,
-    baselineCreatedAt: now
+    baselineCreatedAt: now,
+    deletedAt: null
   }
 }
 
@@ -169,7 +172,8 @@ export function normalizeSubscriptionDraft(
     advanced: {
       must: draft.advanced.must.map(normalizeConditionValue),
       any: draft.advanced.any.map(normalizeConditionValue)
-    }
+    },
+    deletedAt: null
   }
 }
 

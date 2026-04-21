@@ -36,6 +36,7 @@ export type SubscriptionEntry = {
   }
   createdAt: string
   baselineCreatedAt: string
+  deletedAt: string | null
 }
 
 export type EditableSubscriptionDefinition = Pick<

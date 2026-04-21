@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   createSubscriptionDraft,
+  duplicateSubscriptionDraft,
   normalizeSubscriptionDraft,
   summarizeSubscriptionRecentHits
 } from "../../../src/components/options/pages/subscriptions/subscription-workbench"
@@ -22,6 +23,7 @@ function createSubscription(overrides: Partial<SubscriptionEntry> = {}): Subscri
     },
     createdAt: "2026-04-13T00:00:00.000Z",
     baselineCreatedAt: "2026-04-13T00:00:00.000Z",
+    deletedAt: null,
     ...overrides
   }
 }
@@ -54,6 +56,7 @@ describe("subscription workbench helpers", () => {
       "advanced",
       "baselineCreatedAt",
       "createdAt",
+      "deletedAt",
       "enabled",
       "id",
       "multiSiteModeEnabled",
@@ -66,6 +69,7 @@ describe("subscription workbench helpers", () => {
       sourceIds: ["acgrip"],
       titleQuery: "",
       subgroupQuery: "",
+      deletedAt: null,
       advanced: {
         must: [],
         any: []
@@ -82,6 +86,7 @@ describe("subscription workbench helpers", () => {
       "advanced",
       "baselineCreatedAt",
       "createdAt",
+      "deletedAt",
       "enabled",
       "id",
       "multiSiteModeEnabled",
@@ -93,8 +98,24 @@ describe("subscription workbench helpers", () => {
     expect(normalized).toEqual(expect.objectContaining({
       name: "Medalist",
       sourceIds: ["acgrip"],
-      titleQuery: "Medalist"
+      titleQuery: "Medalist",
+      deletedAt: null
     }))
+  })
+
+  it("duplicates drafts with a cleared tombstone marker", () => {
+    const duplicated = duplicateSubscriptionDraft(
+      createSubscription({ deletedAt: "2026-04-18T00:00:00.000Z" }),
+      "2026-04-19T00:00:00.000Z"
+    )
+
+    expect(duplicated).toEqual(
+      expect.objectContaining({
+        createdAt: "2026-04-19T00:00:00.000Z",
+        baselineCreatedAt: "2026-04-19T00:00:00.000Z",
+        deletedAt: null
+      })
+    )
   })
 
   it("summarizes the newest retained hit instead of the oldest one", () => {

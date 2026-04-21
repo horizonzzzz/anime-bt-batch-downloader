@@ -2,10 +2,16 @@ export { createSubscriptionFingerprint } from "./fingerprint"
 export { matchesSubscriptionCandidate, deriveSubscriptionCandidateSubgroup } from "./match"
 export { subscriptionDb, resetSubscriptionDb } from "./db"
 export {
+  createSubscriptionRecord,
   deleteSubscription,
+  listActiveSubscriptions,
   listSubscriptions,
+  listSubscriptionsByIdsIncludingDeleted,
   listSubscriptionsByIds,
+  listSubscriptionsIncludingDeleted,
   replaceSubscriptionCatalog,
+  setSubscriptionRecordEnabled,
+  softDeleteSubscriptionRecord,
   upsertSubscription
 } from "./catalog-repository"
 export {

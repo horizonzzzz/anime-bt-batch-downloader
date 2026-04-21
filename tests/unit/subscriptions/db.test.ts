@@ -5,8 +5,12 @@ import type {
   SubscriptionHitRecord
 } from "../../../src/lib/shared/types"
 import {
-  replaceSubscriptionCatalog,
-  upsertSubscription
+  createSubscriptionRecord,
+  listActiveSubscriptions,
+  listSubscriptionsByIdsIncludingDeleted,
+  listSubscriptionsIncludingDeleted,
+  setSubscriptionRecordEnabled,
+  softDeleteSubscriptionRecord
 } from "../../../src/lib/subscriptions/catalog-repository"
 import {
   resetSubscriptionDb,
@@ -30,6 +34,7 @@ function createSubscription(
     },
     createdAt: "2026-04-01T00:00:00.000Z",
     baselineCreatedAt: "2026-04-01T00:00:00.000Z",
+    deletedAt: null,
     ...overrides
   }
 }
@@ -54,7 +59,7 @@ function createHit(overrides: Partial<SubscriptionHitRecord> = {}): Subscription
   }
 }
 
-describe("replaceSubscriptionCatalog", () => {
+describe("subscription catalog repository", () => {
   beforeEach(async () => {
     await resetSubscriptionDb()
   })
@@ -63,9 +68,9 @@ describe("replaceSubscriptionCatalog", () => {
     await resetSubscriptionDb()
   })
 
-  it("replaces the subscription catalog and prunes runtime-owned rows for removed definitions", async () => {
-    await replaceSubscriptionCatalog([
-      createSubscription({ id: "sub-1", titleQuery: "medalist" }),
+  it("soft deletes subscriptions while preserving hits and notification rounds", async () => {
+    await createSubscriptionRecord(createSubscription({ id: "sub-1", titleQuery: "medalist" }))
+    await createSubscriptionRecord(
       createSubscription({
         id: "sub-2",
         name: "Frieren",
@@ -73,7 +78,7 @@ describe("replaceSubscriptionCatalog", () => {
         createdAt: "2026-04-02T00:00:00.000Z",
         baselineCreatedAt: "2026-04-02T00:00:00.000Z"
       })
-    ])
+    )
 
     await subscriptionDb.subscriptionRuntime.bulkPut([
       {
@@ -99,6 +104,14 @@ describe("replaceSubscriptionCatalog", () => {
         ]
       }
     ])
+    await subscriptionDb.subscriptionHits.bulkPut([
+      createHit({ id: "hit-1", subscriptionId: "sub-1" }),
+      createHit({
+        id: "hit-2",
+        subscriptionId: "sub-2",
+        detailUrl: "https://acg.rip/t/2"
+      })
+    ])
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260417110000000",
       createdAt: "2026-04-17T11:00:00.000Z",
@@ -112,18 +125,26 @@ describe("replaceSubscriptionCatalog", () => {
       ]
     })
 
-    await replaceSubscriptionCatalog([
-      createSubscription({
-        id: "sub-2",
-        name: "Frieren",
-        titleQuery: "frieren",
-        createdAt: "2026-04-02T00:00:00.000Z",
-        baselineCreatedAt: "2026-04-02T00:00:00.000Z"
+    await softDeleteSubscriptionRecord("sub-1", "2026-04-18T00:00:00.000Z")
+
+    await expect(listActiveSubscriptions()).resolves.toEqual([
+      expect.objectContaining({ id: "sub-2" })
+    ])
+    await expect(listSubscriptionsIncludingDeleted()).resolves.toEqual([
+      expect.objectContaining({ id: "sub-2", deletedAt: null }),
+      expect.objectContaining({
+        id: "sub-1",
+        enabled: false,
+        deletedAt: "2026-04-18T00:00:00.000Z"
       })
     ])
-
-    expect(await subscriptionDb.subscriptions.toArray()).toEqual([
-      expect.objectContaining({ id: "sub-2" })
+    await expect(listSubscriptionsByIdsIncludingDeleted(["sub-1", "sub-2"])).resolves.toEqual([
+      expect.objectContaining({
+        id: "sub-1",
+        enabled: false,
+        deletedAt: "2026-04-18T00:00:00.000Z"
+      }),
+      expect.objectContaining({ id: "sub-2", deletedAt: null })
     ])
     expect(await subscriptionDb.subscriptionRuntime.toArray()).toEqual([
       expect.objectContaining({ subscriptionId: "sub-2" })
@@ -131,17 +152,24 @@ describe("replaceSubscriptionCatalog", () => {
     expect((await subscriptionDb.subscriptionRuntime.toArray())[0]?.recentHits).toEqual([
       expect.objectContaining({ id: "hit-2", subscriptionId: "sub-2" })
     ])
+    await expect(subscriptionDb.subscriptionHits.toArray()).resolves.toEqual([
+      expect.objectContaining({ id: "hit-1", subscriptionId: "sub-1" }),
+      expect.objectContaining({ id: "hit-2", subscriptionId: "sub-2" })
+    ])
     expect(await subscriptionDb.notificationRounds.toArray()).toEqual([
       {
         id: "subscription-round:20260417110000000",
         createdAt: "2026-04-17T11:00:00.000Z",
-        hits: [expect.objectContaining({ id: "hit-2" })]
+        hits: [
+          expect.objectContaining({ id: "hit-1", subscriptionId: "sub-1" }),
+          expect.objectContaining({ id: "hit-2", subscriptionId: "sub-2" })
+        ]
       }
     ])
   })
 
-  it("prunes runtime-owned rows when a subscription is disabled", async () => {
-    await replaceSubscriptionCatalog([createSubscription({ enabled: true })])
+  it("disables subscriptions by clearing only runtime state and preserving history", async () => {
+    await createSubscriptionRecord(createSubscription({ enabled: true }))
     await subscriptionDb.subscriptionRuntime.put({
       subscriptionId: "sub-1",
       lastScanAt: "2026-04-17T10:00:00.000Z",
@@ -150,15 +178,27 @@ describe("replaceSubscriptionCatalog", () => {
       seenFingerprints: ["fp-1"],
       recentHits: [createHit()]
     })
+    await subscriptionDb.subscriptionHits.put(createHit())
     await subscriptionDb.notificationRounds.put({
       id: "subscription-round:20260417100000000",
       createdAt: "2026-04-17T10:00:00.000Z",
       hits: [createHit()]
     })
 
-    await upsertSubscription(createSubscription({ enabled: false }))
+    await setSubscriptionRecordEnabled("sub-1", false)
 
     await expect(subscriptionDb.subscriptionRuntime.get("sub-1")).resolves.toBeUndefined()
-    await expect(subscriptionDb.notificationRounds.toArray()).resolves.toEqual([])
+    await expect(subscriptionDb.subscriptionHits.toArray()).resolves.toEqual([
+      expect.objectContaining({ id: "hit-1", subscriptionId: "sub-1" })
+    ])
+    await expect(subscriptionDb.notificationRounds.toArray()).resolves.toEqual([
+      expect.objectContaining({
+        id: "subscription-round:20260417100000000",
+        hits: [expect.objectContaining({ id: "hit-1", subscriptionId: "sub-1" })]
+      })
+    ])
+    await expect(listActiveSubscriptions()).resolves.toEqual([
+      expect.objectContaining({ id: "sub-1", enabled: false, deletedAt: null })
+    ])
   })
 })

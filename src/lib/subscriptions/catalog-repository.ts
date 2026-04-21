@@ -5,7 +5,7 @@ import { subscriptionDb } from "./db"
 type NormalizedFilterCondition = Pick<FilterCondition, "field" | "operator" | "value">
 type SubscriptionTrackingDefinition = Omit<
   SubscriptionEntry,
-  "id" | "name" | "createdAt" | "baselineCreatedAt" | "advanced" | "enabled"
+  "id" | "name" | "createdAt" | "baselineCreatedAt" | "advanced" | "enabled" | "deletedAt"
 > & {
   advanced: {
     must: NormalizedFilterCondition[]
@@ -13,77 +13,42 @@ type SubscriptionTrackingDefinition = Omit<
   }
 }
 
-export async function listSubscriptions(): Promise<SubscriptionEntry[]> {
+export async function listSubscriptionsIncludingDeleted(): Promise<SubscriptionEntry[]> {
   const subscriptions = await subscriptionDb.subscriptions.toArray()
-  return subscriptions.sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+  return sortSubscriptionsByCreatedAtDesc(subscriptions.map(normalizeSubscriptionRecord))
 }
 
-export async function listSubscriptionsByIds(ids: string[]): Promise<SubscriptionEntry[]> {
+export async function listActiveSubscriptions(): Promise<SubscriptionEntry[]> {
+  const subscriptions = await listSubscriptionsIncludingDeleted()
+  return subscriptions.filter((subscription) => subscription.deletedAt === null)
+}
+
+export async function listSubscriptionsByIdsIncludingDeleted(
+  ids: string[]
+): Promise<SubscriptionEntry[]> {
   const normalizedIds = normalizeIds(ids)
   if (normalizedIds.length === 0) {
     return []
   }
 
   const subscriptions = await subscriptionDb.subscriptions.bulkGet(normalizedIds)
-  return subscriptions.filter((subscription): subscription is SubscriptionEntry => subscription !== undefined)
+  return subscriptions
+    .filter((subscription): subscription is SubscriptionEntry => subscription !== undefined)
+    .map(normalizeSubscriptionRecord)
 }
 
-export async function replaceSubscriptionCatalog(
-  nextSubscriptions: SubscriptionEntry[]
+export async function createSubscriptionRecord(subscription: SubscriptionEntry): Promise<void> {
+  await subscriptionDb.subscriptions.add(normalizeSubscriptionRecord({
+    ...subscription,
+    deletedAt: null
+  }))
+}
+
+export async function setSubscriptionRecordEnabled(
+  subscriptionId: string,
+  enabled: boolean
 ): Promise<void> {
-  await subscriptionDb.transaction(
-    "rw",
-    subscriptionDb.subscriptions,
-    subscriptionDb.subscriptionRuntime,
-    subscriptionDb.notificationRounds,
-    async () => {
-      const previousSubscriptions = await subscriptionDb.subscriptions.toArray()
-      const previousById = new Map(
-        previousSubscriptions.map((subscription) => [subscription.id, subscription] as const)
-      )
-      const nextIds = new Set(nextSubscriptions.map((subscription) => subscription.id))
-      const removedIds = previousSubscriptions
-        .map((subscription) => subscription.id)
-        .filter((id) => !nextIds.has(id))
-      const changedIds = nextSubscriptions
-        .filter((subscription) => {
-          const previous = previousById.get(subscription.id)
-          return previous
-            ? shouldInvalidateSubscriptionObservation(previous, subscription)
-            : false
-        })
-        .map((subscription) => subscription.id)
-
-      await subscriptionDb.subscriptions.clear()
-      if (nextSubscriptions.length > 0) {
-        await subscriptionDb.subscriptions.bulkPut(nextSubscriptions)
-      }
-
-      await invalidateSubscriptionObservationState([...removedIds, ...changedIds])
-    }
-  )
-}
-
-export async function upsertSubscription(subscription: SubscriptionEntry): Promise<void> {
-  await subscriptionDb.transaction(
-    "rw",
-    subscriptionDb.subscriptions,
-    subscriptionDb.subscriptionRuntime,
-    subscriptionDb.notificationRounds,
-    async () => {
-      const previous = await subscriptionDb.subscriptions.get(subscription.id)
-
-      await subscriptionDb.subscriptions.put(subscription)
-
-      if (previous && shouldInvalidateSubscriptionObservation(previous, subscription)) {
-        await invalidateSubscriptionObservationState([subscription.id])
-      }
-    }
-  )
-}
-
-export async function deleteSubscription(subscriptionId: string): Promise<void> {
-  const normalizedId = String(subscriptionId ?? "").trim()
+  const normalizedId = normalizeId(subscriptionId)
   if (!normalizedId) {
     return
   }
@@ -92,50 +57,149 @@ export async function deleteSubscription(subscriptionId: string): Promise<void> 
     "rw",
     subscriptionDb.subscriptions,
     subscriptionDb.subscriptionRuntime,
-    subscriptionDb.notificationRounds,
     async () => {
-      await subscriptionDb.subscriptions.delete(normalizedId)
-      await invalidateSubscriptionObservationState([normalizedId])
+      const existing = await subscriptionDb.subscriptions.get(normalizedId)
+      if (!existing) {
+        return
+      }
+
+      const normalizedExisting = normalizeSubscriptionRecord(existing)
+      if (normalizedExisting.deletedAt !== null) {
+        throw new Error(`Cannot update tombstoned subscription: ${normalizedId}`)
+      }
+
+      await subscriptionDb.subscriptions.put({
+        ...normalizedExisting,
+        enabled
+      })
+
+      if (normalizedExisting.enabled && !enabled) {
+        await deleteSubscriptionRuntime(normalizedId)
+      }
     }
   )
 }
 
-async function invalidateSubscriptionObservationState(subscriptionIds: string[]): Promise<void> {
-  const normalizedIds = normalizeIds(subscriptionIds)
-  if (normalizedIds.length === 0) {
+export async function softDeleteSubscriptionRecord(
+  subscriptionId: string,
+  deletedAt: string
+): Promise<void> {
+  const normalizedId = normalizeId(subscriptionId)
+  if (!normalizedId) {
     return
   }
 
-  await subscriptionDb.subscriptionRuntime.bulkDelete(normalizedIds)
+  await subscriptionDb.transaction(
+    "rw",
+    subscriptionDb.subscriptions,
+    subscriptionDb.subscriptionRuntime,
+    async () => {
+      const existing = await subscriptionDb.subscriptions.get(normalizedId)
+      if (!existing) {
+        return
+      }
 
-  await pruneNotificationRoundsForDeletedSubscriptions(new Set(normalizedIds))
+      await subscriptionDb.subscriptions.put({
+        ...normalizeSubscriptionRecord(existing),
+        enabled: false,
+        deletedAt
+      })
+
+      await deleteSubscriptionRuntime(normalizedId)
+    }
+  )
 }
 
-async function pruneNotificationRoundsForDeletedSubscriptions(
-  deletedSubscriptionIds: ReadonlySet<string>
+export async function listSubscriptions(): Promise<SubscriptionEntry[]> {
+  return listActiveSubscriptions()
+}
+
+export async function listSubscriptionsByIds(ids: string[]): Promise<SubscriptionEntry[]> {
+  return listSubscriptionsByIdsIncludingDeleted(ids)
+}
+
+export async function replaceSubscriptionCatalog(
+  nextSubscriptions: SubscriptionEntry[]
 ): Promise<void> {
-  if (deletedSubscriptionIds.size === 0) {
-    return
-  }
+  const nextById = new Map(
+    nextSubscriptions.map((subscription) => [
+      subscription.id,
+      normalizeSubscriptionRecord({ ...subscription, deletedAt: null })
+    ] as const)
+  )
 
-  const rounds = await subscriptionDb.notificationRounds.toArray()
+  await subscriptionDb.transaction(
+    "rw",
+    subscriptionDb.subscriptions,
+    subscriptionDb.subscriptionRuntime,
+    async () => {
+      const previousSubscriptions = await subscriptionDb.subscriptions.toArray()
+      const previousById = new Map(
+        previousSubscriptions.map((subscription) => [
+          subscription.id,
+          normalizeSubscriptionRecord(subscription)
+        ] as const)
+      )
 
-  for (const round of rounds) {
-    const nextHits = round.hits.filter((hit) => !deletedSubscriptionIds.has(hit.subscriptionId))
+      for (const subscription of nextById.values()) {
+        await subscriptionDb.subscriptions.put(subscription)
+      }
 
-    if (nextHits.length === round.hits.length) {
-      continue
+      const tombstoneTimestamp = new Date().toISOString()
+      for (const previous of previousById.values()) {
+        if (nextById.has(previous.id) || previous.deletedAt !== null) {
+          continue
+        }
+
+        await subscriptionDb.subscriptions.put({
+          ...previous,
+          enabled: false,
+          deletedAt: tombstoneTimestamp
+        })
+        await deleteSubscriptionRuntime(previous.id)
+      }
+
+      for (const [id, nextSubscription] of nextById.entries()) {
+        const previous = previousById.get(id)
+        if (previous && shouldInvalidateSubscriptionObservation(previous, nextSubscription)) {
+          await deleteSubscriptionRuntime(id)
+        }
+      }
     }
+  )
+}
 
-    if (nextHits.length === 0) {
-      await subscriptionDb.notificationRounds.delete(round.id)
-      continue
+export async function upsertSubscription(subscription: SubscriptionEntry): Promise<void> {
+  const normalizedSubscription = normalizeSubscriptionRecord(subscription)
+
+  await subscriptionDb.transaction(
+    "rw",
+    subscriptionDb.subscriptions,
+    subscriptionDb.subscriptionRuntime,
+    async () => {
+      const previous = await subscriptionDb.subscriptions.get(normalizedSubscription.id)
+      const normalizedPrevious = previous ? normalizeSubscriptionRecord(previous) : null
+
+      await subscriptionDb.subscriptions.put(normalizedSubscription)
+
+      if (
+        normalizedPrevious &&
+        shouldInvalidateSubscriptionObservation(normalizedPrevious, normalizedSubscription)
+      ) {
+        await deleteSubscriptionRuntime(normalizedSubscription.id)
+      }
     }
+  )
+}
 
-    await subscriptionDb.notificationRounds.put({
-      ...round,
-      hits: nextHits
-    })
+export async function deleteSubscription(subscriptionId: string): Promise<void> {
+  await softDeleteSubscriptionRecord(subscriptionId, new Date().toISOString())
+}
+
+function normalizeSubscriptionRecord(subscription: SubscriptionEntry): SubscriptionEntry {
+  return {
+    ...subscription,
+    deletedAt: subscription.deletedAt ?? null
   }
 }
 
@@ -183,12 +247,28 @@ function normalizeConditionForComparison(condition: FilterCondition): Normalized
   }
 }
 
+async function deleteSubscriptionRuntime(subscriptionId: string): Promise<void> {
+  await subscriptionDb.subscriptionRuntime.delete(subscriptionId)
+}
+
+function sortSubscriptionsByCreatedAtDesc(
+  subscriptions: SubscriptionEntry[]
+): SubscriptionEntry[] {
+  return [...subscriptions].sort((left, right) =>
+    right.createdAt.localeCompare(left.createdAt)
+  )
+}
+
 function normalizeIds(ids: string[]): string[] {
   return Array.from(
     new Set(
       ids
-        .map((id) => String(id ?? "").trim())
-        .filter((id) => id.length > 0)
+        .map((id) => normalizeId(id))
+        .filter((id): id is string => id.length > 0)
     )
   )
+}
+
+function normalizeId(id: string): string {
+  return String(id ?? "").trim()
 }

@@ -30,6 +30,7 @@ function createSubscription(
     },
     createdAt: "2026-04-01T00:00:00.000Z",
     baselineCreatedAt: "2026-04-01T00:00:00.000Z",
+    deletedAt: null,
     ...overrides
   }
 }
@@ -63,7 +64,7 @@ describe("subscription runtime query", () => {
     await resetSubscriptionDb()
   })
 
-  it("builds dashboard rows from normalized subscription tables", async () => {
+  it("builds dashboard rows from active subscriptions only", async () => {
     await subscriptionDb.subscriptions.bulkPut([
       createSubscription({
         id: "sub-1",
@@ -77,6 +78,14 @@ describe("subscription runtime query", () => {
         titleQuery: "frieren",
         createdAt: "2026-04-02T00:00:00.000Z",
         baselineCreatedAt: "2026-04-02T00:00:00.000Z"
+      }),
+      createSubscription({
+        id: "sub-3",
+        name: "Deleted",
+        titleQuery: "deleted",
+        createdAt: "2026-04-03T00:00:00.000Z",
+        baselineCreatedAt: "2026-04-03T00:00:00.000Z",
+        deletedAt: "2026-04-18T00:00:00.000Z"
       })
     ])
     await subscriptionDb.subscriptionRuntime.put({
@@ -110,10 +119,26 @@ describe("subscription runtime query", () => {
         })
       ]
     })
+    await subscriptionDb.subscriptionRuntime.put({
+      subscriptionId: "sub-3",
+      lastScanAt: "2026-04-17T12:00:00.000Z",
+      lastMatchedAt: "2026-04-17T12:00:00.000Z",
+      lastError: "",
+      seenFingerprints: ["fp-3"],
+      recentHits: [
+        createHit({
+          id: "hit-4",
+          subscriptionId: "sub-3",
+          discoveredAt: "2026-04-17T12:00:00.000Z",
+          detailUrl: "https://acg.rip/t/4"
+        })
+      ]
+    })
 
     const rows = await buildSubscriptionDashboardRows()
 
     expect(rows).toHaveLength(2)
+    expect(rows.map((row) => row.subscription.id)).toEqual(["sub-2", "sub-1"])
     expect(rows[0]).toMatchObject({
       subscription: expect.objectContaining({ id: "sub-2" }),
       runtime: expect.objectContaining({

@@ -7,14 +7,17 @@ import type {
   SubscriptionDashboardRow,
   SubscriptionRuntimeRow
 } from "./store-types"
-import { listSubscriptions } from "./catalog-repository"
+import { listActiveSubscriptions } from "./catalog-repository"
 
 export const LAST_SCHEDULER_RUN_AT_META_KEY = "lastSchedulerRunAt"
 export const getNotificationRound = getNotificationRoundFromRepository
 export const listNotificationRounds = listNotificationRoundsFromRepository
 
 export async function buildSubscriptionDashboardRows(): Promise<SubscriptionDashboardRow[]> {
-  const [subscriptions, runtimeRows] = await Promise.all([listSubscriptions(), listSubscriptionRuntimeRows()])
+  const [subscriptions, runtimeRows] = await Promise.all([
+    listActiveSubscriptions(),
+    listSubscriptionRuntimeRows()
+  ])
   const runtimeBySubscriptionId = new Map(
     runtimeRows.map((row) => [row.subscriptionId, row] as const)
   )
