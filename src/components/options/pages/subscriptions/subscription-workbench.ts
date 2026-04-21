@@ -71,43 +71,22 @@ export function createSubscriptionCondition(
   }
 }
 
-export function createSubscriptionDraft(
-  subscription?: SubscriptionEntry
-): SubscriptionWorkbenchDraft {
-  if (!subscription) {
-    const now = new Date().toISOString()
-
-    return {
-      id: createSubscriptionWorkbenchId("subscription"),
-      name: "",
-      enabled: true,
-      sourceIds: [DEFAULT_SOURCE_ID],
-      multiSiteModeEnabled: false,
-      titleQuery: "",
-      subgroupQuery: "",
-      advanced: {
-        must: [],
-        any: []
-      },
-      createdAt: now,
-      baselineCreatedAt: now,
-      deletedAt: null
-    }
-  }
-
-  const editableSourceIds = normalizeEditableSourceIds(subscription.sourceIds)
-
+export function createSubscriptionDraft(): SubscriptionWorkbenchDraft {
+  const now = new Date().toISOString()
   return {
-    ...subscription,
-    sourceIds: editableSourceIds.length ? editableSourceIds : [DEFAULT_SOURCE_ID],
-    multiSiteModeEnabled:
-      subscription.multiSiteModeEnabled && editableSourceIds.length > 1,
-    titleQuery: subscription.titleQuery,
-    subgroupQuery: subscription.subgroupQuery,
+    id: createSubscriptionWorkbenchId("subscription"),
+    name: "",
+    enabled: true,
+    sourceIds: [DEFAULT_SOURCE_ID],
+    multiSiteModeEnabled: false,
+    titleQuery: "",
+    subgroupQuery: "",
     advanced: {
-      must: subscription.advanced.must.map((condition) => ({ ...condition })),
-      any: subscription.advanced.any.map((condition) => ({ ...condition }))
+      must: [],
+      any: []
     },
+    createdAt: now,
+    baselineCreatedAt: now,
     deletedAt: null
   }
 }

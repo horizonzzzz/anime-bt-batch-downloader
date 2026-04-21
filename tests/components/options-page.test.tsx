@@ -941,6 +941,27 @@ describe("OptionsPage", () => {
     10000
   )
 
+  it("toggles subscription enabled state without creating a subscription", async () => {
+    const user = userEvent.setup()
+    await seedSubscriptionFixture()
+    const api = createOptionsApi()
+
+    window.location.hash = "#/subscriptions"
+    render(<OptionsPage api={api} />)
+
+    const subscriptionCard = await screen.findByTestId("subscription-card-sub-1")
+    await user.click(
+      within(subscriptionCard).getByRole("switch", {
+        name: "ACG Medalist 启用开关"
+      })
+    )
+
+    await waitFor(() => {
+      expect(api.setSubscriptionEnabled).toHaveBeenCalledWith("sub-1", false)
+    })
+    expect(api.createSubscription).not.toHaveBeenCalled()
+  })
+
   it("formats subscription source summaries in English without Chinese separators", async () => {
     const user = userEvent.setup()
     ;(globalThis as typeof globalThis & { __animeBtTestLocale?: string }).__animeBtTestLocale = "en"

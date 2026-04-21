@@ -507,7 +507,6 @@
       "title": "Subscriptions",
       "description": "Configure reusable subscription queries, global polling defaults, and notification behavior in the same form workspace used by the rest of the options page.",
       "add": "Add subscription",
-      "edit": "Edit",
       "duplicate": "Duplicate",
       "openHitsWorkbench": "Open hits workbench",
       "configuredCount": "$1 subscriptions configured",
@@ -523,7 +522,7 @@
       "deleteDescriptionNamed": "Delete the subscription \"$1\"?",
       "deleteDescription": "Delete this subscription?",
       "enableSwitchSuffix": "enable switch",
-      "cardDescription": "Editable query settings live here; scan results and recent hits come from the latest loaded runtime state.",
+      "cardDescription": "This saved query is read-only. Duplicate it to create a revised subscription, or disable/delete it when it should stop running.",
       "badge": {
         "enabled": "Enabled",
         "disabled": "Disabled",
@@ -559,7 +558,6 @@
       },
       "dialog": {
         "addTitle": "Add subscription",
-        "editTitle": "Edit subscription",
         "description": "Configure the subscription name, source scope, and query conditions",
         "close": "Close subscription panel",
         "nameLabel": "Subscription name",
