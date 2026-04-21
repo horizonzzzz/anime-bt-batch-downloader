@@ -53,7 +53,7 @@ function groupHitsBySubscription(
     if (input.sourceId !== "all" && hit.sourceId !== input.sourceId) {
       return false
     }
-    if (!matchesStatusFilter(hit.downloadStatus, input.status)) {
+    if (!matchesStatusFilter(hit.downloadStatus, hit.readAt, input.status)) {
       return false
     }
     return true
@@ -92,6 +92,7 @@ function groupHitsBySubscription(
 
 function matchesStatusFilter(
   downloadStatus: SubscriptionHitStoreRow["downloadStatus"],
+  readAt: SubscriptionHitStoreRow["readAt"],
   filter: SubscriptionHitsWorkbenchInput["status"]
 ): boolean {
   if (filter === "all") {
@@ -102,7 +103,7 @@ function matchesStatusFilter(
     case "pending":
       return downloadStatus === "idle"
     case "new":
-      return downloadStatus === "idle" && !downloadStatus
+      return downloadStatus === "idle" && readAt === null
     case "failed":
       return downloadStatus === "failed"
     case "processed":

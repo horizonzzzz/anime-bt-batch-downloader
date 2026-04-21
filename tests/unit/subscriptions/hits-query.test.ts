@@ -207,6 +207,42 @@ describe("hits-query", () => {
       expect(allHits.every((hit) => hit.downloadStatus === "idle")).toBe(true)
     })
 
+    it("filters hits by 'new' status (idle and unread)", async () => {
+      await seedTestFixture()
+
+      // Add a hit that is idle but already read (should NOT appear in "new" filter)
+      await subscriptionDb.subscriptionHits.put({
+        id: "hit-4",
+        subscriptionId: "sub-1",
+        sourceId: "acgrip",
+        title: "[LoliHouse] Medalist - 03 [1080p]",
+        normalizedTitle: "[lolihouse] medalist - 03 [1080p]",
+        subgroup: "LoliHouse",
+        detailUrl: "https://acg.rip/t/102",
+        magnetUrl: "magnet:?xt=urn:btih:AAA333",
+        torrentUrl: "",
+        discoveredAt: "2026-04-14T11:00:00.000Z",
+        downloadedAt: null,
+        downloadStatus: "idle",
+        readAt: "2026-04-14T11:30:00.000Z", // Already viewed
+        resolvedAt: null
+      })
+
+      const rows = await buildSubscriptionHitsWorkbenchRows({
+        ...defaultInput,
+        status: "new"
+      })
+
+      const allHits = rows.flatMap((row) => row.hits)
+      // Only hits with idle status AND readAt === null should appear
+      expect(allHits.every((hit) => hit.downloadStatus === "idle" && hit.readAt === null)).toBe(true)
+      // hit-4 should not appear because it has readAt set
+      expect(allHits.find((hit) => hit.id === "hit-4")).toBeUndefined()
+      // hit-1 and hit-3 should appear (both idle with readAt null)
+      expect(allHits.find((hit) => hit.id === "hit-1")).toBeDefined()
+      expect(allHits.find((hit) => hit.id === "hit-3")).toBeDefined()
+    })
+
     it("excludes subscriptions with no matching hits", async () => {
       await seedTestFixture()
 
