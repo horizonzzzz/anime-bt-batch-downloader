@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { DEFAULT_BATCH_EXECUTION_CONFIG } from "../../../src/lib/batch-config/defaults"
-import { DEFAULT_SOURCE_CONFIG } from "../../../src/lib/sources/config/defaults"
-import { kisssubSourceAdapter, parseKisssubDetailSnapshot } from "../../../src/lib/sources/kisssub"
+import {
+  buildKisssubLinksFromConfig,
+  kisssubSourceAdapter,
+  parseKisssubDetailSnapshot
+} from "../../../src/lib/sources/kisssub"
 import type { ExtractionContext } from "../../../src/lib/sources/types"
 
 const { reloadDetailTab, withDetailTab } = vi.hoisted(() => ({
@@ -21,11 +24,6 @@ function buildTestExtractionContext(overrides: Partial<ExtractionContext> = {}):
       retryCount: DEFAULT_BATCH_EXECUTION_CONFIG.retryCount,
       injectTimeoutMs: DEFAULT_BATCH_EXECUTION_CONFIG.injectTimeoutMs,
       domSettleMs: DEFAULT_BATCH_EXECUTION_CONFIG.domSettleMs
-    },
-    source: {
-      kisssub: {
-        script: DEFAULT_SOURCE_CONFIG.kisssub.script
-      }
     },
     ...overrides
   }
@@ -52,7 +50,7 @@ describe("parseKisssubDetailSnapshot", () => {
     })
   })
 
-  it("returns a helper timeout failure when the wormhole links never resolve", () => {
+  it("returns a field-driven failure when the wormhole links never resolve", () => {
     expect(
       parseKisssubDetailSnapshot({
         title: "Episode 02",
@@ -68,7 +66,7 @@ describe("parseKisssubDetailSnapshot", () => {
       hash: "feedface",
       magnetUrl: "",
       torrentUrl: "",
-      failureReason: "The helper script timed out and the detail buttons still point to the wormhole page."
+      failureReason: "The Kisssub detail page no longer exposes the fields required to build download links."
     })
   })
 
@@ -214,5 +212,71 @@ describe("kisssubSourceAdapter detail title fallback", () => {
     ).resolves.toMatchObject({
       title: "[爱恋字幕社][示例资源]"
     })
+  })
+})
+
+describe("buildKisssubLinksFromConfig", () => {
+  it("builds magnet and torrent URLs from Kisssub Config fields", () => {
+    expect(
+      buildKisssubLinksFromConfig(
+        {
+          in_script: "show",
+          hash_id: "879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51",
+          bt_data_title: "[Group][Episode 01]",
+          announce: "http://open.acgtracker.com:1096/announce",
+          down_torrent_format: "[kisssub.org]%s"
+        },
+        "https://www.kisssub.org/show-879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51.html"
+      )
+    ).toEqual({
+      hash: "879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51",
+      magnetUrl:
+        "magnet:?xt=urn:btih:879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51&tr=http://open.acgtracker.com:1096/announce",
+      torrentUrl:
+        "https://v2.uploadbt.com/?r=down&hash=879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51&name=%5Bkisssub.org%5D%5BGroup%5D%5BEpisode%2001%5D"
+    })
+  })
+
+  it("builds a basic magnet URL when announce is missing", () => {
+    expect(
+      buildKisssubLinksFromConfig(
+        {
+          in_script: "show",
+          hash_id: "879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51",
+          bt_data_title: "Episode 01",
+          down_torrent_format: "[kisssub.org]%s"
+        },
+        "https://www.kisssub.org/show-879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51.html"
+      )?.magnetUrl
+    ).toBe("magnet:?xt=urn:btih:879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51")
+  })
+
+  it("uses the fallback title format when down_torrent_format is missing or malformed", () => {
+    expect(
+      buildKisssubLinksFromConfig(
+        {
+          in_script: "show",
+          hash_id: "879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51",
+          bt_data_title: "Episode 01",
+          down_torrent_format: "broken-format"
+        },
+        "http://www.kisssub.org/show-879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51.html"
+      )?.torrentUrl
+    ).toBe(
+      "http://v2.uploadbt.com/?r=down&hash=879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51&name=[kisssub.org]Episode%2001"
+    )
+  })
+
+  it("returns null when required Config fields are missing", () => {
+    expect(
+      buildKisssubLinksFromConfig(
+        {
+          in_script: "list",
+          hash_id: "879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51",
+          bt_data_title: "Episode 01"
+        },
+        "https://www.kisssub.org/show-879d7afe81cfa5ca0a3f4ba07ca3932036cc9b51.html"
+      )
+    ).toBeNull()
   })
 })

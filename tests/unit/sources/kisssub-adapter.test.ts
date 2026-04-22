@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { DEFAULT_BATCH_EXECUTION_CONFIG } from "../../../src/lib/batch-config/defaults"
-import { DEFAULT_SOURCE_CONFIG } from "../../../src/lib/sources/config/defaults"
 import { kisssubSourceAdapter } from "../../../src/lib/sources/kisssub"
 import type { ExtractionContext } from "../../../src/lib/sources/types"
 
@@ -21,11 +20,6 @@ function buildTestExtractionContext(overrides: Partial<ExtractionContext> = {}):
       retryCount: DEFAULT_BATCH_EXECUTION_CONFIG.retryCount,
       injectTimeoutMs: DEFAULT_BATCH_EXECUTION_CONFIG.injectTimeoutMs,
       domSettleMs: DEFAULT_BATCH_EXECUTION_CONFIG.domSettleMs
-    },
-    source: {
-      kisssub: {
-        script: DEFAULT_SOURCE_CONFIG.kisssub.script
-      }
     },
     ...overrides
   }
@@ -145,33 +139,12 @@ describe("kisssubSourceAdapter", () => {
     expect(withDetailTab).toHaveBeenCalledTimes(3)
   })
 
-  it("reloads wormhole pages after priming the helper cookies and then extracts the real links", async () => {
-    const executeScript = vi
-      .fn()
-      .mockResolvedValueOnce([
-        {
-          result: {
-            title: "Episode 03",
-            hash: "cafebabe",
-            magnetUrl: "",
-            torrentUrl: "",
-            magnetLabel: "开启虫洞",
-            downloadLabel: "开启虫洞"
-          }
-        }
-      ])
-      .mockResolvedValueOnce([
-        {
-          result: {
-            title: " Episode 03 ",
-            hash: "",
-            magnetUrl: "magnet:?xt=urn:btih:ABCDEF123456",
-            torrentUrl: "",
-            magnetLabel: "磁力链接",
-            downloadLabel: ""
-          }
-        }
-      ])
+  it("builds real links from Config when the page still shows wormhole anchors", async () => {
+    const executeScript = vi.fn(async ({ func, args = [] }) => [
+      {
+        result: await func(...args)
+      }
+    ])
 
     globalThis.chrome = {
       scripting: {
@@ -179,8 +152,23 @@ describe("kisssubSourceAdapter", () => {
       }
     } as unknown as typeof chrome
 
-    withDetailTab.mockImplementation(async (_detailUrl, _timeoutMs, run) => run(64))
-    reloadDetailTab.mockResolvedValue(undefined)
+    withDetailTab.mockImplementation(async (_detailUrl, _timeoutMs, run) => {
+      document.title = "Episode 03 - 爱恋动漫 cafebabe"
+      document.body.innerHTML = `
+        <a id="magnet" href="./addon.php?r=document/view&page=mika-mode">开启虫洞</a>
+        <a id="download" href="./addon.php?r=document/view&page=mika-mode">开启虫洞</a>
+      `
+      ;(window as unknown as { Config: Record<string, unknown> }).Config = {
+        in_script: "show",
+        hash_id: "cafebabe",
+        bt_data_title: "Episode 03",
+        announce: "http://open.acgtracker.com:1096/announce",
+        down_torrent_format: "[kisssub.org]%s"
+      }
+      window.history.replaceState({}, "", "/show-cafebabe.html")
+
+      return run(64)
+    })
 
     await expect(
       kisssubSourceAdapter.extractSingleItem(
@@ -197,31 +185,70 @@ describe("kisssubSourceAdapter", () => {
           }
         })
       )
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       ok: true,
       title: "Episode 03",
       detailUrl: "https://www.kisssub.org/show-cafebabe.html",
       hash: "cafebabe",
-      magnetUrl: "magnet:?xt=urn:btih:ABCDEF123456",
-      torrentUrl: "",
+      magnetUrl: "magnet:?xt=urn:btih:cafebabe&tr=http://open.acgtracker.com:1096/announce",
+      torrentUrl: "https://v2.uploadbt.com/?r=down&hash=cafebabe&name=%5Bkisssub.org%5DEpisode%2003",
       failureReason: ""
     })
 
-    expect(reloadDetailTab).toHaveBeenCalledWith(64, 10000)
-    expect(executeScript).toHaveBeenCalledTimes(2)
-    expect(executeScript).toHaveBeenNthCalledWith(
-      1,
+    expect(reloadDetailTab).not.toHaveBeenCalled()
+    expect(executeScript).toHaveBeenCalledTimes(1)
+    expect(executeScript).toHaveBeenCalledWith(
       expect.objectContaining({
         target: { tabId: 64 },
         world: "MAIN"
       })
     )
-    expect(executeScript).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        target: { tabId: 64 },
-        world: "MAIN"
-      })
-    )
+  })
+
+  it("keeps an existing magnet while constructing the torrent URL from Config", async () => {
+    globalThis.chrome = {
+      scripting: {
+        executeScript: vi.fn(async ({ func, args = [] }) => [{ result: await func(...args) }])
+      }
+    } as unknown as typeof chrome
+
+    withDetailTab.mockImplementation(async (_detailUrl, _timeoutMs, run) => {
+      document.title = "Episode 04 - 爱恋动漫 deadbeef"
+      document.body.innerHTML = `
+        <a id="magnet" href="magnet:?xt=urn:btih:deadbeef">磁链下载</a>
+        <a id="download" href="./addon.php?r=document/view&page=mika-mode">开启虫洞</a>
+      `
+      ;(window as unknown as { Config: Record<string, unknown> }).Config = {
+        in_script: "show",
+        hash_id: "deadbeef",
+        bt_data_title: "Episode 04",
+        down_torrent_format: "[kisssub.org]%s"
+      }
+      window.history.replaceState({}, "", "/show-deadbeef.html")
+
+      return run(74)
+    })
+
+    await expect(
+      kisssubSourceAdapter.extractSingleItem(
+        {
+          sourceId: "kisssub",
+          detailUrl: "https://www.kisssub.org/show-deadbeef.html",
+          title: "Episode 04"
+        },
+        buildTestExtractionContext({
+          execution: {
+            retryCount: 0,
+            injectTimeoutMs: 3000,
+            domSettleMs: DEFAULT_BATCH_EXECUTION_CONFIG.domSettleMs
+          }
+        })
+      )
+    ).resolves.toMatchObject({
+      ok: true,
+      hash: "deadbeef",
+      magnetUrl: "magnet:?xt=urn:btih:deadbeef",
+      torrentUrl: "https://v2.uploadbt.com/?r=down&hash=deadbeef&name=%5Bkisssub.org%5DEpisode%2004"
+    })
   })
 })
