@@ -275,12 +275,6 @@
         "lockedDescription": "This site currently uses a fixed delivery strategy and does not expose additional switching.",
         "currentDescription": "Current strategy: $1"
       },
-      "scriptFields": {
-        "title": "Script parameters",
-        "description": "Keep the legacy script configuration so it is restored if the site is enabled again.",
-        "remoteScriptUrlLabel": "Kisssub remote script URL",
-        "remoteScriptRevisionLabel": "Kisssub script revision"
-      },
       "catalog": {
         "kisssub": {
           "navLabel": "Kisssub",

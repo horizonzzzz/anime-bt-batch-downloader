@@ -8,7 +8,6 @@ export type SiteConfigMeta = {
   storageDisplayName: string
   overviewAccent: "default" | "emerald" | "cyan"
   strategyMode: "editable" | "locked"
-  hasKisssubScriptFields?: boolean
   noteTone?: "info" | "warning" | "neutral"
 }
 
@@ -30,7 +29,6 @@ export const SITE_CONFIG_META: Record<SourceId, SiteConfigMeta> = Object.freeze(
     storageDisplayName: "Kisssub 爱恋动漫",
     overviewAccent: "default",
     strategyMode: "editable",
-    hasKisssubScriptFields: true
   },
   dongmanhuayuan: {
     id: "dongmanhuayuan",

@@ -275,12 +275,6 @@
         "lockedDescription": "该站点当前使用固定下载方式，不提供额外切换项。",
         "currentDescription": "当前策略：$1"
       },
-      "scriptFields": {
-        "title": "脚本参数",
-        "description": "保留历史脚本配置，重新启用后会继续沿用当前参数。",
-        "remoteScriptUrlLabel": "Kisssub 外部脚本地址",
-        "remoteScriptRevisionLabel": "Kisssub 脚本版本号"
-      },
       "catalog": {
         "kisssub": {
           "navLabel": "Kisssub",

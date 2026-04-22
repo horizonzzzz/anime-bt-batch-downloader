@@ -50,8 +50,6 @@ const settings = {
   injectTimeoutMs: 15000,
   domSettleMs: 1200,
   retryCount: 1,
-  remoteScriptUrl: "//1.acgscript.com/script/miobt/4.js?3",
-  remoteScriptRevision: "20181120.2",
   lastSavePath: "",
   sourceDeliveryModes: {
     kisssub: "magnet",
@@ -1454,6 +1452,10 @@ describe("OptionsPage", () => {
 
       // Wait for site config to load
       await screen.findByTestId("sites-workbench")
+
+      // Verify Kisssub script fields are NOT present (removed in Task 4)
+      expect(screen.queryByLabelText("Kisssub 外部脚本地址")).not.toBeInTheDocument()
+      expect(screen.queryByLabelText("Kisssub 脚本版本号")).not.toBeInTheDocument()
 
       const kisssubCard = screen.getByTestId("site-card-kisssub")
       await user.click(within(kisssubCard).getByRole("radio", { name: "先下载种子再上传到 qB" }))

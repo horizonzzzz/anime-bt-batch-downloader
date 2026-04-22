@@ -125,20 +125,6 @@ export function SiteManagementView({ api }: SiteManagementViewProps) {
     })
   }
 
-  const updateKisssubScript = (url: string, revision: string) => {
-    if (!config) return
-    setConfig((current) => {
-      if (!current) return current
-      return {
-        ...current,
-        kisssub: {
-          ...current.kisssub,
-          script: { url, revision }
-        }
-      }
-    })
-  }
-
   if (!config) {
     return (
       <div className="space-y-8" data-testid="sites-workbench">
@@ -172,11 +158,9 @@ export function SiteManagementView({ api }: SiteManagementViewProps) {
                 isEnabled={isEnabled}
                 isExpanded={isExpanded}
                 currentMode={currentMode}
-                kisssubScript={site.id === "kisssub" ? config.kisssub.script : undefined}
                 onToggleExpanded={toggleSiteExpanded}
                 onToggleEnabled={toggleEnabled}
                 onDeliveryModeChange={updateDeliveryMode}
-                onKisssubScriptChange={updateKisssubScript}
               />
             )
           })}
