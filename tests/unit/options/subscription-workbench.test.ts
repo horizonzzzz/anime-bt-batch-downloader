@@ -6,7 +6,11 @@ import {
   normalizeSubscriptionDraft,
   summarizeSubscriptionRecentHits
 } from "../../../src/components/options/pages/subscriptions/subscription-workbench"
-import type { SubscriptionEntry, SubscriptionHitRecord } from "../../../src/lib/shared/types"
+import type {
+  CreateSubscriptionInput,
+  SubscriptionEntry,
+  SubscriptionHitRecord
+} from "../../../src/lib/shared/types"
 
 function createSubscription(overrides: Partial<SubscriptionEntry> = {}): SubscriptionEntry {
   return {
@@ -49,16 +53,12 @@ function createHit(overrides: Partial<SubscriptionHitRecord> = {}): Subscription
 }
 
 describe("subscription workbench helpers", () => {
-  it("creates and normalizes subscription drafts with only the current subscription fields", () => {
+  it("creates and normalizes subscription drafts with only editable create fields", () => {
     const draft = createSubscriptionDraft()
 
     expect(Object.keys(draft).sort()).toEqual([
       "advanced",
-      "baselineCreatedAt",
-      "createdAt",
-      "deletedAt",
       "enabled",
-      "id",
       "multiSiteModeEnabled",
       "name",
       "sourceIds",
@@ -69,7 +69,9 @@ describe("subscription workbench helpers", () => {
       sourceIds: ["acgrip"],
       titleQuery: "",
       subgroupQuery: "",
-      deletedAt: null,
+      enabled: true,
+      multiSiteModeEnabled: false,
+      name: "",
       advanced: {
         must: [],
         any: []
@@ -84,11 +86,7 @@ describe("subscription workbench helpers", () => {
 
     expect(Object.keys(normalized).sort()).toEqual([
       "advanced",
-      "baselineCreatedAt",
-      "createdAt",
-      "deletedAt",
       "enabled",
-      "id",
       "multiSiteModeEnabled",
       "name",
       "sourceIds",
@@ -99,23 +97,26 @@ describe("subscription workbench helpers", () => {
       name: "Medalist",
       sourceIds: ["acgrip"],
       titleQuery: "Medalist",
-      deletedAt: null
     }))
   })
 
-  it("duplicates drafts with a cleared tombstone marker", () => {
+  it("duplicates subscription entries into create drafts without system metadata", () => {
     const duplicated = duplicateSubscriptionDraft(
-      createSubscription({ deletedAt: "2026-04-18T00:00:00.000Z" }),
-      "2026-04-19T00:00:00.000Z"
+      createSubscription({ deletedAt: "2026-04-18T00:00:00.000Z" })
     )
 
-    expect(duplicated).toEqual(
+    expect(duplicated).toEqual<CreateSubscriptionInput>(
       expect.objectContaining({
-        createdAt: "2026-04-19T00:00:00.000Z",
-        baselineCreatedAt: "2026-04-19T00:00:00.000Z",
-        deletedAt: null
+        name: "Medalist",
+        enabled: true,
+        sourceIds: ["acgrip"],
+        titleQuery: "Medalist"
       })
     )
+    expect(duplicated).not.toHaveProperty("id")
+    expect(duplicated).not.toHaveProperty("createdAt")
+    expect(duplicated).not.toHaveProperty("baselineCreatedAt")
+    expect(duplicated).not.toHaveProperty("deletedAt")
   })
 
   it("summarizes the newest retained hit instead of the oldest one", () => {

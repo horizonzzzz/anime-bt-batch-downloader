@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-
-import type { SubscriptionEntry, SubscriptionHitRecord } from "../../../src/lib/shared/types"
+import type {
+  CreateSubscriptionInput,
+  SubscriptionEntry,
+  SubscriptionHitRecord
+} from "../../../src/lib/shared/types"
 import type { SubscriptionPolicyConfig } from "../../../src/lib/subscriptions/policy/types"
 import type { SourceConfig } from "../../../src/lib/sources/config/types"
 import type { DownloaderAdapter, DownloaderTorrentFile } from "../../../src/lib/downloader"
@@ -45,6 +48,24 @@ function createSubscription(
     createdAt: "2026-04-01T00:00:00.000Z",
     baselineCreatedAt: "2026-04-01T00:00:00.000Z",
     deletedAt: null,
+    ...overrides
+  }
+}
+
+function createCreateSubscriptionInput(
+  overrides: Partial<CreateSubscriptionInput> = {}
+): CreateSubscriptionInput {
+  return {
+    name: "Medalist",
+    enabled: true,
+    sourceIds: ["acgrip"],
+    multiSiteModeEnabled: false,
+    titleQuery: "medalist",
+    subgroupQuery: "",
+    advanced: {
+      must: [],
+      any: []
+    },
     ...overrides
   }
 }
@@ -126,25 +147,32 @@ describe("background subscriptions bridge", () => {
   it("creates subscription definitions without touching app-settings persistence", async () => {
     const saveSettings = vi.fn()
 
-    await createSubscriptionCommand(createSubscription(), {
+    await createSubscriptionCommand(createCreateSubscriptionInput(), {
       getSettings: async () => createSubscriptionPolicy(),
       saveSettings
     })
 
     expect(saveSettings).not.toHaveBeenCalled()
     await expect(listSubscriptions()).resolves.toEqual([
-      expect.objectContaining({ id: "sub-1" })
+      expect.objectContaining({
+        name: "Medalist",
+        deletedAt: null,
+        createdAt: expect.any(String),
+        baselineCreatedAt: expect.any(String)
+      })
     ])
   })
 
   it("creates browser notifications after scans when app settings enable notifications", async () => {
     const createNotification = vi.fn(async () => undefined)
 
-    await createSubscriptionCommand(createSubscription(), {
+    await createSubscriptionCommand(createCreateSubscriptionInput(), {
       getSettings: async () => createSubscriptionPolicy()
     })
+    const createdSubscriptionId = (await listSubscriptions())[0]?.id
+    expect(createdSubscriptionId).toEqual(expect.any(String))
     await subscriptionDb.subscriptionRuntime.put({
-      subscriptionId: "sub-1",
+      subscriptionId: createdSubscriptionId!,
       lastScanAt: "2026-04-14T07:30:00.000Z",
       lastMatchedAt: null,
       lastError: "",
@@ -370,6 +398,30 @@ describe("background subscriptions bridge", () => {
         hits: [expect.objectContaining({ id: "hit-2" })]
       })
     )
+  })
+
+  it("rejects invalid round ids before triggering selection downloads", async () => {
+    const ensureDownloaderPermission = vi.fn(async () => undefined)
+    const downloader = createDownloader()
+
+    await expect(
+      downloadSubscriptionHitsBySelection(
+        {
+          hitIds: ["hit-1"],
+          roundId: "not-a-round-id"
+        },
+        {
+          getSubscriptionPolicy: async () => createSubscriptionPolicy(),
+          getSourceConfig: async () => createSourceConfig(),
+          getDownloaderConfig: async () => createDownloaderConfig(),
+          getDownloader: () => downloader,
+          ensureDownloaderPermission
+        }
+      )
+    ).rejects.toThrow("Invalid subscription notification round id: not-a-round-id")
+
+    expect(ensureDownloaderPermission).not.toHaveBeenCalled()
+    expect(downloader.authenticate).not.toHaveBeenCalled()
   })
 
   it("does not resubmit hits already marked as submitted or duplicate", async () => {

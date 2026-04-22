@@ -1,4 +1,4 @@
-import type { SubscriptionEntry } from "../shared/types"
+import type { CreateSubscriptionInput, SubscriptionEntry } from "../shared/types"
 import type { SourceConfig } from "../sources/config/types"
 import type { SubscriptionPolicyConfig } from "./policy/types"
 
@@ -73,7 +73,7 @@ export class SubscriptionManager {
     await replaceSubscriptionCatalog(nextSubscriptions)
   }
 
-  async createSubscription(subscription: SubscriptionEntry): Promise<void> {
+  async createSubscription(subscription: CreateSubscriptionInput): Promise<void> {
     await createSubscriptionRecord(subscription)
   }
 

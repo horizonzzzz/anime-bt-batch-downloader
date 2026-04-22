@@ -1,5 +1,6 @@
 import { i18n } from "../../../../lib/i18n"
 import type {
+  CreateSubscriptionInput,
   FilterCondition,
   SourceId,
   SubscriptionEntry,
@@ -7,7 +8,7 @@ import type {
   SubscriptionRuntimeState
 } from "../../../../lib/shared/types"
 
-export type SubscriptionWorkbenchDraft = SubscriptionEntry
+export type SubscriptionWorkbenchDraft = CreateSubscriptionInput
 export type SubscriptionWorkbenchCondition = FilterCondition
 
 type SubscriptionSourceOption = {
@@ -72,9 +73,7 @@ export function createSubscriptionCondition(
 }
 
 export function createSubscriptionDraft(): SubscriptionWorkbenchDraft {
-  const now = new Date().toISOString()
   return {
-    id: createSubscriptionWorkbenchId("subscription"),
     name: "",
     enabled: true,
     sourceIds: [DEFAULT_SOURCE_ID],
@@ -84,28 +83,24 @@ export function createSubscriptionDraft(): SubscriptionWorkbenchDraft {
     advanced: {
       must: [],
       any: []
-    },
-    createdAt: now,
-    baselineCreatedAt: now,
-    deletedAt: null
+    }
   }
 }
 
 export function duplicateSubscriptionDraft(
-  subscription: SubscriptionEntry,
-  now = new Date().toISOString()
-) {
+  subscription: SubscriptionEntry
+): SubscriptionWorkbenchDraft {
   return {
-    ...subscription,
+    name: subscription.name,
+    enabled: subscription.enabled,
     sourceIds: [...subscription.sourceIds],
+    multiSiteModeEnabled: subscription.multiSiteModeEnabled,
+    titleQuery: subscription.titleQuery,
+    subgroupQuery: subscription.subgroupQuery,
     advanced: {
       must: subscription.advanced.must.map((condition) => ({ ...condition })),
       any: subscription.advanced.any.map((condition) => ({ ...condition }))
-    },
-    id: createDuplicateId(subscription.id, now),
-    createdAt: now,
-    baselineCreatedAt: now,
-    deletedAt: null
+    }
   }
 }
 
@@ -136,7 +131,7 @@ export function toggleSubscriptionSourceSelection(
 
 export function normalizeSubscriptionDraft(
   draft: SubscriptionWorkbenchDraft
-): SubscriptionEntry {
+): CreateSubscriptionInput {
   const sourceIds = draft.multiSiteModeEnabled
     ? normalizeEditableSourceIds(draft.sourceIds)
     : [normalizeEditableSourceIds(draft.sourceIds)[0] ?? DEFAULT_SOURCE_ID]
@@ -151,8 +146,7 @@ export function normalizeSubscriptionDraft(
     advanced: {
       must: draft.advanced.must.map(normalizeConditionValue),
       any: draft.advanced.any.map(normalizeConditionValue)
-    },
-    deletedAt: null
+    }
   }
 }
 
@@ -303,12 +297,6 @@ function normalizeKnownSourceIds(sourceIds: SourceId[]) {
       )
     )
   )
-}
-
-function createDuplicateId(originalId: string, now: string): string {
-  const normalizedId = String(originalId ?? "").trim() || "subscription"
-  const suffix = now.replace(/[^0-9]/g, "") || "copy"
-  return `${normalizedId}-copy-${suffix}`
 }
 
 function normalizeEditableSourceIds(sourceIds: SourceId[]) {

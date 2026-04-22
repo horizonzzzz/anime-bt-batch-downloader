@@ -3,6 +3,7 @@ import { getDownloaderAdapter } from "../downloader"
 import { getBrowser, getExtensionUrl } from "../shared/browser"
 import type {
   BatchItem,
+  CreateSubscriptionInput,
   ExtractionResult,
   SubscriptionEntry
 } from "../shared/types"
@@ -24,6 +25,7 @@ import {
   ensureSubscriptionAlarm,
   getSubscriptionPolicyConfig,
   listNotificationRounds,
+  parseSubscriptionNotificationRoundId,
   replaceSubscriptionCatalog,
   setSubscriptionRecordEnabled,
   SubscriptionManager,
@@ -158,7 +160,7 @@ export async function reconcileSubscriptionAlarm(
 }
 
 export async function createSubscriptionCommand(
-  subscription: SubscriptionEntry,
+  subscription: CreateSubscriptionInput,
   _dependencies: SubscriptionCatalogCommandDependencies = {}
 ): Promise<void> {
   return enqueueSubscriptionMutation(async () => {
@@ -227,6 +229,13 @@ export async function downloadSubscriptionHitsBySelection(
   dependencies: DownloadSubscriptionHitsDependencies = {}
 ): Promise<DownloadSubscriptionHitsByIdResult> {
   return enqueueSubscriptionMutation(async () => {
+    if (
+      typeof request.roundId === "string" &&
+      parseSubscriptionNotificationRoundId(request.roundId) === null
+    ) {
+      throw new Error(`Invalid subscription notification round id: ${request.roundId}`)
+    }
+
     const subscriptionPolicy = await (dependencies.getSubscriptionPolicy ?? getSubscriptionPolicyConfig)()
     const sourceConfig = await (dependencies.getSourceConfig ?? getSourceConfig)()
     const downloaderConfig = await (dependencies.getDownloaderConfig ?? getDownloaderConfig)()

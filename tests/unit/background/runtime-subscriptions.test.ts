@@ -237,7 +237,6 @@ describe("background runtime subscription boundary", () => {
     const listener = onMessageAddListener.mock.calls[0]?.[0]
     const sendResponse = vi.fn()
     const subscription = {
-      id: "sub-1",
       name: "ACG Medalist",
       enabled: true,
       sourceIds: ["acgrip"],
@@ -247,10 +246,7 @@ describe("background runtime subscription boundary", () => {
       advanced: {
         must: [],
         any: []
-      },
-      createdAt: "2026-04-14T09:30:00.000Z",
-      baselineCreatedAt: "2026-04-14T09:30:00.000Z",
-      deletedAt: null
+      }
     }
 
     const keepsPortOpen = listener?.(
@@ -281,7 +277,6 @@ describe("background runtime subscription boundary", () => {
       {
         type: "CREATE_SUBSCRIPTION",
         subscription: {
-          id: "",
           name: "Incomplete",
           enabled: "yes",
           sourceIds: [],
@@ -290,10 +285,7 @@ describe("background runtime subscription boundary", () => {
           advanced: {
             must: [],
             any: []
-          },
-          createdAt: "2026-04-14T09:30:00.000Z",
-          baselineCreatedAt: "2026-04-14T09:30:00.000Z",
-          deletedAt: null
+          }
         }
       },
       {},
@@ -320,7 +312,6 @@ describe("background runtime subscription boundary", () => {
       {
         type: "CREATE_SUBSCRIPTION",
         subscription: {
-          id: "sub-1",
           name: "Invalid source",
           enabled: true,
           sourceIds: ["acgrip", "not-a-source"],
@@ -330,10 +321,7 @@ describe("background runtime subscription boundary", () => {
           advanced: {
             must: [],
             any: []
-          },
-          createdAt: "2026-04-14T09:30:00.000Z",
-          baselineCreatedAt: "2026-04-14T09:30:00.000Z",
-          deletedAt: null
+          }
         }
       },
       {},
@@ -360,7 +348,6 @@ describe("background runtime subscription boundary", () => {
       {
         type: "CREATE_SUBSCRIPTION",
         subscription: {
-          id: "sub-1",
           name: "Missing multi-site mode",
           enabled: true,
           sourceIds: ["acgrip"],
@@ -369,10 +356,7 @@ describe("background runtime subscription boundary", () => {
           advanced: {
             must: [],
             any: []
-          },
-          createdAt: "2026-04-14T09:30:00.000Z",
-          baselineCreatedAt: "2026-04-14T09:30:00.000Z",
-          deletedAt: null
+          }
         }
       },
       {},
@@ -399,7 +383,6 @@ describe("background runtime subscription boundary", () => {
       {
         type: "CREATE_SUBSCRIPTION",
         subscription: {
-          id: "sub-1",
           name: "Bad conditions",
           enabled: true,
           sourceIds: ["acgrip"],
@@ -416,10 +399,7 @@ describe("background runtime subscription boundary", () => {
               }
             ],
             any: []
-          },
-          createdAt: "2026-04-14T09:30:00.000Z",
-          baselineCreatedAt: "2026-04-14T09:30:00.000Z",
-          deletedAt: null
+          }
         }
       },
       {},
@@ -512,6 +492,31 @@ describe("background runtime subscription boundary", () => {
     })
   })
 
+  it("rejects malformed DELETE_SUBSCRIPTION runtime payloads", async () => {
+    deleteSubscriptionDefinitionMock.mockResolvedValue(undefined)
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "DELETE_SUBSCRIPTION",
+        subscriptionId: "   "
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(deleteSubscriptionDefinitionMock).not.toHaveBeenCalled()
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      error: "Invalid DELETE_SUBSCRIPTION payload"
+    })
+  })
+
   it("supports DOWNLOAD_SUBSCRIPTION_HITS runtime messages", async () => {
     downloadSubscriptionHitsBySelectionMock.mockResolvedValue({
       attemptedHits: 1,
@@ -566,6 +571,37 @@ describe("background runtime subscription boundary", () => {
         type: "DOWNLOAD_SUBSCRIPTION_HITS",
         hitIds: "hit-1",
         roundId: null
+      },
+      {},
+      sendResponse
+    )
+
+    expect(keepsPortOpen).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledTimes(1)
+    })
+    expect(downloadSubscriptionHitsBySelectionMock).not.toHaveBeenCalled()
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      error: "Invalid DOWNLOAD_SUBSCRIPTION_HITS payload"
+    })
+  })
+
+  it("rejects DOWNLOAD_SUBSCRIPTION_HITS payloads with invalid round ids", async () => {
+    downloadSubscriptionHitsBySelectionMock.mockResolvedValue({
+      attemptedHits: 0,
+      submittedHits: 0,
+      duplicateHits: 0,
+      failedHits: 0
+    })
+    const listener = onMessageAddListener.mock.calls[0]?.[0]
+    const sendResponse = vi.fn()
+
+    const keepsPortOpen = listener?.(
+      {
+        type: "DOWNLOAD_SUBSCRIPTION_HITS",
+        hitIds: ["hit-1"],
+        roundId: "not-a-round-id"
       },
       {},
       sendResponse

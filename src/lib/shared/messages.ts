@@ -1,8 +1,8 @@
 import type {
   BatchEventPayload,
   BatchItem,
+  CreateSubscriptionInput,
   SourceId,
-  SubscriptionEntry,
   TestDownloaderConnectionResult
 } from "./types"
 import type { TaskHistoryRecord } from "../history/types"
@@ -59,7 +59,7 @@ export type RuntimeRequest =
   | { type: "SET_SOURCE_ENABLED"; sourceId: SourceId; enabled: boolean }
   | { type: "OPEN_OPTIONS_PAGE"; route?: PopupOptionsRoute }
   | { type: "START_BATCH_DOWNLOAD"; items?: BatchItem[]; savePath?: string }
-  | { type: "CREATE_SUBSCRIPTION"; subscription: SubscriptionEntry }
+  | { type: "CREATE_SUBSCRIPTION"; subscription: CreateSubscriptionInput }
   | { type: "SET_SUBSCRIPTION_ENABLED"; subscriptionId: string; enabled: boolean }
   | { type: "DELETE_SUBSCRIPTION"; subscriptionId: string }
   | { type: "GET_SUBSCRIPTION_POLICY" }

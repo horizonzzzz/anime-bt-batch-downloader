@@ -22,6 +22,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
   - `Subscriptions`
     - rendered as a first-class workspace backed by persisted subscription definitions, dedicated `subscription_policy_config`, and Dexie-backed scheduler, polling, notification, and bounded recent-hit runtime state
     - supports creating, duplicating, enabling, disabling, and deleting subscriptions, plus grouped multi-source scans for subscription-capable sites, runtime status visibility, and notification-round retention for recent matched hits
+    - subscription creation and duplication submit only editable definition fields; background persistence generates record ids plus creation/tombstone metadata
     - does not currently support editing an existing subscription definition in place; changes require creating or duplicating a new definition instead
     - deleting a subscription removes it from the active catalog but preserves historical hits, which remain visible in `options.html#/subscription-hits` with a deleted marker
     - disabling a subscription or disabling a source stops future scanning only and does not block downloading historical hits that were already retained

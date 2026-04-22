@@ -39,9 +39,9 @@ export type SubscriptionEntry = {
   deletedAt: string | null
 }
 
-export type EditableSubscriptionDefinition = Pick<
+export type CreateSubscriptionInput = Pick<
   SubscriptionEntry,
-  | "id"
+  | "name"
   | "enabled"
   | "sourceIds"
   | "multiSiteModeEnabled"
@@ -49,6 +49,8 @@ export type EditableSubscriptionDefinition = Pick<
   | "subgroupQuery"
   | "advanced"
 >
+
+export type EditableSubscriptionDefinition = CreateSubscriptionInput
 
 export type SubscriptionHitRecord = {
   id: string

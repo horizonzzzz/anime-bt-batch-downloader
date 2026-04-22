@@ -1,4 +1,8 @@
-import type { FilterCondition, SubscriptionEntry } from "../shared/types"
+import type {
+  CreateSubscriptionInput,
+  FilterCondition,
+  SubscriptionEntry
+} from "../shared/types"
 
 import { subscriptionDb } from "./db"
 
@@ -37,9 +41,31 @@ export async function listSubscriptionsByIdsIncludingDeleted(
     .map(normalizeSubscriptionRecord)
 }
 
-export async function createSubscriptionRecord(subscription: SubscriptionEntry): Promise<void> {
+export async function createSubscriptionRecord(
+  subscription: CreateSubscriptionInput,
+  options: {
+    id?: string
+    now?: string
+  } = {}
+): Promise<void> {
+  const subscriptionWithMetadata = subscription as Partial<SubscriptionEntry>
+  const createdAt =
+    String(
+      subscriptionWithMetadata.createdAt ??
+        options.now ??
+        new Date().toISOString()
+    ).trim() || new Date().toISOString()
+  const baselineCreatedAt =
+    String(subscriptionWithMetadata.baselineCreatedAt ?? createdAt).trim() || createdAt
+  const recordId =
+    String(subscriptionWithMetadata.id ?? options.id ?? "").trim() ||
+    createSubscriptionRecordId(createdAt)
+
   await subscriptionDb.subscriptions.add(normalizeSubscriptionRecord({
     ...subscription,
+    id: recordId,
+    createdAt,
+    baselineCreatedAt,
     deletedAt: null
   }))
 }
@@ -299,4 +325,9 @@ function normalizeIds(ids: string[]): string[] {
 
 function normalizeId(id: string): string {
   return String(id ?? "").trim()
+}
+
+function createSubscriptionRecordId(createdAt: string): string {
+  const timestamp = String(createdAt ?? "").replace(/[^0-9]/g, "") || String(Date.now())
+  return `subscription-${timestamp}-${Math.random().toString(36).slice(2, 8)}`
 }

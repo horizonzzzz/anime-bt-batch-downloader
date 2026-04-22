@@ -60,8 +60,11 @@ import {
 import { i18n } from "../../lib/i18n"
 import { isOptionsRoutePath } from "../../lib/shared/options-routes"
 import { getBrowser } from "../../lib/shared/browser"
-import type { SourceId } from "../../lib/shared/types"
-import type { BatchEventPayload } from "../../lib/shared/types"
+import type {
+  BatchEventPayload,
+  CreateSubscriptionInput,
+  SourceId
+} from "../../lib/shared/types"
 import { extractSingleItem } from "../../lib/sources/extraction"
 import { getSourceAdapterForPage } from "../../lib/sources"
 import {
@@ -322,6 +325,11 @@ export function registerBackgroundRuntime() {
             sendResponse(createRuntimeSuccessResponse("SET_SUBSCRIPTION_ENABLED", {}))
             return
           case "DELETE_SUBSCRIPTION":
+            if (!isValidDeleteSubscriptionPayload(runtimeMessage)) {
+              sendResponse(createRuntimeErrorResponse("Invalid DELETE_SUBSCRIPTION payload"))
+              return
+            }
+
             await deleteSubscriptionDefinition(runtimeMessage.subscriptionId)
             sendResponse(createRuntimeSuccessResponse("DELETE_SUBSCRIPTION", {}))
             return
@@ -502,32 +510,7 @@ function isValidPopupSourceTogglePayload(message: {
 function isValidCreateSubscriptionPayload(message: {
   [key: string]: unknown
 }): message is {
-  subscription: {
-    id: string
-    name: string
-    enabled: boolean
-    deletedAt: string | null
-    sourceIds: SourceId[]
-    multiSiteModeEnabled: boolean
-    titleQuery: string
-    subgroupQuery: string
-    advanced: {
-      must: Array<{
-        id: string
-        field: "title" | "subgroup"
-        operator: "contains"
-        value: string
-      }>
-      any: Array<{
-        id: string
-        field: "title" | "subgroup"
-        operator: "contains"
-        value: string
-      }>
-    }
-    createdAt: string
-    baselineCreatedAt: string
-  }
+  subscription: CreateSubscriptionInput
 } {
   const subscription = message.subscription
   if (!isPlainObject(subscription)) {
@@ -536,10 +519,12 @@ function isValidCreateSubscriptionPayload(message: {
 
   const advanced = subscription.advanced
 
-  return isNonEmptyString(subscription.id) &&
-    isNonEmptyString(subscription.name) &&
+  return isNonEmptyString(subscription.name) &&
     typeof subscription.enabled === "boolean" &&
-    (subscription.deletedAt === null || typeof subscription.deletedAt === "string") &&
+    typeof (subscription as { id?: unknown }).id === "undefined" &&
+    typeof (subscription as { createdAt?: unknown }).createdAt === "undefined" &&
+    typeof (subscription as { baselineCreatedAt?: unknown }).baselineCreatedAt === "undefined" &&
+    typeof (subscription as { deletedAt?: unknown }).deletedAt === "undefined" &&
     Array.isArray(subscription.sourceIds) &&
     subscription.sourceIds.length > 0 &&
     subscription.sourceIds.every((sourceId) => isValidSourceId(sourceId)) &&
@@ -550,9 +535,7 @@ function isValidCreateSubscriptionPayload(message: {
     Array.isArray(advanced.must) &&
     Array.isArray(advanced.any) &&
     advanced.must.every((condition) => isValidFilterConditionShape(condition)) &&
-    advanced.any.every((condition) => isValidFilterConditionShape(condition)) &&
-    typeof subscription.createdAt === "string" &&
-    typeof subscription.baselineCreatedAt === "string"
+    advanced.any.every((condition) => isValidFilterConditionShape(condition))
 }
 
 function isValidSetSubscriptionEnabledPayload(message: {
@@ -562,6 +545,14 @@ function isValidSetSubscriptionEnabledPayload(message: {
   enabled: boolean
 } {
   return isNonEmptyString(message.subscriptionId) && typeof message.enabled === "boolean"
+}
+
+function isValidDeleteSubscriptionPayload(message: {
+  [key: string]: unknown
+}): message is {
+  subscriptionId: string
+} {
+  return isNonEmptyString(message.subscriptionId)
 }
 
 function isValidDownloadSubscriptionHitsPayload(message: {
@@ -574,7 +565,8 @@ function isValidDownloadSubscriptionHitsPayload(message: {
     message.hitIds.every((hitId) => isNonEmptyString(hitId)) &&
     (typeof message.roundId === "undefined" ||
       message.roundId === null ||
-      typeof message.roundId === "string")
+      (typeof message.roundId === "string" &&
+        parseSubscriptionNotificationRoundId(message.roundId) !== null))
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

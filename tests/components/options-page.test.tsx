@@ -884,11 +884,7 @@ describe("OptionsPage", () => {
       const savedSubscription = vi.mocked(api.createSubscription).mock.calls[0]?.[0]
       expect(Object.keys(savedSubscription ?? {}).sort()).toEqual([
         "advanced",
-        "baselineCreatedAt",
-        "createdAt",
-        "deletedAt",
         "enabled",
-        "id",
         "multiSiteModeEnabled",
         "name",
         "sourceIds",
@@ -898,8 +894,7 @@ describe("OptionsPage", () => {
       expect(savedSubscription).toEqual(expect.objectContaining({
         name: "Bangumi Medalist",
         sourceIds: ["bangumimoe"],
-        titleQuery: "Medalist",
-        deletedAt: null
+        titleQuery: "Medalist"
       }))
     },
     10000

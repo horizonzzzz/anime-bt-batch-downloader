@@ -12,10 +12,11 @@ import {
 } from "react-router-dom"
 
 import type {
-  SubscriptionEntry,
+  CreateSubscriptionInput,
   TestDownloaderConnectionResult
 } from "../../lib/shared/types"
 import type { SubscriptionPolicyConfig } from "../../lib/subscriptions/policy/types"
+import { parseSubscriptionNotificationRoundId } from "../../lib/subscriptions"
 import type { FilterConfig } from "../../lib/filter-rules/types"
 import type { SourceConfig } from "../../lib/sources/config/types"
 import type { DownloaderConfig } from "../../lib/downloader/config/types"
@@ -62,7 +63,7 @@ export type OptionsApi = {
   saveBatchUiPreferences: (preferences: Partial<BatchUiPreferences>) => Promise<BatchUiPreferences>
   getSubscriptionPolicy: () => Promise<SubscriptionPolicyConfig>
   saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
-  createSubscription: (subscription: SubscriptionEntry) => Promise<void>
+  createSubscription: (subscription: CreateSubscriptionInput) => Promise<void>
   setSubscriptionEnabled: (subscriptionId: string, enabled: boolean) => Promise<void>
   deleteSubscription: (subscriptionId: string) => Promise<void>
   downloadSubscriptionHits: (request: {
@@ -99,7 +100,7 @@ function OptionsWorkspaceContent({ api }: OptionsPageProps) {
   )
   const localizedRoutes = useMemo(() => getOptionsRoutes(), [])
   const currentDownloaderName = getDownloaderMeta(downloaderWorkbench.config.activeId).displayName
-  const roundId = searchParams.get("round")
+  const roundId = parseSubscriptionNotificationRoundId(searchParams.get("round") ?? "")
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 lg:flex-row lg:items-start">

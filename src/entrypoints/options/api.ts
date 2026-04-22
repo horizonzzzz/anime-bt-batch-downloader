@@ -4,7 +4,7 @@ import type { BatchExecutionConfig } from "../../lib/batch-config/types"
 import type { BatchUiPreferences } from "../../lib/batch-preferences/types"
 import type { SubscriptionPolicyConfig } from "../../lib/subscriptions/policy/types"
 import type { TestDownloaderConnectionResult } from "../../lib/shared/types"
-import type { SubscriptionEntry } from "../../lib/shared/types"
+import type { CreateSubscriptionInput } from "../../lib/shared/types"
 import type { FilterConfig } from "../../lib/filter-rules/types"
 import type { SourceConfig } from "../../lib/sources/config/types"
 import { sendRuntimeRequest } from "../../lib/shared/messages"
@@ -30,7 +30,7 @@ export type OptionsApi = {
   saveBatchUiPreferences: (preferences: Partial<BatchUiPreferences>) => Promise<BatchUiPreferences>
   getSubscriptionPolicy: () => Promise<SubscriptionPolicyConfig>
   saveSubscriptionPolicy: (config: SubscriptionPolicyConfig) => Promise<SubscriptionPolicyConfig>
-  createSubscription: (subscription: SubscriptionEntry) => Promise<void>
+  createSubscription: (subscription: CreateSubscriptionInput) => Promise<void>
   setSubscriptionEnabled: (subscriptionId: string, enabled: boolean) => Promise<void>
   deleteSubscription: (subscriptionId: string) => Promise<void>
   downloadSubscriptionHits: (request: {

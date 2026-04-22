@@ -5,7 +5,10 @@ import {
   type SubscriptionDashboardRow,
   type SubscriptionRuntimeStatusRow
 } from "../../../../lib/subscriptions"
-import type { SubscriptionEntry, SubscriptionRuntimeState } from "../../../../lib/shared/types"
+import type {
+  CreateSubscriptionInput,
+  SubscriptionRuntimeState
+} from "../../../../lib/shared/types"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useEffect, useMemo, useState } from "react"
 
@@ -113,7 +116,7 @@ export function useSubscriptionsWorkbench(api: OptionsApi) {
     }
   }
 
-  const createSubscription = async (subscription: SubscriptionEntry) => {
+  const createSubscription = async (subscription: CreateSubscriptionInput) => {
     await mutateSubscription(() => api.createSubscription(subscription))
   }
 
