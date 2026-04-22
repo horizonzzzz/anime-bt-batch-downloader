@@ -1212,10 +1212,7 @@ test("subscription hits workbench shows highlighted state when round parameter i
 
     await expect(hitRow).toBeVisible()
 
-    const hasHighlightedClass = await hitRow.evaluate((el) => {
-      return el.classList.contains("bg-yellow-50") && el.classList.contains("border-l-4")
-    })
-    expect(hasHighlightedClass).toBe(true)
+    await expect(hitRow).toHaveAttribute("data-highlighted", "true")
 
     await expect
       .poll(async () => {
