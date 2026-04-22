@@ -16,13 +16,22 @@ export type OptionsRouteId =
   | "history"
   | "overview"
 
+export type OptionsRouteGroupId = "config" | "activity" | "overview"
+
 export type OptionsRouteMeta = {
   id: OptionsRouteId
+  groupId: OptionsRouteGroupId
   path: OptionsRoutePath
   label: string
   title: string
   description: string
   footerLabel: string
+}
+
+export type OptionsRouteGroupMeta = {
+  id: OptionsRouteGroupId
+  label: string
+  routes: OptionsRouteMeta[]
 }
 
 const [
@@ -38,33 +47,46 @@ const [
 export const OPTIONS_ROUTES = [
   {
     id: "general",
+    groupId: "config",
     path: GENERAL_ROUTE
   },
   {
     id: "sites",
+    groupId: "config",
     path: SITES_ROUTE
   },
   {
     id: "filters",
+    groupId: "config",
     path: FILTERS_ROUTE
   },
   {
     id: "subscriptions",
+    groupId: "config",
     path: SUBSCRIPTIONS_ROUTE
   },
   {
     id: "subscriptionHits",
+    groupId: "activity",
     path: SUBSCRIPTION_HITS_ROUTE
   },
   {
     id: "history",
+    groupId: "activity",
     path: HISTORY_ROUTE
   },
   {
     id: "overview",
+    groupId: "overview",
     path: OVERVIEW_ROUTE
   }
- ] as const satisfies ReadonlyArray<Pick<OptionsRouteMeta, "id" | "path">>
+ ] as const satisfies ReadonlyArray<Pick<OptionsRouteMeta, "id" | "groupId" | "path">>
+
+const OPTIONS_ROUTE_GROUPS = [
+  "config",
+  "activity",
+  "overview"
+] as const satisfies ReadonlyArray<OptionsRouteGroupId>
 
 function localizeRoute(route: (typeof OPTIONS_ROUTES)[number]): OptionsRouteMeta {
   const baseKey = `options.routes.${route.id}` as const
@@ -80,6 +102,14 @@ function localizeRoute(route: (typeof OPTIONS_ROUTES)[number]): OptionsRouteMeta
 
 export function getOptionsRoutes(): OptionsRouteMeta[] {
   return OPTIONS_ROUTES.map(localizeRoute)
+}
+
+export function groupOptionsRoutes(routes: OptionsRouteMeta[]): OptionsRouteGroupMeta[] {
+  return OPTIONS_ROUTE_GROUPS.map((groupId) => ({
+    id: groupId,
+    label: i18n.t(`options.sidebar.groups.${groupId}`),
+    routes: routes.filter((route) => route.groupId === groupId)
+  })).filter((group) => group.routes.length > 0)
 }
 
 export function getOptionsRouteMeta(pathname: string) {

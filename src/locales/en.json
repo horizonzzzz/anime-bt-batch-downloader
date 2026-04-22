@@ -139,6 +139,11 @@
     },
     "sidebar": {
       "subtitle": "Extension Settings",
+      "groups": {
+        "config": "Configuration",
+        "activity": "Activity",
+        "overview": "At a Glance"
+      },
       "supportedSources": "$1 supported sites",
       "currentDownloader": "Current downloader: $1",
       "viewGithubRepo": "View GitHub Repository"

@@ -139,6 +139,11 @@
     },
     "sidebar": {
       "subtitle": "Extension Settings",
+      "groups": {
+        "config": "配置中心",
+        "activity": "记录与命中",
+        "overview": "站点总览"
+      },
       "supportedSources": "$1 个支持源站",
       "currentDownloader": "当前下载器：$1",
       "viewGithubRepo": "查看 GitHub 仓库"

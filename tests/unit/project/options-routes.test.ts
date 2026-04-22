@@ -16,6 +16,23 @@ describe("shared options route paths", () => {
     expect(DEFAULT_OPTIONS_ROUTE).toBe("/general")
   })
 
+  it("keeps sidebar route groups aligned with the expected options information architecture", () => {
+    expect(
+      OPTIONS_ROUTES.map((route) => ({
+        id: route.id,
+        groupId: route.groupId
+      }))
+    ).toEqual([
+      { id: "general", groupId: "config" },
+      { id: "sites", groupId: "config" },
+      { id: "filters", groupId: "config" },
+      { id: "subscriptions", groupId: "config" },
+      { id: "subscriptionHits", groupId: "activity" },
+      { id: "history", groupId: "activity" },
+      { id: "overview", groupId: "overview" }
+    ])
+  })
+
   it("supports popup-side normalization using the same shared route set", () => {
     expect(isOptionsRoutePath("/filters")).toBe(true)
     expect(isOptionsRoutePath("/subscriptions")).toBe(true)

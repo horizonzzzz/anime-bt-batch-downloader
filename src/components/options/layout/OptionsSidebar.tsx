@@ -5,7 +5,7 @@ import { HiOutlineGlobeAlt } from "react-icons/hi2"
 import speedlineBrandIcon from "../../../assets/anime-bt-icon-speedline.svg"
 import { SOURCE_IDS } from "../../../lib/sources/catalog"
 import { cn } from "../../../lib/shared/cn"
-import type { OptionsRouteMeta } from "../config/routes"
+import { groupOptionsRoutes, type OptionsRouteMeta } from "../config/routes"
 
 const BRAND_NAME = "Anime BT Batch"
 const REPO_URL = "https://github.com/horizonzzzz/anime-bt-batch-downloader"
@@ -54,6 +54,8 @@ export function OptionsSidebar({
   currentDownloaderName,
   onNavigate
 }: OptionsSidebarProps) {
+  const routeGroups = groupOptionsRoutes(routes)
+
   return (
     <aside className="flex w-full shrink-0 flex-col border-b border-zinc-800 bg-zinc-950 text-zinc-400 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:self-start lg:border-b-0 lg:border-r">
       <div className="flex h-16 items-center gap-3 border-b border-zinc-800/80 px-6">
@@ -77,15 +79,27 @@ export function OptionsSidebar({
       </div>
 
       <div
-        className="flex flex-1 flex-col gap-1 overflow-auto px-3 py-6"
+        className="flex flex-1 flex-col gap-6 overflow-auto px-3 py-6"
         data-testid="options-sidebar-groups">
-        {routes.map((route) => (
-          <SidebarButton
-            key={route.id}
-            active={route.path === activePath}
-            label={route.label}
-            onClick={() => onNavigate(route.path)}
-          />
+        {routeGroups.map((group) => (
+          <section
+            key={group.id}
+            className="space-y-2"
+            data-testid={`options-sidebar-group-${group.id}`}>
+            <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              {group.label}
+            </div>
+            <div className="space-y-1">
+              {group.routes.map((route) => (
+                <SidebarButton
+                  key={route.id}
+                  active={route.path === activePath}
+                  label={route.label}
+                  onClick={() => onNavigate(route.path)}
+                />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
