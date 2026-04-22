@@ -701,6 +701,47 @@ describe("OptionsPage", () => {
     })
   })
 
+  it("renders subscription hits as an activity page without config footer chrome", async () => {
+    const api = createOptionsApi()
+
+    await seedSubscriptionFixture()
+    window.location.hash = "#/subscription-hits"
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByTestId("subscription-hits-workbench")).toBeInTheDocument()
+    expect(screen.getByTestId("subscription-hits-toolbar")).toBeInTheDocument()
+    expect(screen.queryByText("设置已加载。")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("options-page-footer")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "下载选中项" })).toBeDisabled()
+  })
+
+  it("downloads selected subscription hits from the inline toolbar", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    await seedSubscriptionFixture()
+    window.location.hash = "#/subscription-hits?round=subscription-round:20260414093000000"
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByTestId("subscription-hits-workbench")).toBeInTheDocument()
+
+    await user.click(
+      screen.getByLabelText("选择 [LoliHouse] Medalist - 01 [1080p]")
+    )
+
+    const downloadButton = screen.getByRole("button", { name: "下载选中项" })
+    expect(downloadButton).not.toBeDisabled()
+
+    await user.click(downloadButton)
+
+    await waitFor(() => {
+      expect(api.downloadSubscriptionHits).toHaveBeenCalledWith({
+        hitIds: ["hit-1"],
+        roundId: "subscription-round:20260414093000000"
+      })
+    })
+  })
+
   it(
     "saves filter config via the dedicated save button",
     async () => {
