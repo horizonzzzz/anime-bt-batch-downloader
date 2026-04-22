@@ -83,6 +83,23 @@ describe("package metadata", () => {
     expect(wxtConfig).toContain('optional_host_permissions: ["http://*/*", "https://*/*"]')
   })
 
+  it("does not keep Kisssub remote helper script defaults in production source", () => {
+    const sourceRoots = [
+      resolve(process.cwd(), "src", "components"),
+      resolve(process.cwd(), "src", "entrypoints"),
+      resolve(process.cwd(), "src", "lib")
+    ]
+    const productionSource = sourceRoots
+      .filter((root) => existsSync(root))
+      .flatMap((root) => listSourceFiles(root))
+      .map((filePath) => readFileSync(filePath, "utf8"))
+      .join("\n")
+
+    expect(productionSource).not.toContain("1.acgscript.com")
+    expect(productionSource).not.toContain("user_script_url")
+    expect(productionSource).not.toContain("user_script_rev")
+  })
+
   it("declares the background runtime permissions required by subscription polling and notifications", () => {
     const wxtConfig = readText("wxt.config.ts")
 
