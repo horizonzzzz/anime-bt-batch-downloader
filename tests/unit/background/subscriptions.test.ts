@@ -400,6 +400,60 @@ describe("background subscriptions bridge", () => {
     )
   })
 
+  it("prunes resolved hits from retained notification rounds even when selection downloads omit round context", async () => {
+    const now = "2026-04-14T09:30:00.000Z"
+    const ensureDownloaderPermission = vi.fn(async () => undefined)
+
+    await subscriptionDb.subscriptions.put(createSubscription({
+      sourceIds: ["bangumimoe"]
+    }))
+    await subscriptionDb.subscriptionHits.bulkPut([
+      createHit({ id: "hit-1", sourceId: "bangumimoe", detailUrl: "https://bangumi.moe/torrent/100" }),
+      createHit({ id: "hit-2", sourceId: "bangumimoe", magnetUrl: "magnet:?xt=urn:btih:AAA222", detailUrl: "https://bangumi.moe/torrent/101" })
+    ])
+    await subscriptionDb.notificationRounds.put({
+      id: "subscription-round:20260414093000000",
+      createdAt: now,
+      hits: [
+        createHit({ id: "hit-1", sourceId: "bangumimoe", detailUrl: "https://bangumi.moe/torrent/100" }),
+        createHit({ id: "hit-2", sourceId: "bangumimoe", magnetUrl: "magnet:?xt=urn:btih:AAA222", detailUrl: "https://bangumi.moe/torrent/101" })
+      ]
+    })
+
+    const downloader = createDownloader()
+    downloader.addUrls = vi.fn(async () => ({
+      entries: [{ url: "magnet:?xt=urn:btih:AAA111", status: "submitted" as const }]
+    }))
+
+    const result = await downloadSubscriptionHitsBySelection(
+      {
+        hitIds: ["hit-1"]
+      },
+      {
+        getSubscriptionPolicy: async () => createSubscriptionPolicy(),
+        getSourceConfig: async () => createSourceConfig(),
+        getDownloaderConfig: async () => createDownloaderConfig(),
+        getDownloader: () => downloader,
+        ensureDownloaderPermission,
+        fetchTorrentForUpload: vi.fn(async (): Promise<DownloaderTorrentFile> => ({
+          filename: "test.torrent",
+          blob: new Blob(["torrent"])
+        })),
+        extractSingleItem: vi.fn(),
+        now: () => now
+      }
+    )
+
+    expect(result.attemptedHits).toBe(1)
+    await expect(
+      subscriptionDb.notificationRounds.get("subscription-round:20260414093000000")
+    ).resolves.toEqual(
+      expect.objectContaining({
+        hits: [expect.objectContaining({ id: "hit-2" })]
+      })
+    )
+  })
+
   it("rejects invalid round ids before triggering selection downloads", async () => {
     const ensureDownloaderPermission = vi.fn(async () => undefined)
     const downloader = createDownloader()

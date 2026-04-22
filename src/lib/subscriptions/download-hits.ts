@@ -6,7 +6,10 @@ import {
   downloadPreparedSubscriptionHits,
   type SubscriptionNotificationDownloadDependencies
 } from "./download-notification"
-import { persistNotificationRoundDownloadState } from "./notification-round-repository"
+import {
+  persistNotificationRoundDownloadState,
+  persistNotificationRoundsDownloadState
+} from "./notification-round-repository"
 
 export type DownloadSubscriptionHitsByIdInput = {
   hitIds: string[]
@@ -42,6 +45,8 @@ export async function downloadSubscriptionHitsById(
 
   if (input.roundId) {
     await persistNotificationRoundDownloadState(input.roundId, result.updatedHits)
+  } else {
+    await persistNotificationRoundsDownloadState(result.updatedHits)
   }
 
   return {

@@ -31,43 +31,62 @@ export async function persistNotificationRoundDownloadState(
     )
   }
 
+  await persistResolvedHitIdsInNotificationRounds(getResolvedHitIds(hits), [normalizedRoundId])
+}
+
+export async function persistNotificationRoundsDownloadState(
+  hits: SubscriptionHitRecord[]
+): Promise<void> {
+  await persistResolvedHitIdsInNotificationRounds(getResolvedHitIds(hits))
+}
+
+function getResolvedHitIds(hits: SubscriptionHitRecord[]): Set<string> {
+  return new Set(
+    hits
+      .filter(
+        (hit) =>
+          hit.downloadStatus === "submitted" ||
+          hit.downloadStatus === "duplicate"
+      )
+      .map((hit) => hit.id)
+  )
+}
+
+async function persistResolvedHitIdsInNotificationRounds(
+  resolvedHitIds: ReadonlySet<string>,
+  roundIds?: string[]
+): Promise<void> {
+  if (resolvedHitIds.size === 0) {
+    return
+  }
+
   await subscriptionDb.transaction(
     "rw",
     subscriptionDb.notificationRounds,
     async () => {
-      const resolvedHitIds = new Set(
-        hits
-          .filter(
-            (hit) =>
-              hit.downloadStatus === "submitted" ||
-              hit.downloadStatus === "duplicate"
+      const rounds = roundIds
+        ? (await subscriptionDb.notificationRounds.bulkGet(roundIds)).flatMap((round) =>
+            round ? [round] : []
           )
-          .map((hit) => hit.id)
-      )
+        : await subscriptionDb.notificationRounds.toArray()
 
-      if (resolvedHitIds.size === 0) {
-        return
+      for (const round of rounds) {
+        const retainedHits = round.hits.filter((hit) => !resolvedHitIds.has(hit.id))
+
+        if (retainedHits.length === round.hits.length) {
+          continue
+        }
+
+        if (retainedHits.length === 0) {
+          await subscriptionDb.notificationRounds.delete(round.id)
+          continue
+        }
+
+        await subscriptionDb.notificationRounds.put({
+          ...round,
+          hits: retainedHits
+        })
       }
-
-      const round = await subscriptionDb.notificationRounds.get(normalizedRoundId)
-      if (!round) {
-        return
-      }
-
-      const retainedHits = round.hits.filter(
-        (hit) =>
-          !resolvedHitIds.has(hit.id)
-      )
-
-      if (retainedHits.length === 0) {
-        await subscriptionDb.notificationRounds.delete(normalizedRoundId)
-        return
-      }
-
-      await subscriptionDb.notificationRounds.put({
-        ...round,
-        hits: retainedHits
-      })
     }
   )
 }
