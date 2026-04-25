@@ -25,6 +25,11 @@ const supportedSiteFixtures = [
     url: "https://bangumi.moe/",
     fixtureName: "bangumimoe-list.html",
     title: "Bangumi.moe 批量下载"
+  },
+  {
+    url: "https://www.comicat.org/",
+    fixtureName: "comicat-list.html",
+    title: "Comicat 批量下载"
   }
 ] as const
 
@@ -698,10 +703,11 @@ test("content script keeps injected control metrics consistent across supported 
       await page.close()
     }
 
-    expect(signatures).toHaveLength(4)
+    expect(signatures).toHaveLength(5)
     expect(signatures[0]).toEqual(signatures[1])
     expect(signatures[0]).toEqual(signatures[2])
     expect(signatures[0]).toEqual(signatures[3])
+    expect(signatures[0]).toEqual(signatures[4])
     expect(signatures[0]).toMatchObject({
       surfaceWidth: "336px",
       footerButtonRadius: "14px",
@@ -818,6 +824,40 @@ test("content script injects the batch panel on a Bangumi.moe list page", async 
       fixtureName: "bangumimoe-list.html",
       title: "Bangumi.moe 批量下载"
     })
+  } finally {
+    await extension.close()
+  }
+})
+
+test("content script injects the batch panel on a Comicat list page", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    await assertBatchPanelInjection(extension, {
+      url: "https://www.comicat.org/",
+      fixtureName: "comicat-list.html",
+      title: "Comicat 批量下载"
+    })
+  } finally {
+    await extension.close()
+  }
+})
+
+test("content script injects on comicat search pages", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", "comicat-search-list.html")
+
+    await extension.context.route("https://www.comicat.org/search.php?keyword=Re%3AZero", async (route) => {
+      await route.fulfill({ path: fixturePath, contentType: "text/html" })
+    })
+
+    const page = await extension.context.newPage()
+    await page.goto("https://www.comicat.org/search.php?keyword=Re%3AZero")
+
+    await expect(page.locator("[data-anime-bt-batch-panel-root]")).toHaveCount(1)
+    await expect(page.locator("[data-anime-bt-batch-checkbox-root]")).toHaveCount(2)
   } finally {
     await extension.close()
   }
