@@ -343,16 +343,39 @@ describe("background fetcher registry", () => {
     ])
   })
 
-  it("returns an empty list for sources without a registered subscription fetcher", async () => {
+  it("returns an empty list when a subscription source fetcher is unavailable", async () => {
     const fetchImpl = vi.fn()
 
     await expect(
-      scanSubscriptionCandidatesFromSource("kisssub", {
-        fetchImpl
+      scanSubscriptionCandidatesFromSource("acgrip", {
+        fetchImpl,
+        getFetcherById: () => null
       })
     ).resolves.toEqual([])
 
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it("fetches Dongmanhuayuan candidates through the HTML-backed source fetcher", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        `<table><tbody><tr><td><a href="/detail/7XROA.html">资源一</a></td></tr></tbody></table>`,
+        { status: 200 }
+      )
+    )
+
+    await expect(
+      scanSubscriptionCandidatesFromSource("dongmanhuayuan", {
+        fetchImpl
+      })
+    ).resolves.toEqual([
+      expect.objectContaining({
+        sourceId: "dongmanhuayuan",
+        detailUrl: "https://www.dongmanhuayuan.com/detail/7XROA.html",
+        magnetUrl: "",
+        torrentUrl: ""
+      })
+    ])
   })
 
   it("does not require content-script ready state or tab messaging for subscription scans", async () => {

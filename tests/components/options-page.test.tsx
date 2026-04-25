@@ -862,7 +862,7 @@ describe("OptionsPage", () => {
 
       expect(await screen.findByRole("dialog", { name: "新增订阅" })).toBeInTheDocument()
       expect(screen.queryByTestId("subscription-source-tag-kisssub")).not.toBeInTheDocument()
-      expect(screen.queryByTestId("subscription-source-tag-dongmanhuayuan")).not.toBeInTheDocument()
+      expect(screen.getByTestId("subscription-source-tag-dongmanhuayuan")).toBeInTheDocument()
       await user.type(screen.getByLabelText("订阅名称"), "ACG Medalist")
       await user.type(screen.getByLabelText("标题关键词"), "Medalist")
       await user.type(screen.getByLabelText("字幕组关键词"), "LoliHouse")
@@ -959,6 +959,19 @@ describe("OptionsPage", () => {
       )
     })
     expect(screen.getByRole("spinbutton", { name: "轮询间隔（分钟）" })).toHaveValue(120)
+  })
+
+  it("shows Dongmanhuayuan in the background scan support summary and excludes Kisssub", async () => {
+    const api = createOptionsApi()
+
+    window.location.hash = "#/subscriptions"
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByRole("heading", { name: "订阅" })).toBeInTheDocument()
+    const supportRow = screen.getByText("当前后台扫描支持").closest("div")
+    expect(supportRow).not.toBeNull()
+    expect(supportRow).toHaveTextContent("Dongmanhuayuan")
+    expect(supportRow).not.toHaveTextContent("Kisssub")
   })
 
   it(
@@ -1079,6 +1092,24 @@ describe("OptionsPage", () => {
     const subscriptionCard = await screen.findByTestId(/subscription-card-/)
     expect(within(subscriptionCard).getByText("ACG.RIP and Bangumi.moe")).toBeInTheDocument()
     expect(within(subscriptionCard).queryByText("ACG.RIP、Bangumi.moe")).not.toBeInTheDocument()
+  })
+
+  it("shows only subscription-capable source tags in the subscription create dialog", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    render(<OptionsPage api={api} />)
+
+    expect(await screen.findByDisplayValue("http://127.0.0.1:17474")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "订阅" }))
+    await user.click(screen.getAllByRole("button", { name: "新增订阅" })[0])
+
+    expect(await screen.findByRole("dialog", { name: "新增订阅" })).toBeInTheDocument()
+    expect(screen.queryByTestId("subscription-source-tag-kisssub")).not.toBeInTheDocument()
+    expect(screen.getByTestId("subscription-source-tag-dongmanhuayuan")).toBeInTheDocument()
+    expect(screen.getByTestId("subscription-source-tag-acgrip")).toBeInTheDocument()
+    expect(screen.getByTestId("subscription-source-tag-bangumimoe")).toBeInTheDocument()
   })
 
   it("adds the 爱恋 1080 简中 preset rule directly and allows duplicates", async () => {

@@ -543,7 +543,7 @@
         "lastSchedulerRunAt": "上次调度运行",
         "notificationActionStateLabel": "通知点击行为",
         "supportedSourcesLabel": "当前后台扫描支持",
-        "supportedSourcesValue": "ACG.RIP、Bangumi.moe",
+        "supportedSourcesValue": "ACG.RIP、Bangumi.moe、Dongmanhuayuan 动漫花园",
         "notificationActionState": {
           "enabled": "点击通知后会直接进入下载流程。",
           "manualOnly": "通知仅用于提醒，不会自动处理命中。",
@@ -578,7 +578,7 @@
         "sourceTitle": "来源站点",
         "sourceDescription": "选择这条订阅应该扫描哪些站点。",
         "sourceCount": "已选 $1 个站点",
-        "sourceHint": "当前只有 ACG.RIP 和 Bangumi.moe 支持后台订阅扫描，至少保留一个站点。",
+        "sourceHint": "当前仅此处列出的站点支持后台订阅扫描，至少保留一个站点。",
         "mustDescription": "可选的高级必须条件，全部命中才算通过。",
         "mustEmpty": "还没有高级必须条件。",
         "addMust": "添加必须条件",

@@ -14,37 +14,31 @@ export type SubscriptionWorkbenchCondition = FilterCondition
 type SubscriptionSourceOption = {
   value: SourceId
   label: string
-  scanSupported: boolean
 }
 
-const ALL_SOURCE_OPTIONS: SubscriptionSourceOption[] = [
+const SUBSCRIPTION_SOURCE_OPTIONS: SubscriptionSourceOption[] = [
   {
     value: "acgrip",
-    label: i18n.t("options.sites.catalog.acgrip.navLabel"),
-    scanSupported: true
+    label: i18n.t("options.sites.catalog.acgrip.navLabel")
   },
   {
     value: "bangumimoe",
-    label: i18n.t("options.sites.catalog.bangumimoe.navLabel"),
-    scanSupported: true
-  },
-  {
-    value: "kisssub",
-    label: i18n.t("options.sites.catalog.kisssub.navLabel"),
-    scanSupported: false
+    label: i18n.t("options.sites.catalog.bangumimoe.navLabel")
   },
   {
     value: "dongmanhuayuan",
-    label: i18n.t("options.sites.catalog.dongmanhuayuan.navLabel"),
-    scanSupported: false
+    label: i18n.t("options.sites.catalog.dongmanhuayuan.navLabel")
   }
 ]
 
-const DEFAULT_SOURCE_ID = ALL_SOURCE_OPTIONS.find((option) => option.scanSupported)?.value ?? "acgrip"
-const EDITABLE_SOURCE_OPTIONS = ALL_SOURCE_OPTIONS.filter((option) => option.scanSupported)
+const DEFAULT_SOURCE_ID = SUBSCRIPTION_SOURCE_OPTIONS[0]?.value ?? "acgrip"
 
 export function getSubscriptionSourceOptions(): SubscriptionSourceOption[] {
-  return EDITABLE_SOURCE_OPTIONS.map((option) => ({ ...option }))
+  return SUBSCRIPTION_SOURCE_OPTIONS.map((option) => ({ ...option }))
+}
+
+export function getSubscriptionScanSupportedSourceSummary() {
+  return formatList(SUBSCRIPTION_SOURCE_OPTIONS.map((option) => option.label))
 }
 
 export function getSubscriptionConditionFieldOptions(): Array<{
@@ -293,7 +287,7 @@ function normalizeKnownSourceIds(sourceIds: SourceId[]) {
   return Array.from(
     new Set(
       sourceIds.filter((sourceId): sourceId is SourceId =>
-        ALL_SOURCE_OPTIONS.some((option) => option.value === sourceId)
+        SUBSCRIPTION_SOURCE_OPTIONS.some((option) => option.value === sourceId)
       )
     )
   )
@@ -303,18 +297,18 @@ function normalizeEditableSourceIds(sourceIds: SourceId[]) {
   return Array.from(
     new Set(
       sourceIds.filter((sourceId): sourceId is SourceId =>
-        EDITABLE_SOURCE_OPTIONS.some((option) => option.value === sourceId)
+        SUBSCRIPTION_SOURCE_OPTIONS.some((option) => option.value === sourceId)
       )
     )
   )
 }
 
 function isEditableSourceId(sourceId: SourceId) {
-  return EDITABLE_SOURCE_OPTIONS.some((option) => option.value === sourceId)
+  return SUBSCRIPTION_SOURCE_OPTIONS.some((option) => option.value === sourceId)
 }
 
 function getSourceLabel(sourceId: SourceId) {
-  return ALL_SOURCE_OPTIONS.find((option) => option.value === sourceId)?.label ?? sourceId
+  return SUBSCRIPTION_SOURCE_OPTIONS.find((option) => option.value === sourceId)?.label ?? sourceId
 }
 
 function normalizeConditionValue(condition: SubscriptionWorkbenchCondition) {

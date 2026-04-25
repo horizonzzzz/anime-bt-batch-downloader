@@ -6,7 +6,8 @@ import {
 
 import { Badge, Card, Input, Label, Switch } from "../../../ui"
 import {
-  formatSubscriptionDateTime
+  formatSubscriptionDateTime,
+  getSubscriptionScanSupportedSourceSummary
 } from "./subscription-workbench"
 
 type SubscriptionsGlobalCardProps = {
@@ -130,7 +131,7 @@ export function SubscriptionsGlobalCard({
               />
               <StatusRow
                 label={i18n.t("options.subscriptions.global.supportedSourcesLabel")}
-                value={i18n.t("options.subscriptions.global.supportedSourcesValue")}
+                value={getSubscriptionScanSupportedSourceSummary()}
               />
             </dl>
           </div>

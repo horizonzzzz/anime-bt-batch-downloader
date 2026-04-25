@@ -34,7 +34,6 @@ function getSourceDisplayName(sourceId: string): string {
   const sourceNames: Record<string, string> = {
     acgrip: "ACG.RIP",
     bangumimoe: "Bangumi.moe",
-    kisssub: "Kisssub",
     dongmanhuayuan: "Dongmanhuayuan"
   }
   return sourceNames[sourceId] ?? sourceId

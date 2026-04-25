@@ -11,10 +11,10 @@ function createCandidate(
   overrides: Partial<SubscriptionCandidate> = {}
 ): SubscriptionCandidate {
   return {
-    sourceId: "kisssub",
-    title: "[爱恋字幕社] Medalist - 01 [1080p]",
+    sourceId: "acgrip",
+    title: "[LoliHouse] Medalist - 01 [1080p]",
     normalizedTitle: "medalist 01",
-    detailUrl: "https://kisssub.org/show/medalist-01",
+    detailUrl: "https://acg.rip/t/100",
     magnetUrl: "magnet:?xt=urn:btih:111",
     torrentUrl: "",
     subgroup: "",
@@ -62,11 +62,11 @@ describe("deriveSubscriptionCandidateSubgroup", () => {
     const subgroup = deriveSubscriptionCandidateSubgroup(
       createCandidate({
         subgroup: "",
-        title: "[爱恋字幕社] Medalist - 01 [1080p]"
+        title: "[LoliHouse] Medalist - 01 [1080p]"
       })
     )
 
-    expect(subgroup).toBe("爱恋字幕社")
+    expect(subgroup).toBe("LoliHouse")
   })
 })
 
@@ -75,17 +75,17 @@ describe("matchesSubscriptionCandidate", () => {
     const result = matchesSubscriptionCandidate({
       query: createQuery({
         titleQuery: "MEDALIST",
-        subgroupQuery: "爱恋",
+        subgroupQuery: "loli",
         advanced: {
-          must: [condition("title", "01"), condition("subgroup", "字幕社")],
-          any: [condition("title", "RAW"), condition("subgroup", "爱恋")]
+          must: [condition("title", "01"), condition("subgroup", "House")],
+          any: [condition("title", "RAW"), condition("subgroup", "Loli")]
         }
       }),
       candidate: createCandidate()
     })
 
     expect(result.matched).toBe(true)
-    expect(result.subgroup).toBe("爱恋字幕社")
+    expect(result.subgroup).toBe("LoliHouse")
   })
 
   it("does not match when title query does not match candidate title", () => {
@@ -102,7 +102,7 @@ describe("matchesSubscriptionCandidate", () => {
   it("does not match when subgroup query cannot be satisfied", () => {
     const result = matchesSubscriptionCandidate({
       query: createQuery({
-        subgroupQuery: "爱恋"
+        subgroupQuery: "Loli"
       }),
       candidate: createCandidate({
         title: "Medalist - 01",
@@ -156,14 +156,14 @@ describe("matchesSubscriptionCandidate", () => {
     expect(result.matched).toBe(true)
   })
 
-  it.each<SourceId>(["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"])(
+  it.each<SourceId>(["dongmanhuayuan", "acgrip", "bangumimoe"])(
     "matches case-insensitively for source %s when advanced rules are reused",
     (sourceId) => {
       const result = matchesSubscriptionCandidate({
         query: createQuery({
           titleQuery: "medalist",
           advanced: {
-            must: [condition("title", "MEDA"), condition("subgroup", "爱恋")],
+            must: [condition("title", "MEDA"), condition("subgroup", "Loli")],
             any: [condition("title", "LIST")]
           }
         }),

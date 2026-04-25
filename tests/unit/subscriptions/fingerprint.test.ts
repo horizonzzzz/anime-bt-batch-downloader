@@ -14,10 +14,10 @@ function createCandidate(
   overrides: Partial<SubscriptionCandidate> = {}
 ): SubscriptionCandidate {
   return {
-    sourceId: "kisssub",
-    title: "[爱恋字幕社] Medalist - 01 [1080p]",
+    sourceId: "acgrip",
+    title: "[LoliHouse] Medalist - 01 [1080p]",
     normalizedTitle: "medalist 01",
-    detailUrl: "https://kisssub.org/show/medalist-01",
+    detailUrl: "https://acg.rip/t/100",
     magnetUrl: "",
     torrentUrl: "",
     subgroup: "",

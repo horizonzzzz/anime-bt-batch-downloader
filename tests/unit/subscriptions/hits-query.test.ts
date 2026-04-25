@@ -279,9 +279,9 @@ describe("hits-query", () => {
 
       await subscriptionDb.subscriptions.put({
         id: "sub-3",
-        name: "Archived Kisssub Medalist",
+        name: "Archived Dongmanhuayuan Medalist",
         enabled: false,
-        sourceIds: ["kisssub"],
+        sourceIds: ["dongmanhuayuan"],
         multiSiteModeEnabled: false,
         titleQuery: "Medalist",
         subgroupQuery: "",
@@ -297,11 +297,11 @@ describe("hits-query", () => {
       await subscriptionDb.subscriptionHits.put({
         id: "hit-archived",
         subscriptionId: "sub-3",
-        sourceId: "kisssub",
+        sourceId: "dongmanhuayuan",
         title: "[Archived] Medalist - 01",
         normalizedTitle: "[archived] medalist - 01",
         subgroup: "",
-        detailUrl: "https://kisssub.org/show-1",
+        detailUrl: "https://www.dongmanhuayuan.com/detail/7XROA.html",
         magnetUrl: "magnet:?xt=urn:btih:CCC111",
         torrentUrl: "",
         discoveredAt: "2026-04-16T08:00:00.000Z",

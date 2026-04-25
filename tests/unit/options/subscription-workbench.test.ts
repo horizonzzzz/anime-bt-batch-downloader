@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest"
 import {
   createSubscriptionDraft,
   duplicateSubscriptionDraft,
+  getSubscriptionSourceOptions,
   normalizeSubscriptionDraft,
+  summarizeSubscriptionSourceIds,
   summarizeSubscriptionRecentHits
 } from "../../../src/components/options/pages/subscriptions/subscription-workbench"
 import type {
@@ -117,6 +119,18 @@ describe("subscription workbench helpers", () => {
     expect(duplicated).not.toHaveProperty("createdAt")
     expect(duplicated).not.toHaveProperty("baselineCreatedAt")
     expect(duplicated).not.toHaveProperty("deletedAt")
+  })
+
+  it("keeps subscription source helpers aligned to the three supported background scan sites", () => {
+    expect(getSubscriptionSourceOptions().map((option) => option.value)).toEqual([
+      "acgrip",
+      "bangumimoe",
+      "dongmanhuayuan"
+    ])
+
+    const mixedSummary = summarizeSubscriptionSourceIds(["acgrip", "dongmanhuayuan"])
+    expect(mixedSummary).toContain("ACG.RIP")
+    expect(mixedSummary).toContain("Dongmanhuayuan")
   })
 
   it("summarizes the newest retained hit instead of the oldest one", () => {
