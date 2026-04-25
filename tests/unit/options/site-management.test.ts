@@ -35,6 +35,10 @@ describe("site management helpers", () => {
       bangumimoe: {
         ...DEFAULT_SOURCE_CONFIG.bangumimoe,
         enabled: false
+      },
+      comicat: {
+        ...DEFAULT_SOURCE_CONFIG.comicat,
+        enabled: true
       }
     })
     const orderedIds = buildSortedSitesFromConfig(config).map((site) => site.id)
@@ -42,6 +46,7 @@ describe("site management helpers", () => {
     expect(orderedIds).toEqual([
       "dongmanhuayuan",
       "acgrip",
+      "comicat",
       "kisssub",
       "bangumimoe"
     ])
@@ -64,12 +69,17 @@ describe("site management helpers", () => {
       bangumimoe: {
         ...DEFAULT_SOURCE_CONFIG.bangumimoe,
         enabled: true
+      },
+      comicat: {
+        ...DEFAULT_SOURCE_CONFIG.comicat,
+        enabled: true
       }
     })
     expect(getInitialExpandedSitesFromConfig(config)).toEqual([
       "kisssub",
       "acgrip",
-      "bangumimoe"
+      "bangumimoe",
+      "comicat"
     ])
   })
 
@@ -90,6 +100,10 @@ describe("site management helpers", () => {
       bangumimoe: {
         ...DEFAULT_SOURCE_CONFIG.bangumimoe,
         enabled: false
+      },
+      comicat: {
+        ...DEFAULT_SOURCE_CONFIG.comicat,
+        enabled: false
       }
     })
     const nextConfig = createTestSourceConfig({
@@ -108,6 +122,10 @@ describe("site management helpers", () => {
       bangumimoe: {
         ...DEFAULT_SOURCE_CONFIG.bangumimoe,
         enabled: false
+      },
+      comicat: {
+        ...DEFAULT_SOURCE_CONFIG.comicat,
+        enabled: true
       }
     })
     expect(
@@ -116,6 +134,6 @@ describe("site management helpers", () => {
         previousConfig,
         nextConfig
       })
-    ).toEqual(["acgrip", "dongmanhuayuan"])
+    ).toEqual(["acgrip", "dongmanhuayuan", "comicat"])
   })
 })

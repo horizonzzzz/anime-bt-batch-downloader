@@ -85,6 +85,10 @@ const sourceConfig: SourceConfig = {
   bangumimoe: {
     enabled: true,
     deliveryMode: "magnet"
+  },
+  comicat: {
+    enabled: true,
+    deliveryMode: "magnet"
   }
 }
 
@@ -551,7 +555,7 @@ describe("OptionsPage", () => {
 
       expect(window.location.hash).toBe("#/overview")
       expect(screen.getByRole("heading", { name: "源站概览" })).toBeInTheDocument()
-      expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(4)
+      expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(5)
       expect(screen.getByText("整合番组表与字幕组的动漫资源站")).toBeInTheDocument()
       expect(screen.getByText("面向动漫爱好者的BT资源交流站")).toBeInTheDocument()
       expect(screen.getByText("分类清晰、以种子直下为主的ACG站")).toBeInTheDocument()
@@ -601,7 +605,7 @@ describe("OptionsPage", () => {
     render(<OptionsPage api={api} />)
 
     expect(await screen.findByRole("heading", { name: "源站概览" })).toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(4)
+    expect(screen.getAllByRole("button", { name: "访问站点" })).toHaveLength(5)
     expect(screen.queryByText("http://127.0.0.1:17474")).not.toBeInTheDocument()
     expect(screen.queryByText("后台轮询")).not.toBeInTheDocument()
   })

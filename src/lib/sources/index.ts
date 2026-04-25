@@ -1,6 +1,7 @@
 import type { SourceId } from "../shared/types"
 import { acgRipSourceAdapter } from "./acgrip"
 import { bangumiMoeSourceAdapter } from "./bangumimoe"
+import { comicatSourceAdapter } from "./comicat"
 import { dongmanhuayuanSourceAdapter } from "./dongmanhuayuan"
 import { kisssubSourceAdapter } from "./kisssub"
 import type { SourceAdapter } from "./types"
@@ -9,7 +10,8 @@ const sourceAdapters: SourceAdapter[] = [
   kisssubSourceAdapter,
   dongmanhuayuanSourceAdapter,
   acgRipSourceAdapter,
-  bangumiMoeSourceAdapter
+  bangumiMoeSourceAdapter,
+  comicatSourceAdapter
 ]
 
 export function getSourceAdapters(): SourceAdapter[] {

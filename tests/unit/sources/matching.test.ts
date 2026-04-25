@@ -12,6 +12,8 @@ describe("source matching definitions", () => {
     expect(matchesSourceHost("acgrip", new URL("https://www.acg.rip/"))).toBe(true)
     expect(matchesSourceHost("bangumimoe", new URL("https://bangumi.moe/search/index"))).toBe(true)
     expect(matchesSourceHost("bangumimoe", new URL("https://www.bangumi.moe/search/index"))).toBe(true)
+    expect(matchesSourceHost("comicat", new URL("https://comicat.org/"))).toBe(true)
+    expect(matchesSourceHost("comicat", new URL("https://www.comicat.org/"))).toBe(true)
   })
 
   it("rejects unrelated sibling domains and keeps wildcard content-script matches unique", () => {
@@ -23,7 +25,8 @@ describe("source matching definitions", () => {
       "*://*.kisssub.org/*",
       "*://*.dongmanhuayuan.com/*",
       "*://*.acg.rip/*",
-      "*://*.bangumi.moe/*"
+      "*://*.bangumi.moe/*",
+      "*://*.comicat.org/*"
     ])
     expect(new Set(CONTENT_SCRIPT_MATCH_PATTERNS).size).toBe(CONTENT_SCRIPT_MATCH_PATTERNS.length)
   })
