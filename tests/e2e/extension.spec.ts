@@ -29,7 +29,7 @@ const supportedSiteFixtures = [
   {
     url: "https://www.comicat.org/",
     fixtureName: "comicat-list.html",
-    title: "Comicat 批量下载"
+    title: "Comicat 漫猫动漫 批量下载"
   }
 ] as const
 
@@ -836,7 +836,7 @@ test("content script injects the batch panel on a Comicat list page", async () =
     await assertBatchPanelInjection(extension, {
       url: "https://www.comicat.org/",
       fixtureName: "comicat-list.html",
-      title: "Comicat 批量下载"
+      title: "Comicat 漫猫动漫 批量下载"
     })
   } finally {
     await extension.close()
