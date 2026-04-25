@@ -1,5 +1,6 @@
 import { i18n } from "../../../../lib/i18n"
 import { decideFilterAction } from "../../../../lib/filter-rules"
+import { SOURCE_IDS } from "../../../../lib/sources/catalog"
 import type {
   FilterCondition,
   SourceId
@@ -44,12 +45,10 @@ export function getSourceOptions(): Array<{
   value: FilterWorkbenchSourceId
   label: string
 }> {
-  return [
-    { value: "kisssub", label: i18n.t("options.sites.catalog.kisssub.navLabel") },
-    { value: "dongmanhuayuan", label: i18n.t("options.sites.catalog.dongmanhuayuan.navLabel") },
-    { value: "acgrip", label: i18n.t("options.sites.catalog.acgrip.navLabel") },
-    { value: "bangumimoe", label: i18n.t("options.sites.catalog.bangumimoe.navLabel") }
-  ]
+  return VALID_WORKBENCH_SOURCE_IDS.map((sourceId) => ({
+    value: sourceId,
+    label: i18n.t(`options.sites.catalog.${sourceId}.navLabel`)
+  }))
 }
 
 export function getMustConditionFieldOptions(): Array<{
@@ -184,12 +183,7 @@ export function normalizeConditionField(
   }
 }
 
-const VALID_WORKBENCH_SOURCE_IDS: FilterWorkbenchSourceId[] = [
-  "kisssub",
-  "dongmanhuayuan",
-  "acgrip",
-  "bangumimoe"
-]
+const VALID_WORKBENCH_SOURCE_IDS: FilterWorkbenchSourceId[] = [...SOURCE_IDS]
 
 export function runWorkbenchTest(
   input: FilterWorkbenchTestInput,

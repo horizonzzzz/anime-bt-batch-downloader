@@ -55,13 +55,15 @@ const settings = {
     kisssub: "magnet",
     dongmanhuayuan: "magnet",
     acgrip: "torrent-file",
-    bangumimoe: "magnet"
+    bangumimoe: "magnet",
+    comicat: "magnet"
   },
   enabledSources: {
     kisssub: true,
     dongmanhuayuan: true,
     acgrip: true,
-    bangumimoe: true
+    bangumimoe: true,
+    comicat: true
   },
   filters: [],
   subscriptionsEnabled: false,
@@ -314,6 +316,45 @@ async function seedSubscriptionFixture() {
     ]
   })
   await setLastSchedulerRunAt("2026-04-14T09:30:00.000Z")
+}
+
+async function seedComicatSubscriptionFixture() {
+  const subscription: SubscriptionEntry = {
+    id: "sub-comicat-1",
+    name: "Comicat Medalist",
+    enabled: true,
+    sourceIds: ["comicat"],
+    multiSiteModeEnabled: false,
+    titleQuery: "Medalist",
+    subgroupQuery: "",
+    advanced: {
+      must: [],
+      any: []
+    },
+    createdAt: "2026-04-13T00:00:00.000Z",
+    baselineCreatedAt: "2026-04-13T00:00:00.000Z",
+    deletedAt: null
+  }
+
+  await upsertSubscription(subscription)
+  await subscriptionDb.subscriptionHits.bulkPut([
+    {
+      id: "hit-comicat-1",
+      subscriptionId: "sub-comicat-1",
+      sourceId: "comicat",
+      title: "[LoliHouse] Medalist - 01 [1080p]",
+      normalizedTitle: "[lolihouse] medalist - 01 [1080p]",
+      subgroup: "LoliHouse",
+      detailUrl: "https://www.comicat.org/show-86584c42ac1abb6a346effaa1faff53448f1b71a.html",
+      magnetUrl: "magnet:?xt=urn:btih:86584c42ac1abb6a346effaa1faff53448f1b71a",
+      torrentUrl: "",
+      discoveredAt: "2026-04-14T08:00:00.000Z",
+      downloadedAt: null,
+      downloadStatus: "idle",
+      readAt: null,
+      resolvedAt: null
+    }
+  ])
 }
 
 function createDeferred<T>() {
@@ -720,6 +761,23 @@ describe("OptionsPage", () => {
     expect(screen.getByRole("button", { name: "下载选中项" })).toBeDisabled()
   })
 
+  it("renders comicat in subscription hit source labels and source filters", async () => {
+    const user = userEvent.setup()
+    const api = createOptionsApi()
+
+    await seedComicatSubscriptionFixture()
+    window.location.hash = "#/subscription-hits"
+    render(<OptionsPage api={api} />)
+
+    const groupCard = await screen.findByTestId("subscription-hit-group-sub-comicat-1")
+    expect(groupCard).toHaveTextContent("站点范围: Comicat")
+
+    const sourceSelect = screen.getAllByRole("combobox")[1]
+    await user.click(sourceSelect)
+
+    expect(await screen.findByRole("option", { name: "Comicat" })).toBeInTheDocument()
+  })
+
   it("downloads selected subscription hits from the inline toolbar", async () => {
     const user = userEvent.setup()
     const api = createOptionsApi()
@@ -824,7 +882,7 @@ describe("OptionsPage", () => {
             rules: expect.arrayContaining([
               expect.objectContaining({
                 name: "爱恋 1080 简繁",
-                sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
+                sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe", "comicat"],
                 must: expect.arrayContaining([
                   expect.objectContaining({
                     field: "subgroup",
@@ -975,6 +1033,7 @@ describe("OptionsPage", () => {
     const supportRow = screen.getByText("当前后台扫描支持").closest("div")
     expect(supportRow).not.toBeNull()
     expect(supportRow).toHaveTextContent("Dongmanhuayuan")
+    expect(supportRow).toHaveTextContent("Comicat")
     expect(supportRow).not.toHaveTextContent("Kisssub")
   })
 
@@ -1252,11 +1311,12 @@ describe("OptionsPage", () => {
     expect(screen.getByTestId("filter-source-tag-dongmanhuayuan")).toHaveAttribute("aria-pressed", "true")
     expect(screen.getByTestId("filter-source-tag-acgrip")).toHaveAttribute("aria-pressed", "true")
     expect(screen.getByTestId("filter-source-tag-bangumimoe")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByTestId("filter-source-tag-comicat")).toHaveAttribute("aria-pressed", "true")
 
     await user.click(screen.getByTestId("filter-source-tag-acgrip"))
 
     expect(screen.getByTestId("filter-source-tag-acgrip")).toHaveAttribute("aria-pressed", "false")
-    expect(screen.getByText("已选 3 个站点")).toBeInTheDocument()
+    expect(screen.getByText("已选 4 个站点")).toBeInTheDocument()
   })
 
   it("does not allow deselecting the last remaining source tag", async () => {
@@ -1273,6 +1333,7 @@ describe("OptionsPage", () => {
     await user.click(screen.getByTestId("filter-source-tag-dongmanhuayuan"))
     await user.click(screen.getByTestId("filter-source-tag-acgrip"))
     await user.click(screen.getByTestId("filter-source-tag-bangumimoe"))
+    await user.click(screen.getByTestId("filter-source-tag-comicat"))
 
     expect(screen.getByText("已选 1 个站点")).toBeInTheDocument()
 

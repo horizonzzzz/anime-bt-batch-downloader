@@ -28,6 +28,7 @@ export type SourceAdapter = {
   supportedDeliveryModes: readonly DeliveryMode[]
   defaultDeliveryMode: DeliveryMode
   matchesListPage: (url: URL) => boolean
+  matchesListDocument?: (root: ParentNode, pageUrl: URL) => boolean
   matchesDetailUrl: (url: URL) => boolean
   getDetailAnchors: (root: ParentNode, pageUrl: URL) => HTMLAnchorElement[]
   getBatchItemFromAnchor: (anchor: HTMLAnchorElement, pageUrl: URL) => BatchItem | null

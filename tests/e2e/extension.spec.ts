@@ -843,6 +843,26 @@ test("content script injects the batch panel on a Comicat list page", async () =
   }
 })
 
+test("content script does not inject on the Comicat visitor-test page", async () => {
+  const extension = await launchExtensionContext()
+
+  try {
+    const fixturePath = path.join(process.cwd(), "tests", "e2e", "fixtures", "comicat-visitor-test.html")
+
+    await extension.context.route("https://www.comicat.org/public/html/start/", async (route) => {
+      await route.fulfill({ path: fixturePath, contentType: "text/html" })
+    })
+
+    const page = await extension.context.newPage()
+    await page.goto("https://www.comicat.org/public/html/start/")
+
+    await expect(page.locator("[data-anime-bt-batch-panel-root]")).toHaveCount(0)
+    await expect(page.locator("[data-anime-bt-batch-checkbox-root]")).toHaveCount(0)
+  } finally {
+    await extension.close()
+  }
+})
+
 test("content script injects on comicat search pages", async () => {
   const extension = await launchExtensionContext()
 

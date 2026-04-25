@@ -41,6 +41,7 @@ const runtimeAddListener = vi.fn()
 const runtimeRemoveListener = vi.fn()
 const runtimeGetUrl = vi.fn((path: string) => `chrome-extension://test${path}`)
 const getSourceAdapterForLocation = vi.fn((): MockSource | null => null)
+const getSourceAdapterForDocument = vi.fn((): MockSource | null => null)
 const getEnabledSourceAdapterForLocation = vi.fn((): MockSource | null => null)
 const getAnchorMountTarget = vi.fn()
 const getBatchItemFromAnchor = vi.fn()
@@ -66,6 +67,7 @@ vi.mock("../../../src/lib/content/page", () => ({
   getAnchorMountTarget,
   getBatchItemFromAnchor,
   getDetailAnchors,
+  getSourceAdapterForDocument,
   getSourceAdapterForLocation,
   getEnabledSourceAdapterForLocation
 }))
@@ -291,6 +293,41 @@ describe("content script runtime", () => {
     expect(createRoot).not.toHaveBeenCalled()
     expect(runtimeAddListener).toHaveBeenCalledTimes(1)
     expect(document.querySelector("[data-anime-bt-batch-panel-root]")).toBeNull()
+  })
+
+  it("activates later when an initially unsupported comicat visitor-test page mutates into a real list", async () => {
+    const source = {
+      id: "comicat",
+      displayName: "Comicat"
+    }
+
+    getSourceAdapterForLocation.mockReturnValue(null)
+    getSourceAdapterForDocument.mockReturnValueOnce(null).mockReturnValue(source)
+    runtimeSendMessage.mockResolvedValue({
+      ok: true,
+      state: {
+        enabled: true,
+        filters: [],
+        lastSavePath: ""
+      }
+    })
+
+    const { startSourceBatchContentScript } = await import("../../../src/entrypoints/source-batch.content/runtime")
+    await startSourceBatchContentScript(createTestContext() as never)
+
+    expect(createRoot).not.toHaveBeenCalled()
+    expect(runtimeAddListener).not.toHaveBeenCalled()
+
+    document.body.appendChild(document.createElement("div"))
+
+    await vi.waitFor(() => {
+      expect(createRoot).toHaveBeenCalledTimes(1)
+      expect(runtimeAddListener).toHaveBeenCalledTimes(1)
+      expect(runtimeSendMessage).toHaveBeenCalledWith({
+        type: "GET_CONTENT_SCRIPT_STATE",
+        sourceId: "comicat"
+      })
+    })
   })
 
   it("opens the filters route from the panel settings action", async () => {

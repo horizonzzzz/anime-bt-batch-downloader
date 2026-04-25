@@ -1,13 +1,9 @@
 import { i18n } from "../i18n"
+import { SOURCE_IDS } from "../sources/catalog"
 import type { FilterConfig } from "./types"
 import type { FilterEntry, FilterCondition, SourceId } from "../shared/types"
 
-const VALID_SOURCE_IDS: SourceId[] = [
-  "kisssub",
-  "dongmanhuayuan",
-  "acgrip",
-  "bangumimoe"
-]
+const VALID_SOURCE_IDS: SourceId[] = [...SOURCE_IDS]
 
 const VALID_FILTER_CONDITION_FIELDS: Array<FilterCondition["field"]> = ["title", "subgroup"]
 

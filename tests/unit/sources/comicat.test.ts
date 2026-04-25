@@ -46,6 +46,7 @@ describe("comicatSourceAdapter", () => {
 
   it("recognizes comicat homepage and paginated list pages", () => {
     expect(comicatSourceAdapter.matchesListPage(new URL("https://www.comicat.org/"))).toBe(true)
+    expect(comicatSourceAdapter.matchesListPage(new URL("https://www.comicat.org/public/html/start/"))).toBe(false)
     expect(comicatSourceAdapter.matchesListPage(new URL("https://www.comicat.org/1.html"))).toBe(true)
     expect(comicatSourceAdapter.matchesListPage(new URL("https://www.comicat.org/sort-1-1.html"))).toBe(true)
     expect(comicatSourceAdapter.matchesListPage(new URL("https://www.comicat.org/animovie-1.html"))).toBe(true)

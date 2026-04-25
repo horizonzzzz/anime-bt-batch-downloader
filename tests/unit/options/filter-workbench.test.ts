@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 
 import {
   createAilian1080SimplifiedChineseFilter,
+  createFilterDraft,
+  getSourceOptions,
   runWorkbenchTest,
   type FilterWorkbenchFilter,
   type FilterWorkbenchSourceId
@@ -25,7 +27,7 @@ function createFilter(overrides: Partial<FilterWorkbenchFilter> = {}): FilterWor
     id: "filter-1",
     name: "保留 LoliHouse",
     enabled: true,
-    sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
+    sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe", "comicat"],
     must: [createTextCondition()],
     any: [],
     ...overrides
@@ -33,11 +35,29 @@ function createFilter(overrides: Partial<FilterWorkbenchFilter> = {}): FilterWor
 }
 
 describe("filter workbench helpers", () => {
+  it("exposes comicat in the editable source options and default drafts", () => {
+    expect(getSourceOptions().map((option) => option.value)).toEqual([
+      "kisssub",
+      "dongmanhuayuan",
+      "acgrip",
+      "bangumimoe",
+      "comicat"
+    ])
+
+    expect(createFilterDraft().sourceIds).toEqual([
+      "kisssub",
+      "dongmanhuayuan",
+      "acgrip",
+      "bangumimoe",
+      "comicat"
+    ])
+  })
+
   it("creates the 爱恋 1080 简中 preset filter", () => {
     expect(createAilian1080SimplifiedChineseFilter()).toMatchObject({
       name: "爱恋 1080 简中",
       enabled: true,
-      sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe"],
+      sourceIds: ["kisssub", "dongmanhuayuan", "acgrip", "bangumimoe", "comicat"],
       must: [
         {
           field: "subgroup",

@@ -183,7 +183,7 @@ export function summarizeSubscriptionSourceIds(sourceIds: SourceId[]) {
     return i18n.t("options.filters.summary.unset")
   }
 
-  return formatList(normalized.map(getSourceLabel))
+  return formatList(normalized.map(getSubscriptionSourceLabel))
 }
 
 export function summarizeSubscriptionConditionList(
@@ -311,7 +311,7 @@ function isEditableSourceId(sourceId: SourceId) {
   return SUBSCRIPTION_SOURCE_OPTIONS.some((option) => option.value === sourceId)
 }
 
-function getSourceLabel(sourceId: SourceId) {
+export function getSubscriptionSourceLabel(sourceId: SourceId) {
   return SUBSCRIPTION_SOURCE_OPTIONS.find((option) => option.value === sourceId)?.label ?? sourceId
 }
 

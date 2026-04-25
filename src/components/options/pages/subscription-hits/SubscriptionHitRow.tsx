@@ -2,6 +2,7 @@ import { i18n } from "../../../../lib/i18n"
 import { HiOutlineArrowDownCircle, HiOutlineCheckCircle } from "react-icons/hi2"
 
 import { Button } from "../../../ui"
+import { getSubscriptionSourceLabel } from "../subscriptions/subscription-workbench"
 import {
   getSubscriptionHitStatusBadgeClass,
   getSubscriptionHitStatusLabel,
@@ -65,7 +66,7 @@ export function SubscriptionHitRow({
             </span>
           )}
           <span className="text-zinc-300">|</span>
-          <span>{hit.sourceId}</span>
+          <span>{getSubscriptionSourceLabel(hit.sourceId)}</span>
           <span className="text-zinc-300">|</span>
           <span>{formatDiscoveryTime(hit.discoveredAt)}</span>
         </div>

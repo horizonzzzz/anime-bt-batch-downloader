@@ -1,6 +1,8 @@
 import { i18n } from "../../../../lib/i18n"
+import type { SourceId } from "../../../../lib/shared/types"
 
 import { Card } from "../../../ui"
+import { getSubscriptionSourceLabel } from "../subscriptions/subscription-workbench"
 import { SubscriptionHitRow } from "./SubscriptionHitRow"
 import {
   countPendingHits,
@@ -30,13 +32,8 @@ function formatLatestHitTime(hits: SubscriptionHitWorkbenchViewItem[]): string {
   return date.toLocaleString()
 }
 
-function getSourceDisplayName(sourceId: string): string {
-  const sourceNames: Record<string, string> = {
-    acgrip: "ACG.RIP",
-    bangumimoe: "Bangumi.moe",
-    dongmanhuayuan: "Dongmanhuayuan"
-  }
-  return sourceNames[sourceId] ?? sourceId
+function getSourceDisplayName(sourceId: SourceId): string {
+  return getSubscriptionSourceLabel(sourceId)
 }
 
 export function SubscriptionHitGroupCard({

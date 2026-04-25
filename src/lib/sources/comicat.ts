@@ -7,6 +7,8 @@ import type { BatchItem, ExtractionResult } from "../shared/types"
 import type { ExtractionContext, SourceAdapter } from "./types"
 
 const ENTRY_SELECTOR = 'a[href*="show-"][href$=".html"]'
+const VISITOR_TEST_PATHNAME = /^\/public\/html\/start\/?$/i
+const VISITOR_TEST_FORM_SELECTOR = 'form[action*="page=visitor-test"]'
 const MAIN_EXECUTION_WORLD = "MAIN" as const
 const COMICAT_FIELD_FAILURE =
   "The Comicat detail page no longer exposes the fields required to build download links."
@@ -31,6 +33,22 @@ function matchesHost(url: URL) {
 function extractComicatDetailHash(detailUrl: string): string {
   const match = detailUrl.match(/show-([a-f0-9]{40})\.html/i)
   return match ? match[1].toLowerCase() : ""
+}
+
+function getComicatDetailAnchors(root: ParentNode, pageUrl: URL) {
+  return Array.from(root.querySelectorAll<HTMLAnchorElement>(ENTRY_SELECTOR)).filter((anchor) => {
+    try {
+      return comicatSourceAdapter.matchesDetailUrl(
+        new URL(anchor.getAttribute("href") || anchor.href, pageUrl.href)
+      )
+    } catch {
+      return false
+    }
+  })
+}
+
+function isVisitorTestDocument(root: ParentNode): boolean {
+  return Boolean(root.querySelector(VISITOR_TEST_FORM_SELECTOR))
 }
 
 export function parseComicatDetailSnapshot(
@@ -87,19 +105,22 @@ export const comicatSourceAdapter: SourceAdapter = {
       /^\/search\.php$/i.test(url.pathname)
     )
   },
+  matchesListDocument(root, pageUrl) {
+    if (!matchesHost(pageUrl) || this.matchesDetailUrl(pageUrl) || !VISITOR_TEST_PATHNAME.test(pageUrl.pathname)) {
+      return false
+    }
+
+    if (isVisitorTestDocument(root)) {
+      return false
+    }
+
+    return getComicatDetailAnchors(root, pageUrl).length > 0
+  },
   matchesDetailUrl(url) {
     return matchesHost(url) && /\/show-[a-f0-9]{40}\.html$/i.test(url.pathname)
   },
   getDetailAnchors(root, pageUrl) {
-    return Array.from(root.querySelectorAll<HTMLAnchorElement>(ENTRY_SELECTOR)).filter((anchor) => {
-      try {
-        return this.matchesDetailUrl(
-          new URL(anchor.getAttribute("href") || anchor.href, pageUrl.href)
-        )
-      } catch {
-        return false
-      }
-    })
+    return getComicatDetailAnchors(root, pageUrl)
   },
   getBatchItemFromAnchor(anchor, pageUrl) {
     const title = normalizeText(anchor.textContent)

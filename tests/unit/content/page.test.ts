@@ -5,6 +5,7 @@ import {
   getBatchItemFromAnchor,
   getDetailAnchors,
   getEnabledSourceAdapterForLocation,
+  getSourceAdapterForDocument,
   getSourceAdapterForLocation,
   isListPage,
   isValidDetailAnchor,
@@ -307,5 +308,28 @@ describe("content page helpers", () => {
 
   it("treats comicat search pages as list pages", () => {
     expect(isListPage(new URL("https://www.comicat.org/search.php?keyword=Re%3AZero"))).toBe(true)
+  })
+
+  it("does not treat comicat visitor-test pages as list pages but can recover from list DOM on the same path", () => {
+    const location = new URL("https://www.comicat.org/public/html/start/")
+    document.body.innerHTML = `
+      <form action="/addon.php?r=document/view&page=visitor-test">
+        <div>I'm not a robot</div>
+      </form>
+    `
+
+    expect(getSourceAdapterForLocation(location)).toBeNull()
+    expect(getSourceAdapterForDocument(document, location)).toBeNull()
+
+    document.body.innerHTML = `
+      <table>
+        <tbody>
+          <tr><td><a href="/show-deadbeefdeadbeefdeadbeefdeadbeefdeadbeef.html">资源一</a></td></tr>
+        </tbody>
+      </table>
+    `
+
+    expect(getSourceAdapterForLocation(location)).toBeNull()
+    expect(getSourceAdapterForDocument(document, location)?.id).toBe("comicat")
   })
 })

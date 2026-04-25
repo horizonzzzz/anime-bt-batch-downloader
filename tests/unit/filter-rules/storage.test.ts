@@ -127,4 +127,35 @@ describe("filter config storage", () => {
     expect(config.rules).toHaveLength(1)
     expect(config.rules[0].name).toBe("Valid Filter")
   })
+
+  it("preserves comicat-only filter scopes during save and reload", async () => {
+    await saveFilterConfig({
+      rules: [
+        {
+          id: "filter-1",
+          name: "仅作用于 Comicat",
+          enabled: true,
+          sourceIds: ["comicat"],
+          must: [
+            {
+              id: "condition-1",
+              field: "title",
+              operator: "contains",
+              value: "Medalist"
+            }
+          ],
+          any: []
+        }
+      ]
+    })
+
+    await expect(getFilterConfig()).resolves.toEqual({
+      rules: [
+        expect.objectContaining({
+          id: "filter-1",
+          sourceIds: ["comicat"]
+        })
+      ]
+    })
+  })
 })

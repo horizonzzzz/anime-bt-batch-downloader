@@ -4,6 +4,7 @@ import { HiOutlineArrowDownCircle, HiOutlineCheckCircle } from "react-icons/hi2"
 
 import { Alert, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui"
 import type { OptionsApi } from "../../OptionsPage"
+import { getSubscriptionSourceOptions } from "../subscriptions/subscription-workbench"
 import { SubscriptionHitGroupCard } from "./SubscriptionHitGroupCard"
 import { useSubscriptionHitsWorkbench } from "./use-subscription-hits-workbench"
 
@@ -28,8 +29,7 @@ const SOURCE_FILTER_OPTIONS: Array<{
   label: string
 }> = [
   { value: "all", label: "options.subscriptionHits.filterAll" },
-  { value: "acgrip", label: "ACG.RIP" },
-  { value: "bangumimoe", label: "Bangumi.moe" }
+  ...getSubscriptionSourceOptions()
 ]
 
 export function SubscriptionHitsPage({ api, initialRoundId }: SubscriptionHitsPageProps) {
