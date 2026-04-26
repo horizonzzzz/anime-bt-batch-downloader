@@ -18,6 +18,11 @@ type ComicatDetailSnapshot = {
   torrentUrl: string
 }
 
+type ComicatDownloadAnchorInfo = {
+  href: string
+  detailUrl: string
+}
+
 function normalizeText(value: string | null | undefined): string {
   return String(value ?? "")
     .replace(/\s+/g, " ")
@@ -64,6 +69,29 @@ export function parseComicatDetailSnapshot(
     magnetUrl,
     torrentUrl,
     failureReason: magnetUrl || torrentUrl ? "" : COMICAT_FIELD_FAILURE
+  }
+}
+
+export function resolveComicatPublicTorrentUrl(
+  downloadHref: string,
+  detailUrl: string
+): string {
+  const normalizedDownloadHref = normalizeText(downloadHref)
+  const normalizedDetailUrl = normalizeText(detailUrl)
+  if (!normalizedDownloadHref || !normalizedDetailUrl) {
+    return ""
+  }
+
+  try {
+    const url = new URL(normalizedDownloadHref, normalizedDetailUrl)
+    const isUploadBtHost = /(^|\.)uploadbt\.com$/i.test(url.hostname)
+    if (!isUploadBtHost || url.searchParams.get("r") !== "down") {
+      return ""
+    }
+
+    return url.href
+  } catch {
+    return ""
   }
 }
 
@@ -152,16 +180,35 @@ export const comicatSourceAdapter: SourceAdapter = {
 function comicatDetailExtractionScript(domSettleMs: number): Promise<ComicatDetailSnapshot> {
   const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
   const normalize = (value: unknown) => String(value ?? "").replace(/\s+/g, " ").trim()
-  const html = () => document.documentElement.outerHTML
-  const extractTorrentUrl = () => {
-    const source = html()
-    // Only trust down.php. Historical down-xxxx.torrent aliases can 404 and should be ignored.
-    const downPhp =
-      source.match(/down\.php\?date=\d+&amp;hash=[a-f0-9]+|down\.php\?date=\d+&hash=[a-f0-9]+/i)?.[0] ?? ""
-    if (!downPhp) {
+  const resolvePublicTorrentUrl = ({ href, detailUrl }: ComicatDownloadAnchorInfo) => {
+    const normalizedHref = normalize(href)
+    const normalizedDetailUrl = normalize(detailUrl)
+    if (!normalizedHref || !normalizedDetailUrl) {
       return ""
     }
-    return new URL(downPhp.replace(/&amp;/g, "&"), window.location.href).href
+
+    try {
+      const url = new URL(normalizedHref, normalizedDetailUrl)
+      const isUploadBtHost = /(^|\.)uploadbt\.com$/i.test(url.hostname)
+      if (!isUploadBtHost || url.searchParams.get("r") !== "down") {
+        return ""
+      }
+
+      return url.href
+    } catch {
+      return ""
+    }
+  }
+  const extractTorrentUrl = () => {
+    const downloadAnchor = document.getElementById("download") as HTMLAnchorElement | null
+    if (!downloadAnchor) {
+      return ""
+    }
+
+    return resolvePublicTorrentUrl({
+      href: downloadAnchor.getAttribute("href") || downloadAnchor.href || "",
+      detailUrl: window.location.href
+    })
   }
 
   return (async () => {

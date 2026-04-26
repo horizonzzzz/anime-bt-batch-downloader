@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest"
 
-import { comicatSourceAdapter, parseComicatDetailSnapshot } from "../../../src/lib/sources/comicat"
+import {
+  comicatSourceAdapter,
+  parseComicatDetailSnapshot,
+  resolveComicatPublicTorrentUrl
+} from "../../../src/lib/sources/comicat"
 
 describe("parseComicatDetailSnapshot", () => {
-  it("builds magnet and down.php torrent urls from page data", () => {
+  it("builds magnet and public uploadbt torrent urls from page data", () => {
     expect(
       parseComicatDetailSnapshot({
         title: "[Group] Episode 01",
         hash: "86584c42ac1abb6a346effaa1faff53448f1b71a",
         announce: "http://open.acgtracker.com:1096/announce",
-        torrentUrl: "http://www.comicat.org/down.php?date=1777087202&hash=86584c42ac1abb6a346effaa1faff53448f1b71a"
+        torrentUrl:
+          "https://v2.uploadbt.com/?r=down&hash=86584c42ac1abb6a346effaa1faff53448f1b71a&name=%5BComicat%5DEpisode%2001"
       })
     ).toEqual({
       ok: true,
@@ -18,7 +23,7 @@ describe("parseComicatDetailSnapshot", () => {
       magnetUrl:
         "magnet:?xt=urn:btih:86584c42ac1abb6a346effaa1faff53448f1b71a&tr=http://open.acgtracker.com:1096/announce",
       torrentUrl:
-        "http://www.comicat.org/down.php?date=1777087202&hash=86584c42ac1abb6a346effaa1faff53448f1b71a",
+        "https://v2.uploadbt.com/?r=down&hash=86584c42ac1abb6a346effaa1faff53448f1b71a&name=%5BComicat%5DEpisode%2001",
       failureReason: ""
     })
   })
@@ -35,6 +40,28 @@ describe("parseComicatDetailSnapshot", () => {
       ok: false,
       failureReason: "The Comicat detail page no longer exposes the fields required to build download links."
     })
+  })
+})
+
+describe("resolveComicatPublicTorrentUrl", () => {
+  it("accepts protocol-relative uploadbt download links", () => {
+    expect(
+      resolveComicatPublicTorrentUrl(
+        "//v2.uploadbt.com/?r=down&hash=86584c42ac1abb6a346effaa1faff53448f1b71a&name=%5BComicat%5DEpisode%2001",
+        "https://www.comicat.org/show-86584c42ac1abb6a346effaa1faff53448f1b71a.html"
+      )
+    ).toBe(
+      "https://v2.uploadbt.com/?r=down&hash=86584c42ac1abb6a346effaa1faff53448f1b71a&name=%5BComicat%5DEpisode%2001"
+    )
+  })
+
+  it("rejects cookie-gated down.php fallback links", () => {
+    expect(
+      resolveComicatPublicTorrentUrl(
+        "/down.php?date=1777087202&hash=86584c42ac1abb6a346effaa1faff53448f1b71a",
+        "https://www.comicat.org/show-86584c42ac1abb6a346effaa1faff53448f1b71a.html"
+      )
+    ).toBe("")
   })
 })
 

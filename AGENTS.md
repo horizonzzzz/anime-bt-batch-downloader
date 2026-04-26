@@ -23,7 +23,7 @@ The extension injects selection UI into supported list pages, reuses direct magn
     - rendered as a first-class workspace backed by persisted subscription definitions, dedicated `subscription_policy_config`, and Dexie-backed scheduler, polling, notification, and bounded recent-hit runtime state
     - supports creating, duplicating, enabling, disabling, and deleting subscriptions, plus grouped multi-source scans for the subscription-capable sites `acg.rip`, `bangumi.moe`, `comicat.org`, and `dongmanhuayuan.com`, runtime status visibility, and notification-round retention for recent matched hits
     - `kisssub.org` is intentionally excluded from subscription scanning because its robot verification blocks reliable background fetching
-    - `comicat.org` uses RSS for background subscription scanning and restores detail-page `magnet` plus `down.php?...` locally without remote wormhole script injection
+    - `comicat.org` uses RSS for background subscription scanning; retained-hit downloads reopen the detail page and restore the detail-page `magnet` plus the public `uploadbt` torrent link locally without remote wormhole script injection
     - `comicat.org` supports `magnet` and `torrent-file`; `torrent-url` is intentionally excluded because `down.php` requires browser cookies
     - subscription creation and duplication submit only editable definition fields; background persistence generates record ids plus creation/tombstone metadata
     - does not currently support editing an existing subscription definition in place; changes require creating or duplicating a new definition instead
