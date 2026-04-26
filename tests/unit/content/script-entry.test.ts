@@ -295,7 +295,7 @@ describe("content script runtime", () => {
     expect(document.querySelector("[data-anime-bt-batch-panel-root]")).toBeNull()
   })
 
-  it("activates later when an initially unsupported comicat visitor-test page mutates into a real list", async () => {
+  it("does not activate later when an unsupported comicat visitor-test page mutates", async () => {
     const source = {
       id: "comicat",
       displayName: "Comicat"
@@ -320,14 +320,12 @@ describe("content script runtime", () => {
 
     document.body.appendChild(document.createElement("div"))
 
-    await vi.waitFor(() => {
-      expect(createRoot).toHaveBeenCalledTimes(1)
-      expect(runtimeAddListener).toHaveBeenCalledTimes(1)
-      expect(runtimeSendMessage).toHaveBeenCalledWith({
-        type: "GET_CONTENT_SCRIPT_STATE",
-        sourceId: "comicat"
-      })
-    })
+    await flushMicrotasks()
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 200))
+
+    expect(createRoot).not.toHaveBeenCalled()
+    expect(runtimeAddListener).not.toHaveBeenCalled()
+    expect(runtimeSendMessage).not.toHaveBeenCalled()
   })
 
   it("opens the filters route from the panel settings action", async () => {

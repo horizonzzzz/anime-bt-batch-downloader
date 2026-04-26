@@ -310,7 +310,7 @@ describe("content page helpers", () => {
     expect(isListPage(new URL("https://www.comicat.org/search.php?keyword=Re%3AZero"))).toBe(true)
   })
 
-  it("does not treat comicat visitor-test pages as list pages but can recover from list DOM on the same path", () => {
+  it("does not treat comicat visitor-test pages as list pages even if list DOM later appears on the same path", () => {
     const location = new URL("https://www.comicat.org/public/html/start/")
     document.body.innerHTML = `
       <form action="/addon.php?r=document/view&page=visitor-test">
@@ -330,6 +330,7 @@ describe("content page helpers", () => {
     `
 
     expect(getSourceAdapterForLocation(location)).toBeNull()
-    expect(getSourceAdapterForDocument(document, location)?.id).toBe("comicat")
+    expect(getSourceAdapterForDocument(document, location)).toBeNull()
+    expect(isListPage(location, document)).toBe(false)
   })
 })

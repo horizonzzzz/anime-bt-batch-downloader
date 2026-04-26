@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import { fetchComicatSubscriptionCandidates } from "../../../src/lib/subscriptions/source-fetch/comicat"
 
 describe("fetchComicatSubscriptionCandidates", () => {
-  it("parses rss items into comicat candidates with a prebuilt magnet url", async () => {
+  it("parses rss items into comicat candidates without prebuilt direct links", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       text: async () => `<?xml version="1.0" encoding="utf-8"?>
@@ -22,7 +22,7 @@ describe("fetchComicatSubscriptionCandidates", () => {
         sourceId: "comicat",
         title: "[LoliHouse] Episode 01",
         detailUrl: "http://www.comicat.org/show-86584c42ac1abb6a346effaa1faff53448f1b71a.html",
-        magnetUrl: "magnet:?xt=urn:btih:86584c42ac1abb6a346effaa1faff53448f1b71a",
+        magnetUrl: "",
         torrentUrl: "",
         subgroup: ""
       }

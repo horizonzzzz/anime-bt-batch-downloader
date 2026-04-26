@@ -81,7 +81,7 @@ export async function fetchComicatSubscriptionCandidates(
       sourceId: "comicat",
       title,
       detailUrl,
-      magnetUrl: `magnet:?xt=urn:btih:${hash}`,
+      magnetUrl: "",
       torrentUrl: "",
       subgroup: ""
     }]

@@ -1,4 +1,4 @@
-import { getSourceAdapterForPage, getSourceAdapters } from "../sources"
+import { getSourceAdapterForPage } from "../sources"
 import type { SourceAdapter } from "../sources/types"
 import { resolveSourceEnabled } from "../sources/config/selectors"
 import type { SourceConfig } from "../sources/config/types"
@@ -13,16 +13,10 @@ export function getSourceAdapterForLocation(location: Pick<Location, "href"> | U
 }
 
 export function getSourceAdapterForDocument(
-  root: ParentNode = document,
+  _root: ParentNode = document,
   location: Pick<Location, "href"> | URL = window.location
 ): SourceAdapter | null {
-  const pageUrl = toUrl(location)
-  const source = getSourceAdapterForPage(pageUrl)
-  if (source) {
-    return source
-  }
-
-  return getSourceAdapters().find((adapter) => adapter.matchesListDocument?.(root, pageUrl)) ?? null
+  return getSourceAdapterForLocation(location)
 }
 
 export function getEnabledSourceAdapterForLocation(

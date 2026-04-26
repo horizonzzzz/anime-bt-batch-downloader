@@ -21,7 +21,6 @@ import {
   getBatchItemFromAnchor,
   getDetailAnchors,
   getEnabledSourceAdapterForLocation,
-  getSourceAdapterForDocument,
   getSourceAdapterForLocation
 } from "../../lib/content/page"
 import { buildSelectableBatchItem, type SelectableBatchItem } from "../../lib/content/filter-selection"
@@ -111,14 +110,11 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
   let panelUi: ShadowRootContentScriptUi<Root> | null = null
   let observer: MutationObserver | null = null
   let observerTimer: number | null = null
-  let pendingSourceObserver: MutationObserver | null = null
-  let pendingSourceObserverTimer: number | null = null
   let contentSettingsRefreshInFlight: Promise<void> | null = null
   let contentSettingsRefreshQueued = false
 
   ctx.onInvalidated(() => {
     disconnectObserver()
-    disconnectPendingSourceObserver()
     deactivateSource()
   })
 
@@ -126,9 +122,8 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
 
   async function bootstrap() {
     try {
-      const matchedSource = detectSourceForCurrentDocument()
+      const matchedSource = getSourceAdapterForLocation(window.location)
       if (!matchedSource) {
-        observePendingSourceDetection()
         return
       }
 
@@ -138,13 +133,8 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
     }
   }
 
-  function detectSourceForCurrentDocument(): SourceAdapter | null {
-    return getSourceAdapterForLocation(window.location) ?? getSourceAdapterForDocument(document, window.location)
-  }
-
   async function activateMatchedPageSource(source: SourceAdapter) {
     matchedPageSource = source
-    disconnectPendingSourceObserver()
     registerRuntimeMessageListener()
     await requestContentSettingsRefresh()
   }
@@ -368,53 +358,6 @@ export async function startSourceBatchContentScript(ctx: ContentScriptContext) {
       observer.disconnect()
       observer = null
     }
-  }
-
-  function disconnectPendingSourceObserver() {
-    if (pendingSourceObserverTimer !== null) {
-      globalThis.clearTimeout(pendingSourceObserverTimer)
-      pendingSourceObserverTimer = null
-    }
-
-    if (pendingSourceObserver) {
-      pendingSourceObserver.disconnect()
-      pendingSourceObserver = null
-    }
-  }
-
-  function observePendingSourceDetection() {
-    if (pendingSourceObserver) {
-      return
-    }
-
-    const root = document.body ?? document.documentElement
-    if (!root) {
-      return
-    }
-
-    pendingSourceObserver = new MutationObserver(() => {
-      if (pendingSourceObserverTimer !== null) {
-        globalThis.clearTimeout(pendingSourceObserverTimer)
-      }
-
-      pendingSourceObserverTimer = ctx.setTimeout(() => {
-        void detectAndActivatePendingSource()
-      }, 150)
-    })
-
-    pendingSourceObserver.observe(root, {
-      childList: true,
-      subtree: true
-    })
-  }
-
-  async function detectAndActivatePendingSource() {
-    const matchedSource = detectSourceForCurrentDocument()
-    if (!matchedSource) {
-      return
-    }
-
-    await activateMatchedPageSource(matchedSource)
   }
 
   function observeMutations() {
