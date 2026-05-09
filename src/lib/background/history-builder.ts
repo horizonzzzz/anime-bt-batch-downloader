@@ -100,9 +100,9 @@ export function buildHistoryRecord(
 export function persistBatchHistory(
   job: BatchJob,
   sourceId: SourceId
-): void {
+): Promise<void> {
   const record = buildHistoryRecord(job, sourceId)
-  saveTaskHistory(record).catch((err) =>
+  return saveTaskHistory(record).catch((err) => {
     console.warn("Failed to save task history:", err)
-  )
+  })
 }

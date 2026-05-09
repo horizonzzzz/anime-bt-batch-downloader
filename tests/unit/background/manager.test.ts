@@ -451,6 +451,79 @@ describe("createBatchDownloadManager", () => {
     )
   })
 
+  it("keeps the batch run alive until task history persistence finishes", async () => {
+    let resolveHistory: (() => void) | undefined
+    persistBatchHistoryMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveHistory = resolve
+        })
+    )
+
+    const { manager, dependencies, downloader } = createManager()
+
+    await manager.startBatchDownload(
+      31,
+      [
+        {
+          sourceId: "kisssub",
+          detailUrl: "https://www.kisssub.org/show-deadbeef.html",
+          title: "Episode 01",
+          magnetUrl: "magnet:?xt=urn:btih:historyawait"
+        }
+      ],
+      ""
+    )
+
+    await vi.waitFor(() => {
+      expect(persistBatchHistoryMock).toHaveBeenCalledTimes(1)
+    })
+    await vi.waitFor(() => {
+      expect(dependencies.sendBatchEvent.mock.calls.at(-1)?.[1]).toMatchObject({
+        stage: "completed"
+      })
+    })
+
+    expect(downloader.addUrls).toHaveBeenCalledTimes(1)
+
+    await expect(
+      manager.startBatchDownload(
+        31,
+        [
+          {
+            sourceId: "kisssub",
+            detailUrl: "https://www.kisssub.org/show-feedface.html",
+            title: "Episode 02",
+            magnetUrl: "magnet:?xt=urn:btih:historystillrunning"
+          }
+        ],
+        ""
+      )
+    ).rejects.toThrow("A batch download is already running in this tab.")
+
+    resolveHistory?.()
+
+    await vi.waitFor(async () => {
+      await expect(
+        manager.startBatchDownload(
+          31,
+          [
+            {
+              sourceId: "kisssub",
+              detailUrl: "https://www.kisssub.org/show-cafebabe.html",
+              title: "Episode 03",
+              magnetUrl: "magnet:?xt=urn:btih:historyfinished"
+            }
+          ],
+          ""
+        )
+      ).resolves.toEqual({
+        ok: true,
+        total: 1
+      })
+    })
+  })
+
   it("blocks unmatched extracted items when enabled filters exist", async () => {
     const { manager, dependencies, downloader } = createManager({
       extractSingleItem: vi.fn().mockResolvedValue({

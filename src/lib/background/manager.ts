@@ -131,7 +131,8 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
 
     await finalizeBatch(job, null)
     const sourceId = items[0]?.sourceId ?? "kisssub"
-    persistBatchHistory(job, sourceId)
+    await persistBatchHistory(job, sourceId)
+    activeJobs.delete(job.sourceTabId)
   }
 
   async function processQueue(
@@ -180,8 +181,6 @@ export function createBatchDownloadManager(dependencies: BackgroundBatchDependen
         message: entry.message
       }))
     })
-
-    activeJobs.delete(job.sourceTabId)
   }
 
   async function submitPreparedResults(

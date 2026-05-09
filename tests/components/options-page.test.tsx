@@ -1249,6 +1249,9 @@ describe("OptionsPage", () => {
       await user.type(screen.getByLabelText("筛选器名称"), "爱恋 1080 简繁")
       await user.click(screen.getByLabelText("必须条件字段 1"))
       await user.click(await screen.findByRole("option", { name: "字幕组" }))
+      await waitFor(() => {
+        expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+      })
       await user.clear(screen.getByLabelText("必须条件值 1"))
       await user.type(screen.getByLabelText("必须条件值 1"), "爱恋字幕社")
       await user.click(screen.getByRole("button", { name: "添加必须条件" }))

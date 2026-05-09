@@ -551,8 +551,9 @@ test("filter builder site tags stay interactable inside the sheet", async () => 
     await page.getByTestId("filter-source-tag-acgrip").click()
 
     await expect(page.getByTestId("filter-source-tag-bangumimoe")).toHaveAttribute("aria-pressed", "true")
-    await expect(page.getByText("已选 1 个站点")).toBeVisible()
-    await expect(page.getByText(/适用站点：Bangumi\.moe/)).toBeVisible()
+    await expect(page.getByTestId("filter-source-tag-comicat")).toHaveAttribute("aria-pressed", "true")
+    await expect(page.getByText("已选 2 个站点")).toBeVisible()
+    await expect(page.getByText(/适用站点：Bangumi\.moe.*Comicat/)).toBeVisible()
 
     await page.close()
   } finally {
