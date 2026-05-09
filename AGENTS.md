@@ -314,6 +314,7 @@ Commands are defined in `package.json`:
 - `pnpm dev`
 - `pnpm build`
 - `pnpm package`
+- `pnpm run screenshots:readme`
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm test:watch`
@@ -337,7 +338,7 @@ Commands are defined in `package.json`:
 - Prefer editing the real source files listed above, not generated outputs.
 - If a change adds a new source adapter, changes downloader behavior, alters commands, changes test coverage, moves responsibilities between directories, or changes major runtime flow, update this file in the same change.
 - If a change alters release notes sourcing, tagged asset naming, or GitHub release automation, update `CHANGELOG.md`, `.github/workflows/release.yml`, and this file together.
-- When preparing a version release, `CHANGELOG.md` must be updated before tagging. Treat this as a required release step, not an optional documentation cleanup.
+- When preparing a version release, `CHANGELOG.md` must be updated before tagging, and `pnpm run screenshots:readme` must be run so README product screenshots match the release build. Treat these as required release steps, not optional documentation cleanup.
 - Each new `CHANGELOG.md` version section must cover the diff from the previous version tag to the new release commit, rather than only summarizing the final release commit itself.
 - Each new version section must use this structure under `## <version>`:
   - `### Features`

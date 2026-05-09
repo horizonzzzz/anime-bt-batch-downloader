@@ -6,6 +6,16 @@ Anime BT Batch Downloader 是一个开源浏览器扩展，用于把受支持的
 
 项目基于 `WXT + React 19 + TypeScript` 构建，并通过源站适配器组织站点逻辑，使扩展可以从单站脚本逐步演进为可复用的多源站动漫 BT 工具。
 
+## 产品截图
+
+| 弹出窗口 | 下载器配置 |
+| --- | --- |
+| ![弹出窗口状态与快捷操作](docs/screenshots/popup.png) | ![下载器配置工作台](docs/screenshots/options-general.png) |
+
+| 源站页面注入 | 注入后的批量浮层 |
+| --- | --- |
+| ![模拟源站页面中的注入选择界面](docs/screenshots/source-page-injected.png) | ![注入后的批量下载浮层](docs/screenshots/injected-panel.png) |
+
 ## 功能特性
 
 - 直接在受支持的动漫 BT 源站列表页批量勾选条目
@@ -119,6 +129,7 @@ http://127.0.0.1:9091/transmission/rpc
 pnpm dev
 pnpm build
 pnpm package
+pnpm run screenshots:readme
 pnpm typecheck
 pnpm test
 pnpm test:e2e

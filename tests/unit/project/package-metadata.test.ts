@@ -123,6 +123,34 @@ describe("package metadata", () => {
     expect(packageJson.scripts?.dev).not.toContain("wxt dev")
   })
 
+  it("documents generated product screenshots in both README files", () => {
+    const packageJson = readPackageJson()
+    const englishReadme = readText("README.md")
+    const chineseReadme = readText("README.zh-CN.md")
+    const screenshotScript = readText("scripts/capture-readme-screenshots.mjs")
+    const screenshotPaths = [
+      "docs/screenshots/popup.png",
+      "docs/screenshots/options-general.png",
+      "docs/screenshots/source-page-injected.png",
+      "docs/screenshots/injected-panel.png"
+    ]
+
+    expect(packageJson.scripts?.["screenshots:readme"]).toBe(
+      "pnpm build && node scripts/capture-readme-screenshots.mjs"
+    )
+
+    for (const screenshotPath of screenshotPaths) {
+      expect(existsSync(resolve(process.cwd(), screenshotPath))).toBe(true)
+      expect(englishReadme).toContain(screenshotPath)
+      expect(chineseReadme).toContain(screenshotPath)
+    }
+
+    expect(screenshotScript).toContain("buildFallbackSourcePageHtml")
+    expect(screenshotScript).toContain("tryOpenRealSourcePage")
+    expect(screenshotScript).toContain("模拟页面，仅用于展示扩展注入效果")
+    expect(screenshotScript).not.toContain("path: screenshots.optionsGeneral, fullPage: true")
+  })
+
   it("uses WXT entrypoints instead of root-level extension entry files", () => {
     expect(existsSync(resolve(process.cwd(), "wxt.config.ts"))).toBe(true)
     expect(existsSync(resolve(process.cwd(), "src", "entrypoints", "background", "index.ts"))).toBe(

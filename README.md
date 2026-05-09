@@ -6,6 +6,16 @@ Anime BT Batch Downloader is an open-source browser extension for batching downl
 
 Built with `WXT + React 19 + TypeScript`, the project is organized around source adapters so the extension can evolve from a single-site workflow into a reusable multi-source anime BT tool.
 
+## Product Screenshots
+
+| Popup | Downloader configuration |
+| --- | --- |
+| ![Popup status and quick actions](docs/screenshots/popup.png) | ![Downloader configuration workspace](docs/screenshots/options-general.png) |
+
+| Source page injection | Injected batch panel |
+| --- | --- |
+| ![Simulated source page with injected selection UI](docs/screenshots/source-page-injected.png) | ![Injected batch download panel](docs/screenshots/injected-panel.png) |
+
 ## Features
 
 - Batch-select posts directly from supported anime BT source list pages
@@ -119,6 +129,7 @@ The extension will then:
 pnpm dev
 pnpm build
 pnpm package
+pnpm run screenshots:readme
 pnpm typecheck
 pnpm test
 pnpm test:e2e

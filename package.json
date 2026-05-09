@@ -11,6 +11,7 @@
     "dev": "wxt",
     "build": "wxt build",
     "package": "wxt clean && wxt zip",
+    "screenshots:readme": "pnpm build && node scripts/capture-readme-screenshots.mjs",
     "postinstall": "wxt prepare",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
