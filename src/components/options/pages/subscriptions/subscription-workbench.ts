@@ -32,6 +32,10 @@ const SUBSCRIPTION_SOURCE_OPTIONS: SubscriptionSourceOption[] = [
   {
     value: "dongmanhuayuan",
     label: i18n.t("options.sites.catalog.dongmanhuayuan.navLabel")
+  },
+  {
+    value: "kisssub",
+    label: i18n.t("options.sites.catalog.kisssub.navLabel")
   }
 ]
 

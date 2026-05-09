@@ -2,19 +2,19 @@ import type { SourceSubscriptionScanCandidate } from "../../sources/types"
 import { extractRssItems, extractRssTagValue } from "./rss"
 import type { SubscriptionSourceFetchFunction, SubscriptionSourceFetcher } from "./types"
 
-const COMICAT_RSS_URL = "http://www.comicat.org/rss.xml"
+const KISSSUB_RSS_URL = "https://www.kisssub.org/rss.xml"
 
 function extractDetailHash(detailUrl: string) {
   const match = detailUrl.match(/show-([a-f0-9]{40})\.html/i)
   return match ? match[1].toLowerCase() : ""
 }
 
-export async function fetchComicatSubscriptionCandidates(
+export async function fetchKisssubSubscriptionCandidates(
   fetchImpl: SubscriptionSourceFetchFunction = fetch
 ): Promise<SourceSubscriptionScanCandidate[]> {
-  const response = await fetchImpl(COMICAT_RSS_URL)
+  const response = await fetchImpl(KISSSUB_RSS_URL)
   if (!response.ok) {
-    throw new Error(`Comicat subscription fetch failed: ${response.status}`)
+    throw new Error(`Kisssub subscription fetch failed: ${response.status}`)
   }
 
   const xml = await response.text()
@@ -29,7 +29,7 @@ export async function fetchComicatSubscriptionCandidates(
     }
 
     return [{
-      sourceId: "comicat",
+      sourceId: "kisssub",
       title,
       detailUrl,
       magnetUrl: "",
@@ -39,9 +39,9 @@ export async function fetchComicatSubscriptionCandidates(
   })
 }
 
-export const comicatSubscriptionSourceFetcher: SubscriptionSourceFetcher = {
-  sourceId: "comicat",
+export const kisssubSubscriptionSourceFetcher: SubscriptionSourceFetcher = {
+  sourceId: "kisssub",
   fetchCandidates(fetchImpl) {
-    return fetchComicatSubscriptionCandidates(fetchImpl)
+    return fetchKisssubSubscriptionCandidates(fetchImpl)
   }
 }

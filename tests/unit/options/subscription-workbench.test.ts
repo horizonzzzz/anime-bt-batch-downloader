@@ -121,17 +121,19 @@ describe("subscription workbench helpers", () => {
     expect(duplicated).not.toHaveProperty("deletedAt")
   })
 
-  it("keeps subscription source helpers aligned to the four supported background scan sites", () => {
+  it("keeps subscription source helpers aligned to the supported background scan sites", () => {
     expect(getSubscriptionSourceOptions().map((option) => option.value)).toEqual([
       "acgrip",
       "bangumimoe",
       "comicat",
-      "dongmanhuayuan"
+      "dongmanhuayuan",
+      "kisssub"
     ])
 
-    const mixedSummary = summarizeSubscriptionSourceIds(["acgrip", "dongmanhuayuan"])
+    const mixedSummary = summarizeSubscriptionSourceIds(["acgrip", "dongmanhuayuan", "kisssub"])
     expect(mixedSummary).toContain("ACG.RIP")
     expect(mixedSummary).toContain("Dongmanhuayuan")
+    expect(mixedSummary).toContain("Kisssub")
   })
 
   it("summarizes the newest retained hit instead of the oldest one", () => {

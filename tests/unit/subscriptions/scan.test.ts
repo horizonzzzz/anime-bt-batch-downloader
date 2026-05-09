@@ -378,6 +378,36 @@ describe("background fetcher registry", () => {
     ])
   })
 
+  it("fetches Kisssub candidates through the RSS-backed source fetcher", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        `<?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0">
+            <channel>
+              <item>
+                <title><![CDATA[[LoliHouse] Medalist - 01 [1080p]]]></title>
+                <link>https://www.kisssub.org/show-86584c42ac1abb6a346effaa1faff53448f1b71a.html</link>
+              </item>
+            </channel>
+          </rss>`,
+        { status: 200 }
+      )
+    )
+
+    await expect(
+      scanSubscriptionCandidatesFromSource("kisssub", {
+        fetchImpl
+      })
+    ).resolves.toEqual([
+      expect.objectContaining({
+        sourceId: "kisssub",
+        detailUrl: "https://www.kisssub.org/show-86584c42ac1abb6a346effaa1faff53448f1b71a.html",
+        magnetUrl: "",
+        torrentUrl: ""
+      })
+    ])
+  })
+
   it("does not require content-script ready state or tab messaging for subscription scans", async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(
