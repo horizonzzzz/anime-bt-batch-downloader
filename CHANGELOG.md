@@ -2,6 +2,23 @@
 
 All notable release changes for `Anime BT Batch Downloader` are tracked here. GitHub Release pages should reuse the matching version section from this file.
 
+## 2.2.0
+
+### Features
+
+- Added built-in KissSub detail-page link construction and RSS-based subscription scans so KissSub no longer depends on remote helper script injection for extraction or background polling. (`74421ff`, `2d347aa`, `0d13751`)
+- Added Comicat source support across source primitives, list/detail extraction, options-page management, subscription scanning, fixture coverage, and public torrent-file delivery. (`7b80823`, `1385d96`, `8ef8487`, `29f6246`, `2a2db0d`, `8cc2b1d`, `e068858`, `72b67ca`)
+- Added Dongmanhuayuan background subscription scans and a streamlined general-settings status panel. (`52f80cd`, `69ccb52`)
+
+### Fixes
+
+- Fixed KissSub and Comicat visitor-test handling by preventing remote visitor-test script injection, detecting challenge pages, and cleaning up subscription/download behavior around protected pages. (`1153b3b`, `c322fe4`, `6beb6f5`)
+- Fixed downloader validation and final release blockers so validation feedback, history metadata, release workflow checks, options tests, and E2E expectations stay aligned for the stable release. (`fb7ec26`, `aafb12e`)
+
+### Refactor
+
+- Removed KissSub remote script configuration from settings, exports, fixtures, and the options UI after replacing it with direct page-config extraction. (`93cdb85`, `fb75bd7`, `556852f`)
+
 ## 2.2.0-beta.4
 
 ### Features
