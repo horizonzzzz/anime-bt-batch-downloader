@@ -2,6 +2,12 @@
 
 All notable release changes for `Anime BT Batch Downloader` are tracked here. GitHub Release pages should reuse the matching version section from this file.
 
+## 2.2.1
+
+### Features
+
+- Added generated product screenshots to the English and Chinese README files, plus a reusable screenshot capture command and metadata coverage for the release documentation workflow. (`90ca5ed`)
+
 ## 2.2.0
 
 ### Features
