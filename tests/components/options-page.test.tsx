@@ -22,6 +22,13 @@ const permissionsRequestMock = vi.fn()
 const scrollIntoViewMock = vi.fn()
 
 const sendRuntimeRequestMock = vi.hoisted(() => vi.fn())
+const padDatePart = (value: number) => value.toString().padStart(2, "0")
+
+function formatExpectedSubscriptionDateTime(value: string) {
+  const date = new Date(value)
+
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())} ${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`
+}
 
 vi.mock("../../src/lib/shared/messages", async () => {
   const actual = await vi.importActual<typeof import("../../src/lib/shared/messages")>(
@@ -923,7 +930,8 @@ describe("OptionsPage", () => {
     "creates a subscription from the subscriptions workspace without calling app-settings save",
     async () => {
       const user = userEvent.setup()
-      await setLastSchedulerRunAt("2026-04-14T09:30:00.000Z")
+      const lastSchedulerRunAt = "2026-04-14T09:30:00.000Z"
+      await setLastSchedulerRunAt(lastSchedulerRunAt)
       const api = createOptionsApi()
 
       render(<OptionsPage api={api} />)
@@ -933,7 +941,7 @@ describe("OptionsPage", () => {
       await user.click(screen.getByRole("button", { name: "订阅" }))
 
       expect(screen.getByText("上次调度运行")).toBeInTheDocument()
-      await screen.findByText("2026-04-14 17:30")
+      await screen.findByText(formatExpectedSubscriptionDateTime(lastSchedulerRunAt))
 
       await user.click(screen.getAllByRole("button", { name: "新增订阅" })[0])
 
